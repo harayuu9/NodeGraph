@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Sample.SourceGenerator": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "../../test/NodeGraph.UnitTest/NodeGraph.UnitTest.csproj"
+    }
+  }
+}

@@ -2,24 +2,38 @@
 
 namespace NodeGraph.UnitTest;
 
+[Node]
+public partial class AddNode
+{
+    [Input] private int _a = 50;
+    [Input] private int _b = 100;
+    
+    [Output] private int _result;
+    public int Result => _result;
+
+    protected override Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        _result = _a + _b;
+        return Task.CompletedTask;
+    }
+}
+
 public class UnitTest1
 {
     [Fact]
-    public void Test1()
+    public async Task Test1()
     {
-        var graph = new Graph();
+        var node1 = new AddNode();
+        node1.Initialize();
+        var node2 = new AddNode();
+        node2.Initialize();
         
-        var nodeA = new Node();
-        nodeA.OutputPorts.Add(new Port(nodeA));
-        var nodeAOutputPort = nodeA.OutputPorts[0];
+        node2.ConnectInput(0, node1, 0);
+        node2.ConnectInput(1, node1, 0);
         
-        var nodeB = new Node();
-        nodeB.InputPorts.Add(new Port(nodeB));
-        var nodeBInputPort = nodeB.InputPorts[0];
-        nodeBInputPort.ConnectedPort = nodeAOutputPort;
-        nodeAOutputPort.ConnectedPort = nodeBInputPort;
-        
-        graph.Nodes.Add(nodeA);
-        graph.Nodes.Add(nodeB);
+        await node1.ExecuteNodeAsync(CancellationToken.None);
+        await node2.ExecuteNodeAsync(CancellationToken.None);
+        Assert.Equal(150, node1.Result);
+        Assert.Equal(300, node2.Result);
     }
 }
