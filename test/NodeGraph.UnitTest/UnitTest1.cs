@@ -3,6 +3,33 @@
 namespace NodeGraph.UnitTest;
 
 [Node]
+public partial class ConstantNode
+{
+    [Output] private int _value;
+
+    public void SetValue(int value)
+    {
+        _value = value;
+    }
+    
+    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+[Node]
+public partial class ResultNode
+{
+    [Input] private int _value;
+    public int Value => _value;
+    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+[Node]
 public partial class AddNode
 {
     [Input] private int _a = 50;
@@ -11,7 +38,7 @@ public partial class AddNode
     [Output] private int _result;
     public int Result => _result;
 
-    protected override Task ExecuteAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
         _result = _a + _b;
         return Task.CompletedTask;
@@ -23,17 +50,29 @@ public class UnitTest1
     [Fact]
     public async Task Test1()
     {
-        var node1 = new AddNode();
-        node1.Initialize();
-        var node2 = new AddNode();
-        node2.Initialize();
+        var graph = new Graph();
+
+        var a = graph.CreateNode<ConstantNode>();
+        a.SetValue(100);
+        var b = graph.CreateNode<ConstantNode>();
+        b.SetValue(200);
+        var c = graph.CreateNode<ConstantNode>();
+        c.SetValue(50);
+
+        var add1 = graph.CreateNode<AddNode>();
+        add1.ConnectInput(0, a, 0);
+        add1.ConnectInput(1, b, 0);
         
-        node2.ConnectInput(0, node1, 0);
-        node2.ConnectInput(1, node1, 0);
+        var add2 = graph.CreateNode<AddNode>();
+        add2.ConnectInput(0, add1, 0);
+        add2.ConnectInput(1, c, 0);
         
-        await node1.ExecuteNodeAsync(CancellationToken.None);
-        await node2.ExecuteNodeAsync(CancellationToken.None);
-        Assert.Equal(150, node1.Result);
-        Assert.Equal(300, node2.Result);
+        var result = graph.CreateNode<ResultNode>();
+        result.ConnectInput(0, add2, 0);
+        
+        await graph.Execute();
+
+        var resultNode = graph.GetNodes<ResultNode>().First();
+        Assert.Equal(350, resultNode.Value);
     }
 }
