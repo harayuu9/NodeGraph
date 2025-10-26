@@ -70,9 +70,14 @@ public class UnitTest1
         var result = graph.CreateNode<ResultNode>();
         result.ConnectInput(0, add2, 0);
         
-        await graph.Execute();
+        var executor = graph.CreateExecutor();
+        await executor.ExecuteAsync();
 
         var resultNode = graph.GetNodes<ResultNode>().First();
         Assert.Equal(350, resultNode.Value);
+        
+        a.SetValue(resultNode.Value);
+        await executor.ExecuteAsync();
+        Assert.Equal(600, resultNode.Value);
     }
 }
