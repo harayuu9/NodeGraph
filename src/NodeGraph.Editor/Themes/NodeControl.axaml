@@ -4,7 +4,9 @@
                     x:CompileBindings="True">
     <Design.PreviewWith>
         <Border Padding="20">
-            <controls:NodeControl/>
+            <controls:NodeControl>
+                <TextBlock Text="Inner Element" Foreground="White"/>
+            </controls:NodeControl>
         </Border>
     </Design.PreviewWith>
     <ControlTheme x:Key="{x:Type controls:NodeControl}" TargetType="controls:NodeControl">
@@ -47,12 +49,12 @@
             </ControlTemplate>
         </Setter>
 
-        <Style Selector="^:selected">
-            <Setter Property="BorderBrush" Value="#FFA500"/>
-        </Style>
-
         <Style Selector="^:pointerover">
             <Setter Property="BorderBrush" Value="#00BFFF"/>
+        </Style>
+
+        <Style Selector="^:selected">
+            <Setter Property="BorderBrush" Value="#FFA500"/>
         </Style>
 
     </ControlTheme>

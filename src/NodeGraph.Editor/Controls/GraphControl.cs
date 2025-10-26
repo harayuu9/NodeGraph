@@ -37,8 +37,7 @@ public class GraphControl : TemplatedControl
 
     #region Styled Properties
 
-    public static readonly StyledProperty<EditorGraph?> GraphProperty =
-        AvaloniaProperty.Register<GraphControl, EditorGraph?>(nameof(Graph));
+    public static readonly StyledProperty<EditorGraph?> GraphProperty = AvaloniaProperty.Register<GraphControl, EditorGraph?>(nameof(Graph));
 
     public EditorGraph? Graph
     {
@@ -46,8 +45,7 @@ public class GraphControl : TemplatedControl
         set => SetValue(GraphProperty, value);
     }
 
-    public static readonly StyledProperty<double> ZoomProperty =
-        AvaloniaProperty.Register<GraphControl, double>(nameof(Zoom), 1.0);
+    public static readonly StyledProperty<double> ZoomProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(Zoom), 1.0);
 
     public double Zoom
     {
@@ -55,8 +53,7 @@ public class GraphControl : TemplatedControl
         set => SetValue(ZoomProperty, Math.Clamp(value, MinZoom, MaxZoom));
     }
 
-    public static readonly StyledProperty<double> MinZoomProperty =
-        AvaloniaProperty.Register<GraphControl, double>(nameof(MinZoom), 0.1);
+    public static readonly StyledProperty<double> MinZoomProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(MinZoom), 0.1);
 
     public double MinZoom
     {
@@ -64,8 +61,7 @@ public class GraphControl : TemplatedControl
         set => SetValue(MinZoomProperty, value);
     }
 
-    public static readonly StyledProperty<double> MaxZoomProperty =
-        AvaloniaProperty.Register<GraphControl, double>(nameof(MaxZoom), 5.0);
+    public static readonly StyledProperty<double> MaxZoomProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(MaxZoom), 5.0);
 
     public double MaxZoom
     {
@@ -73,8 +69,7 @@ public class GraphControl : TemplatedControl
         set => SetValue(MaxZoomProperty, value);
     }
 
-    public static readonly StyledProperty<double> PanXProperty =
-        AvaloniaProperty.Register<GraphControl, double>(nameof(PanX), 0.0);
+    public static readonly StyledProperty<double> PanXProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(PanX), 0.0);
 
     public double PanX
     {
@@ -82,8 +77,7 @@ public class GraphControl : TemplatedControl
         set => SetValue(PanXProperty, value);
     }
 
-    public static readonly StyledProperty<double> PanYProperty =
-        AvaloniaProperty.Register<GraphControl, double>(nameof(PanY), 0.0);
+    public static readonly StyledProperty<double> PanYProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(PanY), 0.0);
 
     public double PanY
     {
@@ -139,6 +133,13 @@ public class GraphControl : TemplatedControl
             e.Handled = true;
 
             OnPanStarted();
+        }
+        else if (properties.IsLeftButtonPressed)
+        {
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            
+            Graph?.SelectionManager.ClearSelection();
         }
     }
 

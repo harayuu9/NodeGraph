@@ -2,14 +2,21 @@
 
     <PropertyGroup>
         <TargetFrameworks>net9.0;netstandard2.1</TargetFrameworks>
-        <LangVersion>14</LangVersion>
+        <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="NodeGraph.UnitTest" />
-        <InternalsVisibleTo Include="NodeGraph.Editor" />
+        <InternalsVisibleTo Include="NodeGraph.UnitTest"/>
+        <InternalsVisibleTo Include="NodeGraph.Editor"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\NodeGraph.Generator\NodeGraph.Generator.csproj">
+            <OutputItemType>Analyzer</OutputItemType>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
     </ItemGroup>
 
 </Project>
