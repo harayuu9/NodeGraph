@@ -1,11 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NodeGraph.Editor.Models;
 
 namespace NodeGraph.Editor.Controls;
@@ -17,8 +22,13 @@ public class GraphControl : TemplatedControl
 {
     private Canvas? _canvas;
     private Canvas? _overlayCanvas;
+    private Canvas? _uiCanvas;
     private Point _lastDragPoint;
     private bool _isDragging;
+
+    // コネクタ管理
+    private readonly Dictionary<EditorConnection, ConnectorControl> _connectorControls = new();
+    private bool _connectorUpdateScheduled;
 
     // 矩形選択用
     private bool _isSelecting;
@@ -101,6 +111,7 @@ public class GraphControl : TemplatedControl
 
         _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
         _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
+        _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
 
         if (_canvas != null)
         {
@@ -108,9 +119,16 @@ public class GraphControl : TemplatedControl
             OnGraphChanged();
         }
 
-        // 選択矩形の初期化
+        // オーバーレイキャンバスにも同じトランスフォームを適用（コネクタ用）
         if (_overlayCanvas != null)
         {
+            _overlayCanvas.RenderTransform = _transformGroup;
+        }
+
+        // UIキャンバスにはトランスフォームを適用しない（選択矩形用）
+        if (_uiCanvas != null)
+        {
+            // 選択矩形の初期化
             _selectionRectangle = new Rectangle
             {
                 Fill = new SolidColorBrush(Color.FromArgb(50, 100, 150, 255)),
@@ -118,7 +136,7 @@ public class GraphControl : TemplatedControl
                 StrokeThickness = 1,
                 IsVisible = false
             };
-            _overlayCanvas.Children.Add(_selectionRectangle);
+            _uiCanvas.Children.Add(_selectionRectangle);
         }
     }
 
@@ -226,10 +244,7 @@ public class GraphControl : TemplatedControl
         {
             _isSelecting = false;
 
-            if (_selectionRectangle != null)
-            {
-                _selectionRectangle.IsVisible = false;
-            }
+            _selectionRectangle?.IsVisible = false;
 
             var currentPoint = e.GetPosition(this);
             SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
@@ -306,13 +321,14 @@ public class GraphControl : TemplatedControl
         var right = Math.Max(start.X, end.X);
         var bottom = Math.Max(start.Y, end.Y);
 
-        // 変換を適用して矩形をキャンバス座標系に変換
-        var selectionRect = new Rect(
-            (left - PanX) / Zoom,
-            (top - PanY) / Zoom,
-            (right - left) / Zoom,
-            (bottom - top) / Zoom
-        );
+        // GraphControlの座標を_canvasの座標に変換
+        var topLeftCanvas = this.TranslatePoint(new Point(left, top), _canvas);
+        var bottomRightCanvas = this.TranslatePoint(new Point(right, bottom), _canvas);
+
+        if (!topLeftCanvas.HasValue || !bottomRightCanvas.HasValue)
+            return;
+
+        var selectionRect = new Rect(topLeftCanvas.Value, bottomRightCanvas.Value);
 
         // 矩形内のノードを検出
         var selectedNodes = Graph.Nodes
@@ -347,7 +363,15 @@ public class GraphControl : TemplatedControl
             return;
 
         _canvas.Children.Clear();
+        _connectorControls.Clear();
 
+        // 既存のノードのイベントハンドラを解除
+        foreach (var node in Graph.Nodes)
+        {
+            node.PropertyChanged -= OnNodePropertyChanged;
+        }
+
+        // ノードを作成
         foreach (var node in Graph.Nodes)
         {
             var nodeControl = CreateNodeControl(node);
@@ -357,7 +381,60 @@ public class GraphControl : TemplatedControl
                 Canvas.SetTop(nodeControl, node.PositionY);
                 _canvas.Children.Add(nodeControl);
             }
+
+            // ノードの位置変更を監視
+            node.PropertyChanged += OnNodePropertyChanged;
         }
+
+        // コネクタを作成
+        if (_overlayCanvas != null)
+        {
+            // 選択矩形以外のコネクタをクリア
+            var toRemove = _overlayCanvas.Children
+                .OfType<ConnectorControl>()
+                .ToList();
+            foreach (var control in toRemove)
+            {
+                _overlayCanvas.Children.Remove(control);
+            }
+
+            foreach (var connection in Graph.Connections)
+            {
+                var connectorControl = new ConnectorControl
+                {
+                    Connection = connection
+                };
+                _connectorControls[connection] = connectorControl;
+                _overlayCanvas.Children.Add(connectorControl);
+            }
+        }
+
+        // 初期座標を設定（レイアウト後に更新）
+        Dispatcher.UIThread.Post(UpdateConnectors, DispatcherPriority.Render);
+    }
+
+    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(EditorNode.PositionX) or nameof(EditorNode.PositionY))
+        {
+            ScheduleConnectorUpdate();
+        }
+    }
+
+    /// <summary>
+    /// コネクタの更新をスケジュールします（次のレンダリングフレームで実行）
+    /// </summary>
+    private void ScheduleConnectorUpdate()
+    {
+        if (_connectorUpdateScheduled)
+            return;
+
+        _connectorUpdateScheduled = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _connectorUpdateScheduled = false;
+            UpdateConnectors();
+        }, DispatcherPriority.Render);
     }
 
     /// <summary>
@@ -367,6 +444,86 @@ public class GraphControl : TemplatedControl
     protected virtual Control? CreateNodeControl(EditorNode node)
     {
         return new NodeControl { Node = node };
+    }
+
+    /// <summary>
+    /// すべてのコネクタの座標を更新します
+    /// </summary>
+    private void UpdateConnectors()
+    {
+        if (_canvas == null || _overlayCanvas == null || Graph == null)
+            return;
+
+        foreach (var (connection, connector) in _connectorControls)
+        {
+            var startPos = GetPortPosition(connection.SourceNode, connection.SourcePort);
+            var endPos = GetPortPosition(connection.TargetNode, connection.TargetPort);
+
+            if (startPos.HasValue && endPos.HasValue)
+            {
+                connector.StartX = startPos.Value.X + 4;
+                connector.StartY = startPos.Value.Y;
+                connector.EndX = endPos.Value.X - 4;
+                connector.EndY = endPos.Value.Y;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 指定されたノードとポートの画面上の座標を取得します
+    /// </summary>
+    private Point? GetPortPosition(EditorNode node, EditorPort port)
+    {
+        if (_canvas == null)
+        {
+            return null;
+        }
+
+        // ノードに対応するNodeControlを検索
+        var nodeControl = _canvas.Children
+            .OfType<NodeControl>()
+            .FirstOrDefault(nc => nc.Node == node);
+
+        if (nodeControl == null)
+        {
+            return null;
+        }
+
+        // PortControlを検索
+        var portControl = FindPortControl(nodeControl, port);
+
+        // PortControl内のEllipseを検索
+        var ellipse = portControl?.GetVisualDescendants()
+            .OfType<Ellipse>()
+            .FirstOrDefault();
+
+        if (ellipse == null)
+        {
+            return null;
+        }
+
+        // Ellipseの中心座標を_canvas座標系で取得
+        var ellipseBounds = ellipse.Bounds;
+        var centerInEllipse = new Point(ellipseBounds.Width / 2, ellipseBounds.Height / 2);
+
+        // Ellipseから_canvasへの座標変換
+        // _canvasと_overlayCanvasは同じトランスフォームを共有しているため、
+        // _canvas座標系で取得した座標はそのまま_overlayCanvasでも使用可能
+        var centerInCanvas = ellipse.TranslatePoint(centerInEllipse, _canvas);
+
+        return centerInCanvas;
+    }
+
+    /// <summary>
+    /// NodeControl内から指定されたEditorPortに対応するPortControlを検索します
+    /// </summary>
+    private static PortControl? FindPortControl(NodeControl nodeControl, EditorPort port)
+    {
+        // VisualTreeをトラバースしてPortControlを検索
+        // ItemsControlで生成されたコントロールはVisualTreeに配置される
+        return nodeControl.GetVisualDescendants()
+            .OfType<PortControl>()
+            .FirstOrDefault(pc => pc.Port == port);
     }
 
     #endregion
@@ -385,6 +542,7 @@ public class GraphControl : TemplatedControl
     /// </summary>
     protected virtual void OnPanning(Vector delta)
     {
+        ScheduleConnectorUpdate();
     }
 
     /// <summary>
@@ -399,6 +557,7 @@ public class GraphControl : TemplatedControl
     /// </summary>
     protected virtual void OnZoomChanged(double oldZoom, double newZoom, Point zoomCenter)
     {
+        ScheduleConnectorUpdate();
     }
 
     #endregion

@@ -35,11 +35,18 @@
                             <!-- ノードはコードビハインドで動的に追加されます -->
                         </Canvas>
 
-                        <!-- UI オーバーレイ (将来の拡張用) -->
+                        <!-- UI オーバーレイ (コネクタなど、トランスフォームあり) -->
                         <Canvas x:Name="PART_OverlayCanvas"
                                 ClipToBounds="False"
                                 IsHitTestVisible="False">
                             <!-- 接続線などはここに描画可能 -->
+                        </Canvas>
+
+                        <!-- UI オーバーレイ (選択矩形など、トランスフォームなし) -->
+                        <Canvas x:Name="PART_UICanvas"
+                                ClipToBounds="False"
+                                IsHitTestVisible="False">
+                            <!-- 選択矩形などはここに描画 -->
                         </Canvas>
                     </Grid>
                 </Border>

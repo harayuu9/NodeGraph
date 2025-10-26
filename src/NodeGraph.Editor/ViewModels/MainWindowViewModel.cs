@@ -14,10 +14,18 @@ public partial class MainWindowViewModel : ViewModelBase
         var graph = new Graph();
 
         // テスト用のノードを作成
-        graph.CreateNode<FloatConstantNode>();
-        graph.CreateNode<FloatConstantNode>();
-        graph.CreateNode<FloatAddNode>();
-        graph.CreateNode<FloatResultNode>();
+        var a1 = graph.CreateNode<FloatConstantNode>();
+        a1.SetValue(10);
+        
+        var a2 = graph.CreateNode<FloatConstantNode>();
+        a2.SetValue(5);
+        
+        var add = graph.CreateNode<FloatAddNode>();
+        add.ConnectInput(0, a1, 0);
+        add.ConnectInput(1, a2, 0);
+        
+        var res = graph.CreateNode<FloatResultNode>();
+        res.ConnectInput(0, add, 0);
 
         // EditorGraphでラップ（SelectionManagerを注入）
         TestGraph = new EditorGraph(graph, selectionManager);

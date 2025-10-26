@@ -17,7 +17,7 @@ public class InputPort<T> : InputPort
         
         var x = (OutputPort<T>)other;
         ConnectedPortRaw = x;
-        x.ConnectedPorts.Add(this);
+        x.ConnectedPortsRaw.Add(this);
     }
 
     public override void Disconnect()

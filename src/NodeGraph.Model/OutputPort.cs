@@ -11,38 +11,39 @@ public class OutputPort<T> : OutputPort
     {
         set
         {
-            foreach (var port in ConnectedPorts)
+            foreach (var port in ConnectedPortsRaw)
             {
                 port.Value = value;
             }
         }
     }
 
-    public List<InputPort<T>> ConnectedPorts { get; } = [];
+    public List<InputPort<T>> ConnectedPortsRaw { get; } = [];
+    internal override IReadOnlyList<InputPort> ConnectedPorts => ConnectedPortsRaw;
     public override bool CanConnect(InputPort other) => other is InputPort<T>;
     public override void Connect(InputPort other)
     {
         other.Disconnect();
         
         var x = (InputPort<T>)other;
-        ConnectedPorts.Add(x);
+        ConnectedPortsRaw.Add(x);
         x.ConnectedPortRaw = this;
     }
 
     public override void Disconnect()
     {
-        foreach (var x in ConnectedPorts)
+        foreach (var x in ConnectedPortsRaw)
         {
             x.ConnectedPortRaw = null;
         }
-        ConnectedPorts.Clear();  
+        ConnectedPortsRaw.Clear();  
     }
 
     public override void Disconnect(InputPort inputPort)
     {
         var x = (InputPort<T>)inputPort;
         x.ConnectedPortRaw = null;
-        ConnectedPorts.Remove(x);
+        ConnectedPortsRaw.Remove(x);
     }
 }
 
@@ -57,6 +58,7 @@ public abstract class OutputPort : IWithId<PortId>
     public PortId Id { get; }
     public Node Parent { get; }
 
+    internal abstract IReadOnlyList<InputPort> ConnectedPorts { get; }
     public abstract bool CanConnect(InputPort other);
     public abstract void Connect(InputPort other);
     public abstract void Disconnect();

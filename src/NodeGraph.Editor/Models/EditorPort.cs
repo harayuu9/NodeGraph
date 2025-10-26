@@ -32,6 +32,16 @@ public partial class EditorPort : ObservableObject
 
     public PortId Id => IsInput ? _inputPort!.Id : _outputPort!.Id;
 
+    /// <summary>
+    /// 内部のInputPortを取得（IsInputがtrueの場合のみ有効）
+    /// </summary>
+    public InputPort? InputPort => _inputPort;
+
+    /// <summary>
+    /// 内部のOutputPortを取得（IsOutputがtrueの場合のみ有効）
+    /// </summary>
+    public OutputPort? OutputPort => _outputPort;
+
     public string Name { get; }
     public string TypeName
     {
