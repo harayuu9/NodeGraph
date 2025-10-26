@@ -23,7 +23,6 @@ public class NodeControl : ContentControl
         if (Design.IsDesignMode)
         {
             var n = new FloatAddNode();
-            n.Initialize();
             Node = new EditorNode(new SelectionManager(), n)
             {
                 Height = 300,

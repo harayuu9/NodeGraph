@@ -7,7 +7,6 @@ public class Graph
     public T CreateNode<T>() where T : Node, new()
     {
         var node = new T();
-        node.Initialize();
         Nodes.Add(node);
         return node;
     }

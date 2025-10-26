@@ -22,8 +22,8 @@ public partial class EditorNode(SelectionManager selectionManager, Node node) : 
 
     public Node Node => node;
 
-    public ObservableCollection<EditorPort> InputPorts { get; } = new(node.InputPorts.Select(EditorPort.FromInput));
-    public ObservableCollection<EditorPort> OutputPorts { get; } = new(node.OutputPorts.Select(EditorPort.FromOutput));
+    public ObservableCollection<EditorPort> InputPorts { get; } = new(node.InputPorts.Select((x, i) => EditorPort.FromInput(node.GetInputPortName(i), x)));
+    public ObservableCollection<EditorPort> OutputPorts { get; } = new(node.OutputPorts.Select((x, i) => EditorPort.FromOutput(node.GetOutputPortName(i), x)));
 
     [ObservableProperty] private double _positionX;
     [ObservableProperty] private double _positionY;

@@ -41,7 +41,7 @@ public class GraphExecutor : IDisposable
         {
             var node = _nodes[i];
             var inputPorts = node.InputPorts;
-            var portCount = inputPorts.Count;
+            var portCount = inputPorts.Length;
 
             for (var j = 0; j < portCount; j++)
             {

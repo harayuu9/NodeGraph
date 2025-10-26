@@ -22,8 +22,7 @@ public class PortControl : TemplatedControl
         if (Design.IsDesignMode)
         {
             var n = new FloatAddNode();
-            n.Initialize();
-            Port = EditorPort.FromInput(n.InputPorts[0]);
+            Port = EditorPort.FromInput("Hoge", n.InputPorts[0]);
         }
     }
     

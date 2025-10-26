@@ -90,16 +90,19 @@ public static class Emitter
         codeGen.WriteLine($"partial class {typeSymbol.Name} : global::NodeGraph.Model.Node");
         using (codeGen.Scope())
         {
-            codeGen.WriteLine("protected override void InitializePorts()");
+            codeGen.WriteLine($"public {typeSymbol.Name}() : base({inputFields.Length}, {outputFields.Length})");
             using (codeGen.Scope())
             {
-                foreach (var inputField in inputFields)
+                for (var i = 0; i < inputFields.Length; i++)
                 {
-                    codeGen.WriteLine($"InputPorts.Add(new {inputField.PortType}(this, {inputField.RawName}));");
+                    var inputField = inputFields[i];
+                    codeGen.WriteLine($"InputPorts[{i}] = new {inputField.PortType}(this, {inputField.RawName});");
                 }
-                foreach (var outputField in outputFields)
+
+                for (var i = 0; i < outputFields.Length; i++)
                 {
-                    codeGen.WriteLine($"OutputPorts.Add(new {outputField.PortType}(this, {outputField.RawName}));");
+                    var outputField = outputFields[i];
+                    codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, {outputField.RawName});");
                 }
             }
             
@@ -122,6 +125,37 @@ public static class Emitter
                     codeGen.WriteLine($"(({x.PortType})OutputPorts[{i}]).Value = this.{x.RawName};");
                 }
             }
+            
+            codeGen.WriteLine("public override string GetInputPortName(int index)");
+            using (codeGen.Scope())
+            {
+                codeGen.WriteLine("switch(index)");
+                using (codeGen.Scope())
+                {
+                    for (var i = 0; i < inputFields.Length; i++)
+                    {
+                        var inputField = inputFields[i];
+                        codeGen.WriteLine($"case {i}: return \"{inputField.Name}\";");
+                    }
+                    codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid input port index\");");
+                }
+            }
+            
+            codeGen.WriteLine("public override string GetOutputPortName(int index)");
+            using (codeGen.Scope())
+            {
+                codeGen.WriteLine("switch(index)");
+                using (codeGen.Scope())
+                {
+                    for (var i = 0; i < outputFields.Length; i++)
+                    {
+                        var outputField = outputFields[i];
+                        codeGen.WriteLine($"case {i}: return \"{outputField.Name}\";");
+                    }
+                    codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid output port index\");");
+                }
+            }
+            
         }
         context.AddSource($"{fullType}.NodeGraphGenerator.g.cs", codeGen.GetResult());
     }

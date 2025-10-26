@@ -17,7 +17,7 @@
                 <Grid ColumnDefinitions="*,Auto,*">
                     <TextBlock Grid.Column="0"
                                x:Name="LeftText"
-                               Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}"
+                               Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
                                Foreground="White"
                                VerticalAlignment="Center"
                                FontSize="11"
@@ -35,7 +35,7 @@
 
                     <TextBlock Grid.Column="2"
                                x:Name="RightText"
-                               Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}"
+                               Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
                                Foreground="White"
                                VerticalAlignment="Center"
                                FontSize="11"
