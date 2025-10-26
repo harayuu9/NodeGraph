@@ -16,12 +16,29 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <StackPanel>
-        <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        <controls:NodeControl>
-            <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        </controls:NodeControl>
-        <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-    </StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ヘッダー -->
+        <Border Grid.Row="0" Background="#252526" Padding="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="GraphControl テスト"
+                          FontSize="16"
+                          FontWeight="Bold"
+                          VerticalAlignment="Center"/>
+                <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
+                          Foreground="#CCCCCC"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- GraphControl -->
+        <controls:GraphControl Grid.Row="1"
+                              Graph="{Binding TestGraph}"
+                              Background="#1E1E1E"/>
+    </Grid>
 
 </Window>

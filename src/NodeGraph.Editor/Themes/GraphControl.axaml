@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:NodeGraph.Editor.Controls"
+                    x:CompileBindings="True">
+    <Design.PreviewWith>
+        <Border Padding="20" Width="800" Height="600">
+            <controls:GraphControl Background="#1E1E1E"/>
+        </Border>
+    </Design.PreviewWith>
+
+    <ControlTheme x:Key="{x:Type controls:GraphControl}" TargetType="controls:GraphControl">
+        <Setter Property="Background" Value="#2D2D30"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        ClipToBounds="True">
+                    <Grid>
+                        <!-- グリッド背景 (オプション) -->
+                        <Canvas x:Name="PART_GridCanvas"
+                                ClipToBounds="False">
+                            <!-- グリッドは将来実装可能 -->
+                        </Canvas>
+
+                        <!-- メインキャンバス：ノードを配置 -->
+                        <Canvas x:Name="PART_Canvas"
+                                ClipToBounds="False"
+                                Background="Transparent">
+                            <!-- ノードはコードビハインドで動的に追加されます -->
+                        </Canvas>
+
+                        <!-- UI オーバーレイ (将来の拡張用) -->
+                        <Canvas x:Name="PART_OverlayCanvas"
+                                ClipToBounds="False"
+                                IsHitTestVisible="False">
+                            <!-- 接続線などはここに描画可能 -->
+                        </Canvas>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+</ResourceDictionary>
