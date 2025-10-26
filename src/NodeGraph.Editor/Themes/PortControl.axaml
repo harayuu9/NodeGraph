@@ -1,0 +1,68 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:NodeGraph.Editor.Controls"
+                    x:CompileBindings="True">
+
+    <Design.PreviewWith>
+        <Border Padding="20" Background="Black">
+            <controls:PortControl/>
+        </Border>
+    </Design.PreviewWith>
+    
+    <ControlTheme x:Key="{x:Type controls:PortControl}" TargetType="controls:PortControl">
+        <Setter Property="Cursor" Value="Hand"/>
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="*,Auto,*">
+                    <TextBlock Grid.Column="0"
+                               x:Name="LeftText"
+                               Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}"
+                               Foreground="White"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               HorizontalAlignment="Right"
+                               Margin="0,0,8,0"
+                               IsVisible="False"/>
+
+                    <!-- Port circle -->
+                    <Ellipse Grid.Column="1" 
+                             Fill="Black"
+                             Stroke="#007ACC"
+                             StrokeThickness="3"
+                             Width="12"
+                             Height="12"/>
+
+                    <TextBlock Grid.Column="2"
+                               x:Name="RightText"
+                               Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}"
+                               Foreground="White"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               HorizontalAlignment="Left"
+                               Margin="8,0,0,0"
+                               IsVisible="False"/>
+
+                    <!-- Tooltip showing type -->
+                    <ToolTip.Tip>
+                        <TextBlock Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}"/>
+                    </ToolTip.Tip>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Ellipse">
+            <Setter Property="Fill" Value="#00BFFF"/>
+        </Style>
+
+        <!-- Direction=Left: ポートが左側なので、テキストは右側に表示 -->
+        <Style Selector="^[Direction=Left] /template/ TextBlock#RightText">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+
+        <!-- Direction=Right: ポートが右側なので、テキストは左側に表示 -->
+        <Style Selector="^[Direction=Right] /template/ TextBlock#LeftText">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

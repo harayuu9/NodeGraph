@@ -1,4 +1,6 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Model;
@@ -15,9 +17,14 @@ public partial class EditorNode(SelectionManager selectionManager, Node node) : 
     /// この EditorNode の一意な識別子
     /// </summary>
     public object SelectionId => _id;
-    
+
     public SelectionManager SelectionManager { get; } = selectionManager;
-    
+
+    public Node Node => node;
+
+    public ObservableCollection<EditorPort> InputPorts { get; } = new(node.InputPorts.Select(EditorPort.FromInput));
+    public ObservableCollection<EditorPort> OutputPorts { get; } = new(node.OutputPorts.Select(EditorPort.FromOutput));
+
     [ObservableProperty] private double _positionX;
     [ObservableProperty] private double _positionY;
     [ObservableProperty] private double _width;

@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using NodeGraph.Editor.Models;
@@ -14,8 +16,14 @@ namespace NodeGraph.Editor.Controls;
 public class GraphControl : TemplatedControl
 {
     private Canvas? _canvas;
+    private Canvas? _overlayCanvas;
     private Point _lastDragPoint;
     private bool _isDragging;
+
+    // 矩形選択用
+    private bool _isSelecting;
+    private Point _selectionStartPoint;
+    private Rectangle? _selectionRectangle;
 
     // トランスフォーム
     private TranslateTransform _translateTransform = new();
@@ -92,11 +100,25 @@ public class GraphControl : TemplatedControl
         base.OnApplyTemplate(e);
 
         _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
+        _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
 
         if (_canvas != null)
         {
             _canvas.RenderTransform = _transformGroup;
             OnGraphChanged();
+        }
+
+        // 選択矩形の初期化
+        if (_overlayCanvas != null)
+        {
+            _selectionRectangle = new Rectangle
+            {
+                Fill = new SolidColorBrush(Color.FromArgb(50, 100, 150, 255)),
+                Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 150, 255)),
+                StrokeThickness = 1,
+                IsVisible = false
+            };
+            _overlayCanvas.Children.Add(_selectionRectangle);
         }
     }
 
@@ -136,10 +158,30 @@ public class GraphControl : TemplatedControl
         }
         else if (properties.IsLeftButtonPressed)
         {
-            e.Pointer.Capture(this);
-            e.Handled = true;
-            
-            Graph?.SelectionManager.ClearSelection();
+            // NodeControl上でのクリックでない場合のみ矩形選択を開始
+            if (e.Source is not NodeControl)
+            {
+                _isSelecting = true;
+                _selectionStartPoint = e.GetPosition(this);
+
+                if (_selectionRectangle != null)
+                {
+                    _selectionRectangle.IsVisible = true;
+                    Canvas.SetLeft(_selectionRectangle, _selectionStartPoint.X);
+                    Canvas.SetTop(_selectionRectangle, _selectionStartPoint.Y);
+                    _selectionRectangle.Width = 0;
+                    _selectionRectangle.Height = 0;
+                }
+
+                e.Pointer.Capture(this);
+                e.Handled = true;
+
+                // Ctrlキーが押されていない場合は選択をクリア
+                if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                {
+                    Graph?.SelectionManager.ClearSelection();
+                }
+            }
         }
     }
 
@@ -158,6 +200,16 @@ public class GraphControl : TemplatedControl
 
             OnPanning(delta);
         }
+        else if (_isSelecting)
+        {
+            var currentPoint = e.GetPosition(this);
+            UpdateSelectionRectangle(_selectionStartPoint, currentPoint);
+
+            // ドラッグ中もリアルタイムで選択を更新
+            SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
+
+            e.Handled = true;
+        }
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -169,6 +221,21 @@ public class GraphControl : TemplatedControl
             e.Handled = true;
 
             OnPanEnded();
+        }
+        else if (_isSelecting)
+        {
+            _isSelecting = false;
+
+            if (_selectionRectangle != null)
+            {
+                _selectionRectangle.IsVisible = false;
+            }
+
+            var currentPoint = e.GetPosition(this);
+            SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
+
+            e.Pointer.Capture(null);
+            e.Handled = true;
         }
     }
 
@@ -210,6 +277,64 @@ public class GraphControl : TemplatedControl
     {
         _translateTransform.X = PanX;
         _translateTransform.Y = PanY;
+    }
+
+    private void UpdateSelectionRectangle(Point start, Point end)
+    {
+        if (_selectionRectangle == null)
+            return;
+
+        var left = Math.Min(start.X, end.X);
+        var top = Math.Min(start.Y, end.Y);
+        var width = Math.Abs(end.X - start.X);
+        var height = Math.Abs(end.Y - start.Y);
+
+        Canvas.SetLeft(_selectionRectangle, left);
+        Canvas.SetTop(_selectionRectangle, top);
+        _selectionRectangle.Width = width;
+        _selectionRectangle.Height = height;
+    }
+
+    private void SelectNodesInRectangle(Point start, Point end, KeyModifiers modifiers)
+    {
+        if (Graph == null || _canvas == null)
+            return;
+
+        // 選択矩形をビューポート座標からキャンバス座標に変換
+        var left = Math.Min(start.X, end.X);
+        var top = Math.Min(start.Y, end.Y);
+        var right = Math.Max(start.X, end.X);
+        var bottom = Math.Max(start.Y, end.Y);
+
+        // 変換を適用して矩形をキャンバス座標系に変換
+        var selectionRect = new Rect(
+            (left - PanX) / Zoom,
+            (top - PanY) / Zoom,
+            (right - left) / Zoom,
+            (bottom - top) / Zoom
+        );
+
+        // 矩形内のノードを検出
+        var selectedNodes = Graph.Nodes
+            .Where(node =>
+            {
+                var nodeRect = new Rect(node.PositionX, node.PositionY, node.Width, node.Height);
+                return selectionRect.Intersects(nodeRect);
+            })
+            .ToList();
+
+        // Ctrlキーが押されている場合は既存の選択に追加、そうでなければ新規選択
+        if (modifiers.HasFlag(KeyModifiers.Control))
+        {
+            foreach (var node in selectedNodes)
+            {
+                Graph.SelectionManager.AddToSelection(node);
+            }
+        }
+        else
+        {
+            Graph.SelectionManager.SelectRange(selectedNodes);
+        }
     }
 
     #endregion

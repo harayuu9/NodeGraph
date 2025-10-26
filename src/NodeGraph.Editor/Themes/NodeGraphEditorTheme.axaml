@@ -22,6 +22,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://NodeGraph.Editor/Themes/NodeControl.axaml" />
         <ResourceInclude Source="avares://NodeGraph.Editor/Themes/GraphControl.axaml" />
+        <ResourceInclude Source="avares://NodeGraph.Editor/Themes/PortControl.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Styles.Resources>

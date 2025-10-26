@@ -1,9 +1,12 @@
-﻿using Avalonia;
+﻿using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using NodeGraph.Editor.Models;
+using NodeGraph.Editor.Selection;
+using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -13,9 +16,21 @@ public class NodeControl : ContentControl
     private bool _isDragging;
     private Point _dragStartPoint;
     private Point _nodeStartPosition;
+    private readonly Dictionary<EditorNode, Point> _selectedNodesStartPositions = [];
 
     public NodeControl()
     {
+        if (Design.IsDesignMode)
+        {
+            var n = new FloatAddNode();
+            n.Initialize();
+            Node = new EditorNode(new SelectionManager(), n)
+            {
+                Height = 300,
+                Width = 300
+            };
+        }
+        
         // イベントハンドラの登録
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
@@ -113,7 +128,21 @@ public class NodeControl : ContentControl
             }
             else
             {
-                Node.SelectionManager.Select(Node);
+                // 既に選択されていない場合のみ選択し直す（複数選択を維持するため）
+                if (!Node.SelectionManager.IsSelected(Node))
+                {
+                    Node.SelectionManager.Select(Node);
+                }
+            }
+
+            // 選択されている全ノードの開始位置を記録
+            _selectedNodesStartPositions.Clear();
+            foreach (var selectedItem in Node.SelectionManager.SelectedItems)
+            {
+                if (selectedItem is EditorNode editorNode)
+                {
+                    _selectedNodesStartPositions[editorNode] = new Point(editorNode.PositionX, editorNode.PositionY);
+                }
             }
 
             e.Pointer.Capture(this);
@@ -134,8 +163,12 @@ public class NodeControl : ContentControl
                 delta /= graphControl.Zoom;
             }
 
-            Node.PositionX = _nodeStartPosition.X + delta.X;
-            Node.PositionY = _nodeStartPosition.Y + delta.Y;
+            // 選択されている全ノードを同時に移動
+            foreach (var (editorNode, startPosition) in _selectedNodesStartPositions)
+            {
+                editorNode.PositionX = startPosition.X + delta.X;
+                editorNode.PositionY = startPosition.Y + delta.Y;
+            }
 
             e.Handled = true;
         }
@@ -146,6 +179,7 @@ public class NodeControl : ContentControl
         if (_isDragging)
         {
             _isDragging = false;
+            _selectedNodesStartPositions.Clear();
             e.Pointer.Capture(null);
             e.Handled = true;
         }

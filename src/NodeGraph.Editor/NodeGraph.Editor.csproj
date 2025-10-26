@@ -30,4 +30,8 @@
     <ItemGroup>
       <ProjectReference Include="..\NodeGraph.Model\NodeGraph.Model.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Converters\" />
+    </ItemGroup>
 </Project>
