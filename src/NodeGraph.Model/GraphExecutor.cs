@@ -1,35 +1,43 @@
-﻿namespace NodeGraph.Model;
+﻿using System.Buffers;
+using NodeGraph.Model.Pool;
 
-public class GraphExecutor
+namespace NodeGraph.Model;
+
+public class GraphExecutor : IDisposable
 {
+    private readonly int _nodeCount;
     private readonly Node[] _nodes;
     private readonly Dictionary<Node, HashSet<Node>> _predecessors;
     private readonly Dictionary<Node, HashSet<Node>> _successors;
+    private DisposableBag _disposableBag;
 
     internal GraphExecutor(Graph graph)
     {
-        var nodeCount = graph.Nodes.Count;
+        _nodeCount = graph.Nodes.Count;
+        _disposableBag = new DisposableBag(_nodeCount * 2 + 2);
 
-        // ノードを配列にコピー（LINQを使わずに最適化）
-        _nodes = new Node[nodeCount];
-        for (var i = 0; i < nodeCount; i++)
+        // ノードを配列にコピー
+        _nodes = ArrayPool<Node>.Shared.Rent(_nodeCount);
+        for (var i = 0; i < _nodeCount; i++)
         {
             _nodes[i] = graph.Nodes[i];
         }
 
         // 依存関係の辞書を初期容量付きで作成
-        _predecessors = new Dictionary<Node, HashSet<Node>>(nodeCount);
-        _successors = new Dictionary<Node, HashSet<Node>>(nodeCount);
-
+        DictionaryPool<Node, HashSet<Node>>.Shared.Rent(_nodeCount, out _predecessors).AddTo(ref _disposableBag);
+        DictionaryPool<Node, HashSet<Node>>.Shared.Rent(_nodeCount, out _successors).AddTo(ref _disposableBag);
+        
         // 全ノードのエントリを初期化
-        for (var i = 0; i < nodeCount; i++)
+        for (var i = 0; i < _nodeCount; i++)
         {
-            _predecessors[_nodes[i]] = new HashSet<Node>();
-            _successors[_nodes[i]] = new HashSet<Node>();
+            HashSetPool<Node>.Shared.Rent(out var predecessors).AddTo(ref _disposableBag);
+            HashSetPool<Node>.Shared.Rent(out var successors).AddTo(ref _disposableBag);
+            _predecessors[_nodes[i]] = predecessors;
+            _successors[_nodes[i]] = successors;
         }
 
         // 前段（predecessors）を構築
-        for (var i = 0; i < nodeCount; i++)
+        for (var i = 0; i < _nodeCount; i++)
         {
             var node = _nodes[i];
             var inputPorts = node.InputPorts;
@@ -47,10 +55,8 @@ public class GraphExecutor
         }
 
         // 後段（successors）を構築
-        foreach (var kvp in _predecessors)
+        foreach (var (node, preds) in _predecessors)
         {
-            var node = kvp.Key;
-            var preds = kvp.Value;
             foreach (var p in preds)
             {
                 _successors[p].Add(node);
@@ -60,23 +66,21 @@ public class GraphExecutor
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var nodeCount = _nodes.Length;
-
         // 各ノードの残り依存数（実行ごとに新規作成）
-        var remainingDeps = new Dictionary<Node, int>(nodeCount);
-        for (var i = 0; i < nodeCount; i++)
+        using var _1 = DictionaryPool<Node, int>.Shared.Rent(_nodeCount, out var remainingDeps);
+        for (var i = 0; i < _nodeCount; i++)
         {
             remainingDeps[_nodes[i]] = _predecessors[_nodes[i]].Count;
         }
 
         // 実行管理用の変数
-        var running = new HashSet<Task>();  // List→HashSetでRemoveをO(1)に
-        var taskToNode = new Dictionary<Task, Node>(nodeCount);
-        var started = new HashSet<Node>(nodeCount);
-
+        using var _2 = HashSetPool<Task>.Shared.Rent(out var running);
+        using var _3 = DictionaryPool<Task, Node>.Shared.Rent(_nodeCount, out var taskToNode);
+        using var _4 = HashSetPool<Node>.Shared.Rent(_nodeCount, out var started);
+        
         // 入次数0のノードを起動
         var initialReadyCount = 0;
-        for (var i = 0; i < nodeCount; i++)
+        for (var i = 0; i < _nodeCount; i++)
         {
             if (remainingDeps[_nodes[i]] == 0)
             {
@@ -85,7 +89,7 @@ public class GraphExecutor
             }
         }
 
-        if (nodeCount > 0 && initialReadyCount == 0)
+        if (_nodeCount > 0 && initialReadyCount == 0)
         {
             throw new InvalidOperationException("実行可能なノードがありません。グラフに循環があるか、依存関係が未解決の可能性があります。");
         }
@@ -106,7 +110,7 @@ public class GraphExecutor
             }
             catch (Exception ex)
             {
-                exceptions ??= new List<Exception>();
+                exceptions ??= [];
                 exceptions.Add(ex);
             }
 
@@ -125,15 +129,15 @@ public class GraphExecutor
             }
         }
 
-        if (exceptions != null && exceptions.Count > 0)
+        if (exceptions is { Count: > 0 })
         {
             throw new AggregateException("ノードの実行中にエラーが発生しました。", exceptions);
         }
 
-        if (completedCount != nodeCount)
+        if (completedCount != _nodeCount)
         {
             var sb = new System.Text.StringBuilder();
-            for (var i = 0; i < nodeCount; i++)
+            for (var i = 0; i < _nodeCount; i++)
             {
                 if (remainingDeps[_nodes[i]] > 0)
                 {
@@ -141,9 +145,10 @@ public class GraphExecutor
                     sb.Append(_nodes[i].Id.Value.ToString());
                 }
             }
-            throw new InvalidOperationException(
-                $"循環または未解決の依存関係を検出しました: {sb}");
+            throw new InvalidOperationException($"循環または未解決の依存関係を検出しました: {sb}");
         }
+
+        return;
 
         void Start(Node n)
         {
@@ -152,5 +157,12 @@ public class GraphExecutor
             running.Add(t);
             taskToNode[t] = n;
         }
+    }
+
+    public void Dispose()
+    {
+        _disposableBag.Dispose();
+        ArrayPool<Node>.Shared.Return(_nodes);
+        GC.SuppressFinalize(this);
     }
 }
