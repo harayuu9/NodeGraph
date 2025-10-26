@@ -4,12 +4,12 @@
                     x:CompileBindings="True">
     <Design.PreviewWith>
         <Border Padding="20" Width="800" Height="600">
-            <controls:GraphControl Background="#1E1E1E"/>
+            <controls:GraphControl Background="{DynamicResource GraphBackgroundBrush}"/>
         </Border>
     </Design.PreviewWith>
 
     <ControlTheme x:Key="{x:Type controls:GraphControl}" TargetType="controls:GraphControl">
-        <Setter Property="Background" Value="#2D2D30"/>
+        <Setter Property="Background" Value="{DynamicResource GraphBackgroundBrush}"/>
         <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="Cursor" Value="Arrow"/>

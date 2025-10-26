@@ -1,13 +1,21 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NodeGraph.Editor.Selection;
 
 namespace NodeGraph.Editor.Models;
 
 /// <summary>
 /// Port間の接続を表すエディタモデル
 /// </summary>
-public partial class EditorConnection : ObservableObject
+public partial class EditorConnection : ObservableObject, ISelectable
 {
+    private readonly Guid _id = Guid.NewGuid();
+
+    /// <summary>
+    /// この EditorConnection の一意な識別子
+    /// </summary>
+    public object SelectionId => _id;
+
     /// <summary>
     /// 接続元のノード
     /// </summary>

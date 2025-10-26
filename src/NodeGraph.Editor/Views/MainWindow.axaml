@@ -23,22 +23,44 @@
         </Grid.RowDefinitions>
 
         <!-- ヘッダー -->
-        <Border Grid.Row="0" Background="#252526" Padding="10">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="GraphControl テスト"
-                          FontSize="16"
-                          FontWeight="Bold"
-                          VerticalAlignment="Center"/>
-                <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
-                          Foreground="#CCCCCC"
-                          VerticalAlignment="Center"/>
-            </StackPanel>
+        <Border Grid.Row="0" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="GraphControl テスト"
+                              FontSize="16"
+                              FontWeight="Bold"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
+                              Foreground="{DynamicResource WindowInfoForegroundBrush}"
+                              VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- テーマ切り替え -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <TextBlock Text="テーマ:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <Button Content="Default"
+                            Command="{Binding SwitchThemeCommand}"
+                            CommandParameter="Default"
+                            IsEnabled="{Binding !IsDefaultTheme}"
+                            Padding="8,4"/>
+                    <Button Content="Light"
+                            Command="{Binding SwitchThemeCommand}"
+                            CommandParameter="Light"
+                            IsEnabled="{Binding !IsLightTheme}"
+                            Padding="8,4"/>
+                    <Button Content="Dark"
+                            Command="{Binding SwitchThemeCommand}"
+                            CommandParameter="Dark"
+                            IsEnabled="{Binding !IsDarkTheme}"
+                            Padding="8,4"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- GraphControl -->
         <controls:GraphControl Grid.Row="1"
                               Graph="{Binding TestGraph}"
-                              Background="#1E1E1E"/>
+                              Background="{DynamicResource GraphBackgroundBrush}"/>
     </Grid>
 
 </Window>

@@ -1,4 +1,8 @@
-﻿using NodeGraph.Editor.Models;
+﻿using Avalonia;
+using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Model;
 
@@ -7,6 +11,18 @@ namespace NodeGraph.Editor.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     public EditorGraph TestGraph { get; }
+
+    [ObservableProperty]
+    private string _currentTheme = "Default";
+
+    [ObservableProperty]
+    private bool _isDefaultTheme = true;
+
+    [ObservableProperty]
+    private bool _isLightTheme = false;
+
+    [ObservableProperty]
+    private bool _isDarkTheme = false;
 
     public MainWindowViewModel(SelectionManager selectionManager)
     {
@@ -50,5 +66,43 @@ public partial class MainWindowViewModel : ViewModelBase
         TestGraph.Nodes[3].PositionY = 120;
         TestGraph.Nodes[3].Width = 150;
         TestGraph.Nodes[3].Height = 100;
+
+        // 現在のテーマを取得
+        UpdateCurrentTheme();
+    }
+
+    [RelayCommand]
+    private void SwitchTheme(string themeName)
+    {
+        if (Application.Current is null)
+            return;
+
+        Application.Current.RequestedThemeVariant = themeName switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
+
+        CurrentTheme = themeName;
+        UpdateThemeFlags();
+    }
+
+    private void UpdateThemeFlags()
+    {
+        IsDefaultTheme = CurrentTheme == "Default";
+        IsLightTheme = CurrentTheme == "Light";
+        IsDarkTheme = CurrentTheme == "Dark";
+    }
+
+    private void UpdateCurrentTheme()
+    {
+        if (Application.Current is null)
+            return;
+
+        var variant = Application.Current.ActualThemeVariant;
+        CurrentTheme = variant == ThemeVariant.Dark ? "Dark" :
+                      variant == ThemeVariant.Light ? "Light" : "Default";
+        UpdateThemeFlags();
     }
 }

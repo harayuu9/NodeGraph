@@ -18,7 +18,7 @@
                     <TextBlock Grid.Column="0"
                                x:Name="LeftText"
                                Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
-                               Foreground="White"
+                               Foreground="{DynamicResource PortForegroundBrush}"
                                VerticalAlignment="Center"
                                FontSize="11"
                                HorizontalAlignment="Right"
@@ -26,9 +26,9 @@
                                IsVisible="False"/>
 
                     <!-- Port circle -->
-                    <Ellipse Grid.Column="1" 
-                             Fill="Black"
-                             Stroke="#007ACC"
+                    <Ellipse Grid.Column="1"
+                             Fill="{DynamicResource PortFillBrush}"
+                             Stroke="{DynamicResource PortStrokeBrush}"
                              StrokeThickness="3"
                              Width="12"
                              Height="12"/>
@@ -36,7 +36,7 @@
                     <TextBlock Grid.Column="2"
                                x:Name="RightText"
                                Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
-                               Foreground="White"
+                               Foreground="{DynamicResource PortForegroundBrush}"
                                VerticalAlignment="Center"
                                FontSize="11"
                                HorizontalAlignment="Left"
@@ -52,7 +52,7 @@
         </Setter>
 
         <Style Selector="^:pointerover /template/ Ellipse">
-            <Setter Property="Fill" Value="#00BFFF"/>
+            <Setter Property="Fill" Value="{DynamicResource PortHoverFillBrush}"/>
         </Style>
 
         <!-- Direction=Left: ポートが左側なので、テキストは右側に表示 -->

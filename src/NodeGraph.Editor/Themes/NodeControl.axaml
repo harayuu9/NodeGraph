@@ -12,8 +12,8 @@
   </Design.PreviewWith>
   <ControlTheme x:Key="{x:Type controls:NodeControl}" TargetType="controls:NodeControl">
 
-    <Setter Property="Background" Value="#3C3C3C" />
-    <Setter Property="BorderBrush" Value="#007ACC" />
+    <Setter Property="Background" Value="{DynamicResource NodeBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderBrush}" />
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="4" />
 
@@ -25,16 +25,16 @@
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="{TemplateBinding CornerRadius}"
-                BoxShadow="0 2 8 #40000000">
+                BoxShadow="{DynamicResource NodeBoxShadow}">
           <Grid RowDefinitions="Auto,*">
             <!-- ヘッダー -->
             <Border Grid.Row="0"
-                    Background="#2D2D30"
+                    Background="{DynamicResource NodeHeaderBackgroundBrush}"
                     CornerRadius="4 4 0 0"
                     Padding="8,4">
               <TextBlock Text="{Binding Node.Name, RelativeSource={RelativeSource TemplatedParent}}"
                          FontWeight="SemiBold"
-                         Foreground="White" />
+                         Foreground="{DynamicResource NodeHeaderForegroundBrush}" />
             </Border>
 
             <!-- ボディエリア -->
@@ -85,11 +85,11 @@
     </Setter>
 
     <Style Selector="^:pointerover">
-      <Setter Property="BorderBrush" Value="#00BFFF" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderHoverBrush}" />
     </Style>
 
     <Style Selector="^:selected">
-      <Setter Property="BorderBrush" Value="#FFA500" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderSelectedBrush}" />
     </Style>
 
   </ControlTheme>

@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -35,6 +36,11 @@ public class GraphControl : TemplatedControl
     private Point _selectionStartPoint;
     private Rectangle? _selectionRectangle;
 
+    // ポートドラッグ用
+    private bool _isDraggingPort;
+    private PortControl? _dragSourcePort;
+    private ConnectorControl? _dragConnector;
+
     // トランスフォーム
     private TranslateTransform _translateTransform = new();
     private ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
@@ -51,6 +57,14 @@ public class GraphControl : TemplatedControl
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheelChanged;
+        KeyDown += OnKeyDown;
+
+        // ポートドラッグイベントのハンドラ登録
+        AddHandler(PortControl.PortDragStartedEvent, OnPortDragStarted);
+        AddHandler(PortControl.PortDragCompletedEvent, OnPortDragCompleted);
+
+        // フォーカス可能にする
+        Focusable = true;
     }
 
     #region Styled Properties
@@ -128,11 +142,17 @@ public class GraphControl : TemplatedControl
         // UIキャンバスにはトランスフォームを適用しない（選択矩形用）
         if (_uiCanvas != null)
         {
+            // テーマリソースから色を取得
+            var fillBrush = this.FindResource("SelectionFillBrush") as IBrush ??
+                           new SolidColorBrush(Color.FromArgb(50, 100, 150, 255));
+            var strokeBrush = this.FindResource("SelectionStrokeBrush") as IBrush ??
+                             new SolidColorBrush(Color.FromArgb(200, 100, 150, 255));
+
             // 選択矩形の初期化
             _selectionRectangle = new Rectangle
             {
-                Fill = new SolidColorBrush(Color.FromArgb(50, 100, 150, 255)),
-                Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 150, 255)),
+                Fill = fillBrush,
+                Stroke = strokeBrush,
                 StrokeThickness = 1,
                 IsVisible = false
             };
@@ -162,6 +182,9 @@ public class GraphControl : TemplatedControl
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        // フォーカスを取得（Deleteキーなどを受け取るため）
+        Focus();
+
         var properties = e.GetCurrentPoint(this).Properties;
 
         // 中ボタンまたは右ボタンでドラッグ開始
@@ -176,8 +199,8 @@ public class GraphControl : TemplatedControl
         }
         else if (properties.IsLeftButtonPressed)
         {
-            // NodeControl上でのクリックでない場合のみ矩形選択を開始
-            if (e.Source is not NodeControl)
+            // NodeControl上またはポートドラッグ中でのクリックでない場合のみ矩形選択を開始
+            if (e.Source is not NodeControl && !_isDraggingPort)
             {
                 _isSelecting = true;
                 _selectionStartPoint = e.GetPosition(this);
@@ -228,6 +251,24 @@ public class GraphControl : TemplatedControl
 
             e.Handled = true;
         }
+        else if (_isDraggingPort && _dragConnector != null && _canvas != null)
+        {
+            // ポートドラッグ中の一時的な接続線を更新
+            var currentPoint = e.GetPosition(_canvas);
+
+            if (_dragSourcePort?.Port?.IsOutput == true)
+            {
+                // Output portからドラッグしている場合、終点を更新
+                _dragConnector.EndX = currentPoint.X;
+                _dragConnector.EndY = currentPoint.Y;
+            }
+            else
+            {
+                // Input portからドラッグしている場合、始点を更新
+                _dragConnector.StartX = currentPoint.X;
+                _dragConnector.StartY = currentPoint.Y;
+            }
+        }
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -263,6 +304,15 @@ public class GraphControl : TemplatedControl
         ZoomAtPoint(pointerPosition, zoomFactor);
 
         e.Handled = true;
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete && Graph != null)
+        {
+            DeleteSelectedConnections();
+            e.Handled = true;
+        }
     }
 
     private void ZoomAtPoint(Point point, double factor)
@@ -337,19 +387,36 @@ public class GraphControl : TemplatedControl
                 var nodeRect = new Rect(node.PositionX, node.PositionY, node.Width, node.Height);
                 return selectionRect.Intersects(nodeRect);
             })
+            .Cast<Selection.ISelectable>()
             .ToList();
+
+        // 矩形内の接続を検出（始点または終点が矩形内にある）
+        var selectedConnections = _connectorControls
+            .Where(kvp =>
+            {
+                var connector = kvp.Value;
+                var startPoint = new Point(connector.StartX, connector.StartY);
+                var endPoint = new Point(connector.EndX, connector.EndY);
+                return selectionRect.Contains(startPoint) || selectionRect.Contains(endPoint);
+            })
+            .Select(kvp => kvp.Key)
+            .Cast<Selection.ISelectable>()
+            .ToList();
+
+        // ノードと接続を結合
+        var selectedItems = selectedNodes.Concat(selectedConnections).ToList();
 
         // Ctrlキーが押されている場合は既存の選択に追加、そうでなければ新規選択
         if (modifiers.HasFlag(KeyModifiers.Control))
         {
-            foreach (var node in selectedNodes)
+            foreach (var item in selectedItems)
             {
-                Graph.SelectionManager.AddToSelection(node);
+                Graph.SelectionManager.AddToSelection(item);
             }
         }
         else
         {
-            Graph.SelectionManager.SelectRange(selectedNodes);
+            Graph.SelectionManager.SelectRange(selectedItems);
         }
     }
 
@@ -365,22 +432,25 @@ public class GraphControl : TemplatedControl
         _canvas.Children.Clear();
         _connectorControls.Clear();
 
+        // 既存のSelectionManagerのイベントハンドラを解除
+        Graph.SelectionManager.SelectionChanged -= OnSelectionChanged;
+
         // 既存のノードのイベントハンドラを解除
         foreach (var node in Graph.Nodes)
         {
             node.PropertyChanged -= OnNodePropertyChanged;
         }
 
+        // SelectionManagerのイベントハンドラを登録
+        Graph.SelectionManager.SelectionChanged += OnSelectionChanged;
+
         // ノードを作成
         foreach (var node in Graph.Nodes)
         {
             var nodeControl = CreateNodeControl(node);
-            if (nodeControl != null)
-            {
-                Canvas.SetLeft(nodeControl, node.PositionX);
-                Canvas.SetTop(nodeControl, node.PositionY);
-                _canvas.Children.Add(nodeControl);
-            }
+            Canvas.SetLeft(nodeControl, node.PositionX);
+            Canvas.SetTop(nodeControl, node.PositionY);
+            _canvas.Children.Add(nodeControl);
 
             // ノードの位置変更を監視
             node.PropertyChanged += OnNodePropertyChanged;
@@ -421,6 +491,15 @@ public class GraphControl : TemplatedControl
         }
     }
 
+    private void OnSelectionChanged(object? sender, Selection.SelectionChangedEventArgs e)
+    {
+        // ConnectorControlの選択状態を更新
+        foreach (var (connection, connector) in _connectorControls)
+        {
+            connector.IsSelected = Graph?.SelectionManager.IsSelected(connection) ?? false;
+        }
+    }
+
     /// <summary>
     /// コネクタの更新をスケジュールします（次のレンダリングフレームで実行）
     /// </summary>
@@ -441,7 +520,7 @@ public class GraphControl : TemplatedControl
     /// EditorNodeからNodeControlを作成します
     /// オーバーライドしてカスタムノードコントロールを作成できます
     /// </summary>
-    protected virtual Control? CreateNodeControl(EditorNode node)
+    protected virtual Control CreateNodeControl(EditorNode node)
     {
         return new NodeControl { Node = node };
     }
@@ -558,6 +637,217 @@ public class GraphControl : TemplatedControl
     protected virtual void OnZoomChanged(double oldZoom, double newZoom, Point zoomCenter)
     {
         ScheduleConnectorUpdate();
+    }
+
+    #endregion
+
+    #region Connection Management
+
+    private void DeleteSelectedConnections()
+    {
+        if (Graph == null || _overlayCanvas == null)
+            return;
+
+        // 選択されている接続を取得
+        var selectedConnections = Graph.SelectionManager.SelectedItems
+            .OfType<EditorConnection>()
+            .ToList();
+
+        if (selectedConnections.Count == 0)
+            return;
+
+        // 選択を解除
+        Graph.SelectionManager.ClearSelection();
+
+        // 接続を削除
+        foreach (var connection in selectedConnections)
+        {
+            // モデルレベルで接続を切断
+            if (connection.TargetPort.InputPort != null)
+            {
+                connection.TargetPort.InputPort.Disconnect();
+            }
+
+            // EditorConnectionを削除
+            Graph.Connections.Remove(connection);
+
+            // ConnectorControlを削除
+            if (_connectorControls.TryGetValue(connection, out var connectorControl))
+            {
+                _overlayCanvas.Children.Remove(connectorControl);
+                _connectorControls.Remove(connection);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Port Drag Handling
+
+    private void OnPortDragStarted(object? sender, RoutedEventArgs e)
+    {
+        if (e is not PortDragEventArgs args || _overlayCanvas == null || _canvas == null)
+            return;
+
+        _isDraggingPort = true;
+        _dragSourcePort = args.PortControl;
+
+        // ポートの中心座標を取得
+        var portCenter = GetPortCenterPosition(args.PortControl);
+        if (!portCenter.HasValue)
+            return;
+
+        // テーマリソースから色を取得
+        var connectorBrush = this.FindResource("ConnectorStrokeBrush") as IBrush ??
+                            new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+
+        // 一時的な接続線を作成
+        _dragConnector = new ConnectorControl
+        {
+            Stroke = connectorBrush,
+            StrokeThickness = 2,
+            IsHitTestVisible = false
+        };
+
+        if (args.Port.IsOutput)
+        {
+            // Output portからドラッグ開始
+            _dragConnector.StartX = portCenter.Value.X;
+            _dragConnector.StartY = portCenter.Value.Y;
+            _dragConnector.EndX = portCenter.Value.X;
+            _dragConnector.EndY = portCenter.Value.Y;
+        }
+        else
+        {
+            // Input portからドラッグ開始
+            _dragConnector.StartX = portCenter.Value.X;
+            _dragConnector.StartY = portCenter.Value.Y;
+            _dragConnector.EndX = portCenter.Value.X;
+            _dragConnector.EndY = portCenter.Value.Y;
+        }
+
+        _overlayCanvas.Children.Add(_dragConnector);
+    }
+
+    private void OnPortDragCompleted(object? sender, RoutedEventArgs e)
+    {
+        if (e is not PortDragEventArgs args || _dragSourcePort == null || _overlayCanvas == null || Graph == null)
+        {
+            CleanupPortDrag();
+            return;
+        }
+
+        var sourcePort = _dragSourcePort.Port;
+        var targetPort = args.Port;
+
+        if (sourcePort != null && sourcePort != targetPort)
+        {
+            // 接続を作成
+            CreateConnection(sourcePort, targetPort);
+        }
+
+        CleanupPortDrag();
+    }
+
+    private void CleanupPortDrag()
+    {
+        _isDraggingPort = false;
+        _dragSourcePort = null;
+
+        if (_dragConnector != null && _overlayCanvas != null)
+        {
+            _overlayCanvas.Children.Remove(_dragConnector);
+            _dragConnector = null;
+        }
+    }
+
+    private Point? GetPortCenterPosition(PortControl portControl)
+    {
+        if (_canvas == null)
+            return null;
+
+        // PortControl内のEllipseを検索
+        var ellipse = portControl.GetVisualDescendants()
+            .OfType<Ellipse>()
+            .FirstOrDefault();
+
+        if (ellipse == null)
+            return null;
+
+        // Ellipseの中心座標を_canvas座標系で取得
+        var ellipseBounds = ellipse.Bounds;
+        var centerInEllipse = new Point(ellipseBounds.Width / 2, ellipseBounds.Height / 2);
+        var centerInCanvas = ellipse.TranslatePoint(centerInEllipse, _canvas);
+
+        return centerInCanvas;
+    }
+
+    private void CreateConnection(EditorPort sourcePort, EditorPort targetPort)
+    {
+        if (Graph == null)
+            return;
+
+        // Output -> Input の順序を確保
+        EditorPort outputPort, inputPort;
+
+        if (sourcePort.IsOutput && targetPort.IsInput)
+        {
+            outputPort = sourcePort;
+            inputPort = targetPort;
+        }
+        else if (sourcePort.IsInput && targetPort.IsOutput)
+        {
+            outputPort = targetPort;
+            inputPort = sourcePort;
+        }
+        else
+        {
+            // 同じ種類のポート同士は接続できない
+            return;
+        }
+
+        // EditorNodeを検索
+        var outputNode = Graph.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(outputPort));
+        var inputNode = Graph.Nodes.FirstOrDefault(n => n.InputPorts.Contains(inputPort));
+
+        if (outputNode == null || inputNode == null)
+            return;
+
+        // 既存の接続があればスキップ
+        var existingConnection = Graph.Connections.FirstOrDefault(c =>
+            c.SourceNode == outputNode && c.SourcePort == outputPort &&
+            c.TargetNode == inputNode && c.TargetPort == inputPort);
+
+        if (existingConnection != null)
+            return;
+
+        // モデルレベルで接続
+        if (outputPort.OutputPort != null && inputPort.InputPort != null)
+        {
+            try
+            {
+                inputPort.InputPort.Connect(outputPort.OutputPort);
+
+                // EditorConnectionを作成
+                var connection = new EditorConnection(outputNode, outputPort, inputNode, inputPort);
+                Graph.Connections.Add(connection);
+
+                // ConnectorControlを作成
+                var connectorControl = new ConnectorControl
+                {
+                    Connection = connection
+                };
+                _connectorControls[connection] = connectorControl;
+                _overlayCanvas?.Children.Add(connectorControl);
+
+                // 座標を更新
+                ScheduleConnectorUpdate();
+            }
+            catch
+            {
+                // 型が合わない場合など、接続できない場合は無視
+            }
+        }
     }
 
     #endregion

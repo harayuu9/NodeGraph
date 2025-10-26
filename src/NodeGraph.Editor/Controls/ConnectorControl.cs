@@ -1,6 +1,9 @@
 using System;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using NodeGraph.Editor.Models;
 
@@ -16,6 +19,7 @@ public class ConnectorControl : Path
     public static readonly StyledProperty<double> StartYProperty = AvaloniaProperty.Register<ConnectorControl, double>(nameof(StartY));
     public static readonly StyledProperty<double> EndXProperty = AvaloniaProperty.Register<ConnectorControl, double>(nameof(EndX));
     public static readonly StyledProperty<double> EndYProperty = AvaloniaProperty.Register<ConnectorControl, double>(nameof(EndY));
+    public static readonly StyledProperty<bool> IsSelectedProperty = AvaloniaProperty.Register<ConnectorControl, bool>(nameof(IsSelected));
 
     public EditorConnection? Connection
     {
@@ -47,20 +51,87 @@ public class ConnectorControl : Path
         set => SetValue(EndYProperty, value);
     }
 
+    public bool IsSelected
+    {
+        get => GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
+    }
+
     static ConnectorControl()
     {
-        AffectsRender<ConnectorControl>(StartXProperty, StartYProperty, EndXProperty, EndYProperty);
+        AffectsRender<ConnectorControl>(StartXProperty, StartYProperty, EndXProperty, EndYProperty, IsSelectedProperty);
         StartXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
         StartYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
         EndXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
         EndYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
+        IsSelectedProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
     }
+
+    private IBrush? _normalStrokeBrush;
+    private IBrush? _selectedStrokeBrush;
 
     public ConnectorControl()
     {
+        // デフォルト値を設定（リソースが利用できない場合のフォールバック）
         Stroke = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
         StrokeThickness = 2;
-        IsHitTestVisible = false;
+        IsHitTestVisible = true;
+        Cursor = new Cursor(StandardCursorType.Hand);
+
+        PointerPressed += OnPointerPressed;
+    }
+
+    protected override void OnAttachedToLogicalTree(LogicalTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToLogicalTree(e);
+
+        // テーマリソースから色を取得
+        _normalStrokeBrush = this.FindResource("ConnectorStrokeBrush") as IBrush;
+        _selectedStrokeBrush = this.FindResource("ConnectorSelectedStrokeBrush") as IBrush;
+
+        // 現在の状態に応じて外観を更新
+        UpdateAppearance();
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Connection?.SourceNode.SelectionManager == null)
+            return;
+
+        var properties = e.GetCurrentPoint(this).Properties;
+        if (properties.IsLeftButtonPressed)
+        {
+            var selectionManager = Connection.SourceNode.SelectionManager;
+
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                // Ctrlキー + クリックで選択トグル
+                selectionManager.ToggleSelection(Connection);
+            }
+            else
+            {
+                // 通常のクリックで単一選択
+                selectionManager.Select(Connection);
+            }
+
+            e.Handled = true;
+        }
+    }
+
+    private void UpdateAppearance()
+    {
+        if (IsSelected)
+        {
+            // リソースが利用可能な場合はそれを使用、そうでない場合はフォールバック
+            Stroke = _selectedStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0xFF, 0x8C, 0x00));
+            StrokeThickness = 3;
+        }
+        else
+        {
+            // リソースが利用可能な場合はそれを使用、そうでない場合はフォールバック
+            Stroke = _normalStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+            StrokeThickness = 2;
+        }
     }
 
     private void UpdatePath()
