@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="NodeGraph.UnitTest" />
+        <InternalsVisibleTo Include="NodeGraph.Editor" />
     </ItemGroup>
 
 </Project>
