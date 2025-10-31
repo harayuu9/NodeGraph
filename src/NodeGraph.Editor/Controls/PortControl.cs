@@ -19,14 +19,10 @@ public class PortControl : TemplatedControl
 {
     public static readonly StyledProperty<EditorPort?> PortProperty = AvaloniaProperty.Register<PortControl, EditorPort?>(nameof(Port));
     public static readonly StyledProperty<PortDirection> DirectionProperty = AvaloniaProperty.Register<PortControl, PortDirection>(nameof(Direction));
+    public static readonly StyledProperty<bool> IsHighlightedProperty = AvaloniaProperty.Register<PortControl, bool>(nameof(IsHighlighted));
 
-    // ドラッグ開始イベント
-    public static readonly RoutedEvent<PortDragEventArgs> PortDragStartedEvent =
-        RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragStarted), RoutingStrategies.Bubble);
-
-    // ドラッグ終了イベント
-    public static readonly RoutedEvent<PortDragEventArgs> PortDragCompletedEvent =
-        RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragCompleted), RoutingStrategies.Bubble);
+    public static readonly RoutedEvent<PortDragEventArgs> PortDragStartedEvent = RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragStarted), RoutingStrategies.Bubble);
+    public static readonly RoutedEvent<PortDragEventArgs> PortDragCompletedEvent = RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragCompleted), RoutingStrategies.Bubble);
 
     public event EventHandler<PortDragEventArgs>? PortDragStarted
     {
@@ -68,6 +64,12 @@ public class PortControl : TemplatedControl
         set => SetValue(DirectionProperty, value);
     }
 
+    public bool IsHighlighted
+    {
+        get => GetValue(IsHighlightedProperty);
+        set => SetValue(IsHighlightedProperty, value);
+    }
+
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (Port == null) return;
@@ -77,7 +79,6 @@ public class PortControl : TemplatedControl
         {
             _isDragging = true;
             _dragStartPoint = e.GetPosition(this);
-            e.Pointer.Capture(this);
 
             // ドラッグ開始イベントを発火
             var args = new PortDragEventArgs(PortDragStartedEvent, this, Port, _dragStartPoint);
@@ -89,11 +90,7 @@ public class PortControl : TemplatedControl
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_isDragging && Port != null)
-        {
-            // GraphControlでマウス移動を処理するため、ここでは何もしない
-            e.Handled = true;
-        }
+        // GraphControlでマウス移動を処理
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -101,16 +98,15 @@ public class PortControl : TemplatedControl
         if (_isDragging && Port != null)
         {
             _isDragging = false;
-            e.Pointer.Capture(null);
 
-            var releasePoint = e.GetPosition(this);
-
-            // ドラッグ終了イベントを発火
-            var args = new PortDragEventArgs(PortDragCompletedEvent, this, Port, releasePoint);
-            RaiseEvent(args);
-
+            // ドラッグ終了イベントは発火しない（GraphControlで処理）
             e.Handled = true;
         }
+    }
+
+    internal void CompleteDrag()
+    {
+        _isDragging = false;
     }
 }
 

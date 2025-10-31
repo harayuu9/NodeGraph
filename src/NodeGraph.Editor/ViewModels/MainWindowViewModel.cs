@@ -41,7 +41,7 @@ public partial class MainWindowViewModel : ViewModelBase
         add.ConnectInput(1, a2, 0);
         
         var res = graph.CreateNode<FloatResultNode>();
-        res.ConnectInput(0, add, 0);
+        // res.ConnectInput(0, add, 0);
 
         // EditorGraphでラップ（SelectionManagerを注入）
         TestGraph = new EditorGraph(graph, selectionManager);

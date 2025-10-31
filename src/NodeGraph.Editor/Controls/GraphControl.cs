@@ -40,6 +40,7 @@ public class GraphControl : TemplatedControl
     private bool _isDraggingPort;
     private PortControl? _dragSourcePort;
     private ConnectorControl? _dragConnector;
+    private PortControl? _currentHoverPort;
 
     // トランスフォーム
     private TranslateTransform _translateTransform = new();
@@ -61,7 +62,6 @@ public class GraphControl : TemplatedControl
 
         // ポートドラッグイベントのハンドラ登録
         AddHandler(PortControl.PortDragStartedEvent, OnPortDragStarted);
-        AddHandler(PortControl.PortDragCompletedEvent, OnPortDragCompleted);
 
         // フォーカス可能にする
         Focusable = true;
@@ -268,6 +268,9 @@ public class GraphControl : TemplatedControl
                 _dragConnector.StartX = currentPoint.X;
                 _dragConnector.StartY = currentPoint.Y;
             }
+
+            // マウス位置のポートを検索してハイライト
+            UpdatePortHighlight(e.GetPosition(this));
         }
     }
 
@@ -291,6 +294,12 @@ public class GraphControl : TemplatedControl
             SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
 
             e.Pointer.Capture(null);
+            e.Handled = true;
+        }
+        else if (_isDraggingPort)
+        {
+            // ポートドラッグ完了
+            CompletePortDrag();
             e.Handled = true;
         }
     }
@@ -698,8 +707,7 @@ public class GraphControl : TemplatedControl
             return;
 
         // テーマリソースから色を取得
-        var connectorBrush = this.FindResource("ConnectorStrokeBrush") as IBrush ??
-                            new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+        var connectorBrush = this.FindResource("ConnectorStrokeBrush") as IBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
 
         // 一時的な接続線を作成
         _dragConnector = new ConnectorControl
@@ -729,18 +737,18 @@ public class GraphControl : TemplatedControl
         _overlayCanvas.Children.Add(_dragConnector);
     }
 
-    private void OnPortDragCompleted(object? sender, RoutedEventArgs e)
+    private void CompletePortDrag()
     {
-        if (e is not PortDragEventArgs args || _dragSourcePort == null || _overlayCanvas == null || Graph == null)
+        if (_dragSourcePort == null || Graph == null)
         {
             CleanupPortDrag();
             return;
         }
 
         var sourcePort = _dragSourcePort.Port;
-        var targetPort = args.Port;
+        var targetPort = _currentHoverPort?.Port;
 
-        if (sourcePort != null && sourcePort != targetPort)
+        if (sourcePort != null && targetPort != null && sourcePort != targetPort)
         {
             // 接続を作成
             CreateConnection(sourcePort, targetPort);
@@ -749,11 +757,93 @@ public class GraphControl : TemplatedControl
         CleanupPortDrag();
     }
 
+    private void UpdatePortHighlight(Point mousePosition)
+    {
+        if (_dragSourcePort?.Port == null)
+            return;
+
+        // マウス位置にあるPortControlを検索
+        var portControl = GetPortAtPosition(mousePosition);
+
+        // 前回ハイライトしていたポートをクリア
+        if (_currentHoverPort != null && _currentHoverPort != portControl)
+        {
+            _currentHoverPort.IsHighlighted = false;
+        }
+
+        _currentHoverPort = null;
+
+        // 新しいポートをハイライト（接続可能な場合のみ）
+        if (portControl != null && portControl != _dragSourcePort && portControl.Port != null)
+        {
+            if (CanConnect(_dragSourcePort.Port, portControl.Port))
+            {
+                _currentHoverPort = portControl;
+                _currentHoverPort.IsHighlighted = true;
+            }
+        }
+    }
+
+    private PortControl? GetPortAtPosition(Point position)
+    {
+        // ビジュアルツリーからマウス位置にあるコントロールを取得
+        var element = this.InputHitTest(position);
+
+        // PortControlまたはその子要素を見つける
+        while (element != null)
+        {
+            if (element is PortControl portControl)
+                return portControl;
+
+            if (element is Visual visual)
+            {
+                var parent = visual.GetVisualParent();
+                element = parent as IInputElement;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return null;
+    }
+
+    private bool CanConnect(EditorPort sourcePort, EditorPort targetPort)
+    {
+        // 同じタイプのポート同士は接続できない
+        if (sourcePort.IsOutput == targetPort.IsOutput)
+            return false;
+
+        // 実際の型チェック
+        var outputPort = sourcePort.IsOutput ? sourcePort.OutputPort : targetPort.OutputPort;
+        var inputPort = sourcePort.IsInput ? sourcePort.InputPort : targetPort.InputPort;
+
+        if (outputPort == null || inputPort == null)
+            return false;
+
+        return inputPort.CanConnect(outputPort);
+    }
+
     private void CleanupPortDrag()
     {
         _isDraggingPort = false;
-        _dragSourcePort = null;
 
+        // ハイライトをクリア
+        if (_currentHoverPort != null)
+        {
+            _currentHoverPort.IsHighlighted = false;
+            _currentHoverPort = null;
+        }
+
+        // ドラッグ状態をクリア
+        if (_dragSourcePort != null)
+        {
+            _dragSourcePort.CompleteDrag();
+            _dragSourcePort = null;
+        }
+
+        // 一時的な接続線を削除
         if (_dragConnector != null && _overlayCanvas != null)
         {
             _overlayCanvas.Children.Remove(_dragConnector);
