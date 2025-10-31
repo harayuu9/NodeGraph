@@ -399,8 +399,7 @@ public class GraphControl : TemplatedControl
                 var nodeRect = new Rect(node.PositionX, node.PositionY, node.Width, node.Height);
                 return selectionRect.Intersects(nodeRect);
             })
-            .Cast<Selection.ISelectable>()
-            .ToList();
+            .Cast<Selection.ISelectable>();
 
         // 矩形内の接続を検出（始点または終点が矩形内にある）
         var selectedConnections = _connectorControls
@@ -412,8 +411,7 @@ public class GraphControl : TemplatedControl
                 return selectionRect.Contains(startPoint) || selectionRect.Contains(endPoint);
             })
             .Select(kvp => kvp.Key)
-            .Cast<Selection.ISelectable>()
-            .ToList();
+            .Cast<Selection.ISelectable>();
 
         // ノードと接続を結合
         var selectedItems = selectedNodes.Concat(selectedConnections).ToList();
@@ -827,11 +825,7 @@ public class GraphControl : TemplatedControl
         }
 
         // ドラッグ状態をクリア
-        if (_dragSourcePort != null)
-        {
-            _dragSourcePort.CompleteDrag();
-            _dragSourcePort = null;
-        }
+        _dragSourcePort = null;
 
         // 一時的な接続線を削除
         if (_dragConnector != null && _overlayCanvas != null)

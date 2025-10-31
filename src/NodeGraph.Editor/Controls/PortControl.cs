@@ -37,8 +37,6 @@ public class PortControl : TemplatedControl
         remove => RemoveHandler(PortDragCompletedEvent, value);
     }
 
-    private bool _isDragging;
-    private Point _dragStartPoint;
     private Ellipse? _portEllipse;
 
     public PortControl()
@@ -50,8 +48,6 @@ public class PortControl : TemplatedControl
         }
 
         PointerPressed += OnPointerPressed;
-        PointerMoved += OnPointerMoved;
-        PointerReleased += OnPointerReleased;
     }
 
     public EditorPort? Port
@@ -85,38 +81,14 @@ public class PortControl : TemplatedControl
         var properties = e.GetCurrentPoint(this).Properties;
         if (properties.IsLeftButtonPressed)
         {
-            _isDragging = true;
-            _dragStartPoint = e.GetPosition(this);
-
             // ドラッグ開始イベントを発火
-            var args = new PortDragEventArgs(PortDragStartedEvent, this, Port, _dragStartPoint);
+            var args = new PortDragEventArgs(PortDragStartedEvent, this, Port, e.GetPosition(this));
             RaiseEvent(args);
 
             e.Handled = true;
         }
     }
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        // GraphControlでマウス移動を処理
-    }
-
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (_isDragging && Port != null)
-        {
-            _isDragging = false;
-
-            // ドラッグ終了イベントは発火しない（GraphControlで処理）
-            e.Handled = true;
-        }
-    }
-
-    internal void CompleteDrag()
-    {
-        _isDragging = false;
-    }
-
+    
     internal Point? GetCenterIn(Visual relativeTo)
     {
         if (_portEllipse == null)
@@ -131,17 +103,9 @@ public class PortControl : TemplatedControl
 /// <summary>
 /// ポートドラッグイベントの引数
 /// </summary>
-public class PortDragEventArgs : RoutedEventArgs
+public class PortDragEventArgs(RoutedEvent routedEvent, PortControl portControl, EditorPort port, Point position) : RoutedEventArgs(routedEvent)
 {
-    public PortControl PortControl { get; }
-    public EditorPort Port { get; }
-    public Point Position { get; }
-
-    public PortDragEventArgs(RoutedEvent routedEvent, PortControl portControl, EditorPort port, Point position)
-        : base(routedEvent)
-    {
-        PortControl = portControl;
-        Port = port;
-        Position = position;
-    }
+    public PortControl PortControl { get; } = portControl;
+    public EditorPort Port { get; } = port;
+    public Point Position { get; } = position;
 }

@@ -56,6 +56,11 @@
             <Setter Property="Fill" Value="{DynamicResource PortHoverFillBrush}"/>
         </Style>
 
+        <!-- Highlighted state: fill like pointerover -->
+        <Style Selector="^[IsHighlighted=true] /template/ Ellipse">
+            <Setter Property="Fill" Value="{DynamicResource PortHoverFillBrush}"/>
+        </Style>
+
         <!-- Direction=Left: ポートが左側なので、テキストは右側に表示 -->
         <Style Selector="^[Direction=Left] /template/ TextBlock#RightText">
             <Setter Property="IsVisible" Value="True"/>
