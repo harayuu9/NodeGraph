@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using NodeGraph.Editor.Models;
@@ -38,6 +39,7 @@ public class PortControl : TemplatedControl
 
     private bool _isDragging;
     private Point _dragStartPoint;
+    private Ellipse? _portEllipse;
 
     public PortControl()
     {
@@ -68,6 +70,12 @@ public class PortControl : TemplatedControl
     {
         get => GetValue(IsHighlightedProperty);
         set => SetValue(IsHighlightedProperty, value);
+    }
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _portEllipse = e.NameScope.Find<Ellipse>("PART_PortEllipse");
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -107,6 +115,16 @@ public class PortControl : TemplatedControl
     internal void CompleteDrag()
     {
         _isDragging = false;
+    }
+
+    internal Point? GetCenterIn(Visual relativeTo)
+    {
+        if (_portEllipse == null)
+            return null;
+
+        var ellipseBounds = _portEllipse.Bounds;
+        var centerInEllipse = new Point(ellipseBounds.Width / 2, ellipseBounds.Height / 2);
+        return _portEllipse.TranslatePoint(centerInEllipse, relativeTo);
     }
 }
 

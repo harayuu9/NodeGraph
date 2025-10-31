@@ -288,7 +288,10 @@ public class GraphControl : TemplatedControl
         {
             _isSelecting = false;
 
-            _selectionRectangle?.IsVisible = false;
+            if (_selectionRectangle != null)
+            {
+                _selectionRectangle.IsVisible = false;
+            }
 
             var currentPoint = e.GetPosition(this);
             SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
@@ -580,26 +583,13 @@ public class GraphControl : TemplatedControl
         // PortControlを検索
         var portControl = FindPortControl(nodeControl, port);
 
-        // PortControl内のEllipseを検索
-        var ellipse = portControl?.GetVisualDescendants()
-            .OfType<Ellipse>()
-            .FirstOrDefault();
-
-        if (ellipse == null)
+        if (portControl == null)
         {
             return null;
         }
 
-        // Ellipseの中心座標を_canvas座標系で取得
-        var ellipseBounds = ellipse.Bounds;
-        var centerInEllipse = new Point(ellipseBounds.Width / 2, ellipseBounds.Height / 2);
-
-        // Ellipseから_canvasへの座標変換
-        // _canvasと_overlayCanvasは同じトランスフォームを共有しているため、
-        // _canvas座標系で取得した座標はそのまま_overlayCanvasでも使用可能
-        var centerInCanvas = ellipse.TranslatePoint(centerInEllipse, _canvas);
-
-        return centerInCanvas;
+        // PortControlが自身で中心座標を解決するAPIを使用
+        return portControl.GetCenterIn(_canvas);
     }
 
     /// <summary>
@@ -856,20 +846,7 @@ public class GraphControl : TemplatedControl
         if (_canvas == null)
             return null;
 
-        // PortControl内のEllipseを検索
-        var ellipse = portControl.GetVisualDescendants()
-            .OfType<Ellipse>()
-            .FirstOrDefault();
-
-        if (ellipse == null)
-            return null;
-
-        // Ellipseの中心座標を_canvas座標系で取得
-        var ellipseBounds = ellipse.Bounds;
-        var centerInEllipse = new Point(ellipseBounds.Width / 2, ellipseBounds.Height / 2);
-        var centerInCanvas = ellipse.TranslatePoint(centerInEllipse, _canvas);
-
-        return centerInCanvas;
+        return portControl.GetCenterIn(_canvas);
     }
 
     private void CreateConnection(EditorPort sourcePort, EditorPort targetPort)

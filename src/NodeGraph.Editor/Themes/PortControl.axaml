@@ -26,7 +26,8 @@
                                IsVisible="False"/>
 
                     <!-- Port circle -->
-                    <Ellipse Grid.Column="1"
+                    <Ellipse x:Name="PART_PortEllipse"
+                             Grid.Column="1"
                              Fill="{DynamicResource PortFillBrush}"
                              Stroke="{DynamicResource PortStrokeBrush}"
                              StrokeThickness="3"
