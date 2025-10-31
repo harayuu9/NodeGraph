@@ -15,8 +15,7 @@ public class NodeControl : ContentControl
 {
     private bool _isDragging;
     private Point _dragStartPoint;
-    private Point _nodeStartPosition;
-    private readonly Dictionary<EditorNode, Point> _selectedNodesStartPositions = [];
+    private readonly Dictionary<IPositionable, Point> _selectedNodesStartPositions = [];
 
     public NodeControl()
     {
@@ -76,7 +75,7 @@ public class NodeControl : ContentControl
         if (sender is not EditorNode node)
             return;
 
-        if (e.PropertyName is nameof(EditorNode.PositionX) or nameof(EditorNode.PositionY))
+        if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y))
         {
             UpdatePosition(node);
         }
@@ -102,8 +101,8 @@ public class NodeControl : ContentControl
     {
         if (Parent is Canvas canvas)
         {
-            Canvas.SetLeft(this, node.PositionX);
-            Canvas.SetTop(this, node.PositionY);
+            Canvas.SetLeft(this, node.X);
+            Canvas.SetTop(this, node.Y);
         }
     }
 
@@ -116,7 +115,6 @@ public class NodeControl : ContentControl
         {
             _isDragging = true;
             _dragStartPoint = e.GetPosition(parent);
-            _nodeStartPosition = new Point(Node.PositionX, Node.PositionY);
 
             // Ctrlキーが押されている場合は複数選択、そうでなければ単一選択
             var isMultiSelect = e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -138,9 +136,9 @@ public class NodeControl : ContentControl
             _selectedNodesStartPositions.Clear();
             foreach (var selectedItem in Node.SelectionManager.SelectedItems)
             {
-                if (selectedItem is EditorNode editorNode)
+                if (selectedItem is IPositionable pos)
                 {
-                    _selectedNodesStartPositions[editorNode] = new Point(editorNode.PositionX, editorNode.PositionY);
+                    _selectedNodesStartPositions[pos] = pos.Point();
                 }
             }
 
@@ -165,8 +163,8 @@ public class NodeControl : ContentControl
             // 選択されている全ノードを同時に移動
             foreach (var (editorNode, startPosition) in _selectedNodesStartPositions)
             {
-                editorNode.PositionX = startPosition.X + delta.X;
-                editorNode.PositionY = startPosition.Y + delta.Y;
+                editorNode.X = startPosition.X + delta.X;
+                editorNode.Y = startPosition.Y + delta.Y;
             }
 
             e.Handled = true;

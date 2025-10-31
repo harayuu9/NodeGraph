@@ -396,7 +396,7 @@ public class GraphControl : TemplatedControl
         var selectedNodes = Graph.Nodes
             .Where(node =>
             {
-                var nodeRect = new Rect(node.PositionX, node.PositionY, node.Width, node.Height);
+                var nodeRect = new Rect(node.X, node.Y, node.Width, node.Height);
                 return selectionRect.Intersects(nodeRect);
             })
             .Cast<Selection.ISelectable>();
@@ -458,8 +458,8 @@ public class GraphControl : TemplatedControl
         foreach (var node in Graph.Nodes)
         {
             var nodeControl = CreateNodeControl(node);
-            Canvas.SetLeft(nodeControl, node.PositionX);
-            Canvas.SetTop(nodeControl, node.PositionY);
+            Canvas.SetLeft(nodeControl, node.X);
+            Canvas.SetTop(nodeControl, node.Y);
             _canvas.Children.Add(nodeControl);
 
             // ノードの位置変更を監視
@@ -495,7 +495,7 @@ public class GraphControl : TemplatedControl
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(EditorNode.PositionX) or nameof(EditorNode.PositionY))
+        if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y))
         {
             ScheduleConnectorUpdate();
         }
@@ -947,10 +947,10 @@ public class GraphControl : TemplatedControl
 
         foreach (var node in Graph.Nodes)
         {
-            minX = Math.Min(minX, node.PositionX);
-            minY = Math.Min(minY, node.PositionY);
-            maxX = Math.Max(maxX, node.PositionX + node.Width);
-            maxY = Math.Max(maxY, node.PositionY + node.Height);
+            minX = Math.Min(minX, node.X);
+            minY = Math.Min(minY, node.Y);
+            maxX = Math.Max(maxX, node.X + node.Width);
+            maxY = Math.Max(maxY, node.Y + node.Height);
         }
 
         FitToRect(new Rect(minX, minY, maxX - minX, maxY - minY));

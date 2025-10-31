@@ -7,26 +7,36 @@ using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Models;
 
-public partial class EditorNode(SelectionManager selectionManager, Node node) : ObservableObject, ISelectable
+public partial class EditorNode : ObservableObject, ISelectable, IRectangular
 {
     private readonly Guid _id = Guid.NewGuid();
 
-    public string Name => node.GetType().Name;
+    public string Name => _node.GetType().Name;
 
     /// <summary>
     /// この EditorNode の一意な識別子
     /// </summary>
     public object SelectionId => _id;
 
-    public SelectionManager SelectionManager { get; } = selectionManager;
+    public SelectionManager SelectionManager { get; }
 
-    public Node Node => node;
+    public Node Node => _node;
 
-    public ObservableCollection<EditorPort> InputPorts { get; } = new(node.InputPorts.Select((x, i) => EditorPort.FromInput(node.GetInputPortName(i), x)));
-    public ObservableCollection<EditorPort> OutputPorts { get; } = new(node.OutputPorts.Select((x, i) => EditorPort.FromOutput(node.GetOutputPortName(i), x)));
+    public ObservableCollection<EditorPort> InputPorts { get; }
+    public ObservableCollection<EditorPort> OutputPorts { get; }
 
-    [ObservableProperty] private double _positionX;
-    [ObservableProperty] private double _positionY;
-    [ObservableProperty] private double _width;
-    [ObservableProperty] private double _height;
+    [ObservableProperty] public partial double X { get; set; }
+    [ObservableProperty] public partial double Y { get; set; }
+    [ObservableProperty] public partial double Width { get; set; }
+    [ObservableProperty] public partial double Height { get; set; }
+
+    private readonly Node _node;
+
+    public EditorNode(SelectionManager selectionManager, Node node)
+    {
+        _node = node;
+        SelectionManager = selectionManager;
+        InputPorts = new ObservableCollection<EditorPort>(node.InputPorts.Select((x, i) => EditorPort.FromInput(node.GetInputPortName(i), x)));
+        OutputPorts = new ObservableCollection<EditorPort>(node.OutputPorts.Select((x, i) => EditorPort.FromOutput(node.GetOutputPortName(i), x)));
+    }
 }
