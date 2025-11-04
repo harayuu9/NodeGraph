@@ -12,8 +12,9 @@ public partial class EditorPort : ObservableObject
         _port = port;
         Name = name;
         IsInput = _port is InputPort;
+        Value = _port.ValueString;
     }
-    
+
     public bool IsInput { get; }
     public bool IsOutput => !IsInput;
 
@@ -21,7 +22,10 @@ public partial class EditorPort : ObservableObject
     public Port Port => _port;
 
     public string Name { get; }
-    public string Value => _port.ValueString;
+
+    [ObservableProperty]
+    public partial string Value { get; set; } = string.Empty;
+
     public string TypeName
     {
         get
@@ -34,5 +38,10 @@ public partial class EditorPort : ObservableObject
             }
             return "Unknown";
         }
+    }
+
+    public void UpdateValue()
+    {
+        Value = _port.ValueString;
     }
 }

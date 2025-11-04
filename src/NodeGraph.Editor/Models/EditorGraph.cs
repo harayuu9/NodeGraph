@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Model;
@@ -55,6 +57,18 @@ public partial class EditorGraph : ObservableObject
                     Connections.Add(connection);
                 }
             }
+        }
+    }
+
+    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        var executor = _graph.CreateExecutor();
+        await executor.ExecuteAsync(cancellationToken);
+
+        // 実行後、すべてのノードのポート値を更新
+        foreach (var editorNode in Nodes)
+        {
+            editorNode.UpdatePortValues();
         }
     }
 }

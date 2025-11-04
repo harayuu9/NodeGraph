@@ -39,4 +39,16 @@ public partial class EditorNode : ObservableObject, ISelectable, IRectangular
         InputPorts = new ObservableCollection<EditorPort>(node.InputPorts.Select((x, i) => new EditorPort(node.GetInputPortName(i), x)));
         OutputPorts = new ObservableCollection<EditorPort>(node.OutputPorts.Select((x, i) => new EditorPort(node.GetOutputPortName(i), x)));
     }
+
+    public void UpdatePortValues()
+    {
+        foreach (var port in InputPorts)
+        {
+            port.UpdateValue();
+        }
+        foreach (var port in OutputPorts)
+        {
+            port.UpdateValue();
+        }
+    }
 }

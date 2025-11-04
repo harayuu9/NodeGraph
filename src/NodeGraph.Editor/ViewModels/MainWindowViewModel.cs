@@ -1,4 +1,5 @@
-﻿using Avalonia;
+﻿using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -104,5 +105,11 @@ public partial class MainWindowViewModel : ViewModelBase
         CurrentTheme = variant == ThemeVariant.Dark ? "Dark" :
                       variant == ThemeVariant.Light ? "Light" : "Default";
         UpdateThemeFlags();
+    }
+
+    [RelayCommand]
+    private async Task ExecuteGraphAsync()
+    {
+        await TestGraph.ExecuteAsync();
     }
 }
