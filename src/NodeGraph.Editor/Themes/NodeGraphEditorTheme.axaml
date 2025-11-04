@@ -30,6 +30,8 @@
 
           <!-- Graph Resources -->
           <SolidColorBrush x:Key='GraphBackgroundBrush'>#F5F5F5</SolidColorBrush>
+          <!-- Grid (Light) -->
+          <SolidColorBrush x:Key='GraphGridBrush'>#20000000</SolidColorBrush>
 
           <!-- Window Resources -->
           <SolidColorBrush x:Key='WindowHeaderBackgroundBrush'>#E0E0E0</SolidColorBrush>
@@ -70,6 +72,8 @@
 
           <!-- Graph Resources -->
           <SolidColorBrush x:Key='GraphBackgroundBrush'>#2D2D30</SolidColorBrush>
+          <!-- Grid (Dark) -->
+          <SolidColorBrush x:Key='GraphGridBrush'>#20FFFFFF</SolidColorBrush>
 
           <!-- Window Resources -->
           <SolidColorBrush x:Key='WindowHeaderBackgroundBrush'>#252526</SolidColorBrush>

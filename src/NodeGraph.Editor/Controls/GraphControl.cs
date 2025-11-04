@@ -13,6 +13,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NodeGraph.Editor.Models;
+using NodeGraph.Editor.Primitives;
+using NodeGraph.Editor.Selection;
+using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -24,6 +27,7 @@ public class GraphControl : TemplatedControl
     private Canvas? _canvas;
     private Canvas? _overlayCanvas;
     private Canvas? _uiCanvas;
+    private GridDecorator? _gridDecorator;
     private Point _lastDragPoint;
     private bool _isDragging;
 
@@ -37,13 +41,12 @@ public class GraphControl : TemplatedControl
     // ポートドラッグ用
     private bool _isDraggingPort;
     private PortControl? _dragSourcePort;
-    private ConnectorControl? _dragConnector;
     private PortControl? _currentHoverPort;
 
     // トランスフォーム
-    private TranslateTransform _translateTransform = new();
-    private ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
-    private TransformGroup _transformGroup;
+    private readonly TranslateTransform _translateTransform = new();
+    private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
+    private readonly TransformGroup _transformGroup;
 
     public GraphControl()
     {
@@ -63,6 +66,49 @@ public class GraphControl : TemplatedControl
 
         // フォーカス可能にする
         Focusable = true;
+        
+        if (Design.IsDesignMode)
+        {
+            // テスト用のグラフを作成
+            var graph = new Graph();
+
+            // テスト用のノードを作成
+            var a1 = graph.CreateNode<FloatConstantNode>();
+            a1.SetValue(10);
+        
+            var a2 = graph.CreateNode<FloatConstantNode>();
+            a2.SetValue(5);
+        
+            var add = graph.CreateNode<FloatAddNode>();
+            add.ConnectInput(0, a1, 0);
+            add.ConnectInput(1, a2, 0);
+        
+            graph.CreateNode<FloatResultNode>();
+            
+            var testGraph = new EditorGraph(graph, new SelectionManager());
+
+            // ノードの位置とサイズを設定
+            testGraph.Nodes[0].X = 100;
+            testGraph.Nodes[0].Y = 100;
+            testGraph.Nodes[0].Width = 150;
+            testGraph.Nodes[0].Height = 80;
+
+            testGraph.Nodes[1].X = 350;
+            testGraph.Nodes[1].Y = 50;
+            testGraph.Nodes[1].Width = 150;
+            testGraph.Nodes[1].Height = 100;
+
+            testGraph.Nodes[2].X = 350;
+            testGraph.Nodes[2].Y = 200;
+            testGraph.Nodes[2].Width = 180;
+            testGraph.Nodes[2].Height = 90;
+
+            testGraph.Nodes[3].X = 600;
+            testGraph.Nodes[3].Y = 120;
+            testGraph.Nodes[3].Width = 150;
+            testGraph.Nodes[3].Height = 100;
+            Graph = testGraph;
+        }
     }
 
     #region Styled Properties
@@ -99,20 +145,12 @@ public class GraphControl : TemplatedControl
         set => SetValue(MaxZoomProperty, value);
     }
 
-    public static readonly StyledProperty<double> PanXProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(PanX), 0.0);
+    public static readonly StyledProperty<Vector> PanOffsetProperty = AvaloniaProperty.Register<GraphControl, Vector>(nameof(PanOffset), default);
 
-    public double PanX
+    public Vector PanOffset
     {
-        get => GetValue(PanXProperty);
-        set => SetValue(PanXProperty, value);
-    }
-
-    public static readonly StyledProperty<double> PanYProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(PanY), 0.0);
-
-    public double PanY
-    {
-        get => GetValue(PanYProperty);
-        set => SetValue(PanYProperty, value);
+        get => GetValue(PanOffsetProperty);
+        set => SetValue(PanOffsetProperty, value);
     }
 
     public static readonly StyledProperty<bool> IsSelectionVisibleProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsSelectionVisible), false);
@@ -123,36 +161,52 @@ public class GraphControl : TemplatedControl
         set => SetValue(IsSelectionVisibleProperty, value);
     }
 
-    public static readonly StyledProperty<double> SelectionLeftProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionLeft), 0.0);
+    public static readonly StyledProperty<Rect> SelectionRectProperty = AvaloniaProperty.Register<GraphControl, Rect>(nameof(SelectionRect), default);
 
-    public double SelectionLeft
+    public Rect SelectionRect
     {
-        get => GetValue(SelectionLeftProperty);
-        set => SetValue(SelectionLeftProperty, value);
+        get => GetValue(SelectionRectProperty);
+        set => SetValue(SelectionRectProperty, value);
     }
 
-    public static readonly StyledProperty<double> SelectionTopProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionTop), 0.0);
+    public static readonly StyledProperty<bool> IsDraggingConnectorProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsDraggingConnector), false);
 
-    public double SelectionTop
+    public bool IsDraggingConnector
     {
-        get => GetValue(SelectionTopProperty);
-        set => SetValue(SelectionTopProperty, value);
+        get => GetValue(IsDraggingConnectorProperty);
+        set => SetValue(IsDraggingConnectorProperty, value);
     }
 
-    public static readonly StyledProperty<double> SelectionWidthProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionWidth), 0.0);
+    public static readonly StyledProperty<ConnectorLine> DragConnectorLineProperty = AvaloniaProperty.Register<GraphControl, ConnectorLine>(nameof(DragConnectorLine), ConnectorLine.Zero);
 
-    public double SelectionWidth
+    public ConnectorLine DragConnectorLine
     {
-        get => GetValue(SelectionWidthProperty);
-        set => SetValue(SelectionWidthProperty, value);
+        get => GetValue(DragConnectorLineProperty);
+        set => SetValue(DragConnectorLineProperty, value);
     }
 
-    public static readonly StyledProperty<double> SelectionHeightProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionHeight), 0.0);
+    public static readonly StyledProperty<bool> ShowGridProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(ShowGrid), true);
 
-    public double SelectionHeight
+    public bool ShowGrid
     {
-        get => GetValue(SelectionHeightProperty);
-        set => SetValue(SelectionHeightProperty, value);
+        get => GetValue(ShowGridProperty);
+        set => SetValue(ShowGridProperty, value);
+    }
+
+    public static readonly StyledProperty<double> GridSizeProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(GridSize), 20.0);
+
+    public double GridSize
+    {
+        get => GetValue(GridSizeProperty);
+        set => SetValue(GridSizeProperty, value);
+    }
+
+    public static readonly StyledProperty<IBrush?> GridBrushProperty = AvaloniaProperty.Register<GraphControl, IBrush?>(nameof(GridBrush), new SolidColorBrush(Color.FromArgb(15, 255, 255, 255)));
+
+    public IBrush? GridBrush
+    {
+        get => GetValue(GridBrushProperty);
+        set => SetValue(GridBrushProperty, value);
     }
 
     #endregion
@@ -164,6 +218,7 @@ public class GraphControl : TemplatedControl
         _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
         _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
         _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
+        _gridDecorator = e.NameScope.Find<GridDecorator>("PART_GridDecorator");
 
         if (_canvas != null)
         {
@@ -175,6 +230,13 @@ public class GraphControl : TemplatedControl
         if (_overlayCanvas != null)
         {
             _overlayCanvas.RenderTransform = _transformGroup;
+        }
+
+        // グリッドは Render 時に Pan/Zoom を考慮して描画するため、
+        // RenderTransform は適用しない。
+        if (_gridDecorator != null)
+        {
+            UpdateGrid();
         }
     }
 
@@ -189,11 +251,23 @@ public class GraphControl : TemplatedControl
         else if (change.Property == ZoomProperty)
         {
             UpdateZoom();
+            UpdateGrid();
         }
-        else if (change.Property == PanXProperty || change.Property == PanYProperty)
+        else if (change.Property == PanOffsetProperty)
         {
             UpdatePan();
+            UpdateGrid();
         }
+        else if (change.Property == ShowGridProperty || change.Property == GridSizeProperty || change.Property == GridBrushProperty)
+        {
+            UpdateGrid();
+        }
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        UpdateGrid();
     }
 
     #region Pan and Zoom Implementation
@@ -224,10 +298,7 @@ public class GraphControl : TemplatedControl
                 _selectionStartPoint = e.GetPosition(this);
 
                 IsSelectionVisible = true;
-                SelectionLeft = _selectionStartPoint.X;
-                SelectionTop = _selectionStartPoint.Y;
-                SelectionWidth = 0;
-                SelectionHeight = 0;
+                SelectionRect = new Rect(_selectionStartPoint, new Size(0, 0));
 
                 e.Pointer.Capture(this);
                 e.Handled = true;
@@ -248,8 +319,7 @@ public class GraphControl : TemplatedControl
             var currentPoint = e.GetPosition(this);
             var delta = currentPoint - _lastDragPoint;
 
-            PanX += delta.X;
-            PanY += delta.Y;
+            PanOffset += delta;
 
             _lastDragPoint = currentPoint;
             e.Handled = true;
@@ -266,7 +336,7 @@ public class GraphControl : TemplatedControl
 
             e.Handled = true;
         }
-        else if (_isDraggingPort && _dragConnector != null && _canvas != null)
+        else if (_isDraggingPort && _canvas != null)
         {
             // ポートドラッグ中の一時的な接続線を更新
             var currentPoint = e.GetPosition(_canvas);
@@ -274,14 +344,12 @@ public class GraphControl : TemplatedControl
             if (_dragSourcePort?.Port?.IsOutput == true)
             {
                 // Output portからドラッグしている場合、終点を更新
-                _dragConnector.EndX = currentPoint.X;
-                _dragConnector.EndY = currentPoint.Y;
+                DragConnectorLine = new ConnectorLine(DragConnectorLine.Start, currentPoint);
             }
             else
             {
                 // Input portからドラッグしている場合、始点を更新
-                _dragConnector.StartX = currentPoint.X;
-                _dragConnector.StartY = currentPoint.Y;
+                DragConnectorLine = new ConnectorLine(currentPoint, DragConnectorLine.End);
             }
 
             // マウス位置のポートを検索してハイライト
@@ -323,7 +391,7 @@ public class GraphControl : TemplatedControl
         var delta = e.Delta.Y;
         var zoomFactor = delta > 0 ? 1.1 : 0.9;
 
-        var pointerPosition = e.GetPosition(_canvas);
+        var pointerPosition = e.GetPosition(this);
         ZoomAtPoint(pointerPosition, zoomFactor);
 
         e.Handled = true;
@@ -348,8 +416,9 @@ public class GraphControl : TemplatedControl
 
         // ポイントを中心にズーム
         var ratio = newZoom / oldZoom;
-        PanX = point.X - (point.X - PanX) * ratio;
-        PanY = point.Y - (point.Y - PanY) * ratio;
+        var newPanX = point.X - (point.X - PanOffset.X) * ratio;
+        var newPanY = point.Y - (point.Y - PanOffset.Y) * ratio;
+        PanOffset = new Vector(newPanX, newPanY);
         Zoom = newZoom;
 
         OnZoomChanged(oldZoom, newZoom, point);
@@ -363,21 +432,15 @@ public class GraphControl : TemplatedControl
 
     private void UpdatePan()
     {
-        _translateTransform.X = PanX;
-        _translateTransform.Y = PanY;
+        _translateTransform.X = PanOffset.X;
+        _translateTransform.Y = PanOffset.Y;
     }
 
     private void UpdateSelectionRectangle(Point start, Point end)
     {
-        var left = Math.Min(start.X, end.X);
-        var top = Math.Min(start.Y, end.Y);
-        var width = Math.Abs(end.X - start.X);
-        var height = Math.Abs(end.Y - start.Y);
-
-        SelectionLeft = left;
-        SelectionTop = top;
-        SelectionWidth = width;
-        SelectionHeight = height;
+        var topLeft = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
+        var bottomRight = new Point(Math.Max(start.X, end.X), Math.Max(start.Y, end.Y));
+        SelectionRect = new Rect(topLeft, bottomRight);
     }
 
     private void SelectNodesInRectangle(Point start, Point end, KeyModifiers modifiers)
@@ -556,11 +619,7 @@ public class GraphControl : TemplatedControl
     /// </summary>
     private IEnumerable<ConnectorControl> GetAllConnectorControls()
     {
-        if (_overlayCanvas == null)
-            return Enumerable.Empty<ConnectorControl>();
-
-        return _overlayCanvas.GetVisualDescendants()
-            .OfType<ConnectorControl>();
+        return _overlayCanvas == null ? [] : _overlayCanvas.GetVisualDescendants().OfType<ConnectorControl>();
     }
 
     /// <summary>
@@ -568,13 +627,8 @@ public class GraphControl : TemplatedControl
     /// </summary>
     private Point? GetPortPosition(EditorNode node, EditorPort port)
     {
-        if (_canvas == null)
-        {
-            return null;
-        }
-
         // ノードに対応するNodeControlを検索
-        var nodeControl = _canvas.Children
+        var nodeControl = _canvas?.Children
             .OfType<NodeControl>()
             .FirstOrDefault(nc => nc.Node == node);
 
@@ -586,13 +640,14 @@ public class GraphControl : TemplatedControl
         // PortControlを検索
         var portControl = FindPortControl(nodeControl, port);
 
-        if (portControl == null)
+        // INFO 本来は_canvas?.Childrenで見てるから、ここでnullな分けないんだけど構文解析がアホだから CS8604のワーニング出す
+        if (_canvas == null)
         {
             return null;
         }
-
+        
         // PortControlが自身で中心座標を解決するAPIを使用
-        return portControl.GetCenterIn(_canvas);
+        return portControl?.GetCenterIn(_canvas);
     }
 
     /// <summary>
@@ -678,7 +733,7 @@ public class GraphControl : TemplatedControl
 
     private void OnPortDragStarted(object? sender, RoutedEventArgs e)
     {
-        if (e is not PortDragEventArgs args || _overlayCanvas == null || _canvas == null)
+        if (e is not PortDragEventArgs args || _canvas == null)
             return;
 
         _isDraggingPort = true;
@@ -689,35 +744,11 @@ public class GraphControl : TemplatedControl
         if (!portCenter.HasValue)
             return;
 
-        // テーマリソースから色を取得
-        var connectorBrush = this.FindResource("ConnectorStrokeBrush") as IBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+        // ドラッグ接続線の座標を設定
+        DragConnectorLine = new ConnectorLine(portCenter.Value, portCenter.Value);
 
-        // 一時的な接続線を作成
-        _dragConnector = new ConnectorControl
-        {
-            Stroke = connectorBrush,
-            StrokeThickness = 2,
-            IsHitTestVisible = false
-        };
-
-        if (args.Port.IsOutput)
-        {
-            // Output portからドラッグ開始
-            _dragConnector.StartX = portCenter.Value.X;
-            _dragConnector.StartY = portCenter.Value.Y;
-            _dragConnector.EndX = portCenter.Value.X;
-            _dragConnector.EndY = portCenter.Value.Y;
-        }
-        else
-        {
-            // Input portからドラッグ開始
-            _dragConnector.StartX = portCenter.Value.X;
-            _dragConnector.StartY = portCenter.Value.Y;
-            _dragConnector.EndX = portCenter.Value.X;
-            _dragConnector.EndY = portCenter.Value.Y;
-        }
-
-        _overlayCanvas.Children.Add(_dragConnector);
+        // 一時的な接続線を表示
+        IsDraggingConnector = true;
     }
 
     private void CompletePortDrag()
@@ -811,12 +842,8 @@ public class GraphControl : TemplatedControl
         // ドラッグ状態をクリア
         _dragSourcePort = null;
 
-        // 一時的な接続線を削除
-        if (_dragConnector != null && _overlayCanvas != null)
-        {
-            _overlayCanvas.Children.Remove(_dragConnector);
-            _dragConnector = null;
-        }
+        // 一時的な接続線を非表示
+        IsDraggingConnector = false;
     }
 
     private Point? GetPortCenterPosition(PortControl portControl)
@@ -880,6 +907,16 @@ public class GraphControl : TemplatedControl
 
     #endregion
 
+    #region Grid Drawing
+
+    private void UpdateGrid()
+    {
+        // Decorator に再描画を依頼（プロパティはXAMLバインドで渡される）
+        _gridDecorator?.InvalidateVisual();
+    }
+
+    #endregion
+
     #region Public API
 
     /// <summary>
@@ -895,8 +932,9 @@ public class GraphControl : TemplatedControl
         var scale = Math.Min(scaleX, scaleY) * 0.9; // 少し余白を持たせる
 
         Zoom = Math.Clamp(scale, MinZoom, MaxZoom);
-        PanX = (Bounds.Width - rect.Width * Zoom) / 2 - rect.X * Zoom;
-        PanY = (Bounds.Height - rect.Height * Zoom) / 2 - rect.Y * Zoom;
+        var panX = (Bounds.Width - rect.Width * Zoom) / 2 - rect.X * Zoom;
+        var panY = (Bounds.Height - rect.Height * Zoom) / 2 - rect.Y * Zoom;
+        PanOffset = new Vector(panX, panY);
     }
 
     /// <summary>
@@ -929,8 +967,7 @@ public class GraphControl : TemplatedControl
     public void ResetView()
     {
         Zoom = 1.0;
-        PanX = 0;
-        PanY = 0;
+        PanOffset = default;
     }
 
     #endregion

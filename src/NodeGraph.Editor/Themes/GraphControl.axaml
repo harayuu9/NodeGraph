@@ -10,6 +10,7 @@
 
     <ControlTheme x:Key="{x:Type controls:GraphControl}" TargetType="controls:GraphControl">
         <Setter Property="Background" Value="{DynamicResource GraphBackgroundBrush}"/>
+        <Setter Property="GridBrush" Value="{DynamicResource GraphGridBrush}"/>
         <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Focusable" Value="True"/>
         <Setter Property="Cursor" Value="Arrow"/>
@@ -22,11 +23,14 @@
                         CornerRadius="{TemplateBinding CornerRadius}"
                         ClipToBounds="True">
                     <Grid>
-                        <!-- グリッド背景 (オプション) -->
-                        <Canvas x:Name="PART_GridCanvas"
-                                ClipToBounds="False">
-                            <!-- グリッドは将来実装可能 -->
-                        </Canvas>
+                        <!-- グリッド背景（描画最適化されたデコレータ） -->
+                        <controls:GridDecorator x:Name="PART_GridDecorator"
+                                                EnableGrid="{Binding ShowGrid, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CellSize="{Binding GridSize, RelativeSource={RelativeSource TemplatedParent}}"
+                                                Zoom="{Binding Zoom, RelativeSource={RelativeSource TemplatedParent}}"
+                                                PanOffset="{Binding PanOffset, RelativeSource={RelativeSource TemplatedParent}}"
+                                                Stroke="{Binding GridBrush, RelativeSource={RelativeSource TemplatedParent}}"
+                                                IsHitTestVisible="False"/>
 
                         <!-- メインキャンバス：ノードを配置 -->
                         <Canvas x:Name="PART_Canvas"
@@ -52,6 +56,16 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- ドラッグ中の一時的な接続線 -->
+                            <controls:ConnectorControl IsVisible="{Binding IsDraggingConnector, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       StartX="{Binding DragConnectorLine.StartX, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       StartY="{Binding DragConnectorLine.StartY, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       EndX="{Binding DragConnectorLine.EndX, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       EndY="{Binding DragConnectorLine.EndY, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       Stroke="{DynamicResource ConnectorStrokeBrush}"
+                                                       StrokeThickness="2"
+                                                       IsHitTestVisible="False"/>
                         </Canvas>
 
                         <!-- UI オーバーレイ (選択矩形など、トランスフォームなし) -->
@@ -63,10 +77,10 @@
                                        Stroke="{DynamicResource SelectionStrokeBrush}"
                                        StrokeThickness="1"
                                        IsVisible="{Binding IsSelectionVisible, RelativeSource={RelativeSource TemplatedParent}}"
-                                       Canvas.Left="{Binding SelectionLeft, RelativeSource={RelativeSource TemplatedParent}}"
-                                       Canvas.Top="{Binding SelectionTop, RelativeSource={RelativeSource TemplatedParent}}"
-                                       Width="{Binding SelectionWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                       Height="{Binding SelectionHeight, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                       Canvas.Left="{Binding SelectionRect.X, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Canvas.Top="{Binding SelectionRect.Y, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Width="{Binding SelectionRect.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Height="{Binding SelectionRect.Height, RelativeSource={RelativeSource TemplatedParent}}"/>
                         </Canvas>
                     </Grid>
                 </Border>
