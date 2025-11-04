@@ -6,13 +6,6 @@
       <ResourceDictionary.ThemeDictionaries>
         <!-- Light Theme (Default) -->
         <ResourceDictionary x:Key='Default'>
-          <!-- Legacy Pin Resources (保持) -->
-          <SolidColorBrush x:Key='PinBackgroundBrush'>White</SolidColorBrush>
-          <SolidColorBrush x:Key='PinPointerOverBackgroundBrush'>White</SolidColorBrush>
-          <SolidColorBrush x:Key='PinForegroundBrush'>Black</SolidColorBrush>
-          <SolidColorBrush x:Key='PinPointerOverForegroundBrush'>Red</SolidColorBrush>
-          <SolidColorBrush x:Key='ConnectorBackgroundBrush'>Red</SolidColorBrush>
-
           <!-- Node Resources -->
           <SolidColorBrush x:Key='NodeBackgroundBrush'>#E0E0E0</SolidColorBrush>
           <SolidColorBrush x:Key='NodeBorderBrush'>#007ACC</SolidColorBrush>
@@ -27,6 +20,9 @@
           <SolidColorBrush x:Key='PortStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
           <SolidColorBrush x:Key='PortForegroundBrush'>#000000</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBackgroundBrush'>#F5F5F5</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBorderBrush'>#CCCCCC</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueForegroundBrush'>#059669</SolidColorBrush>
 
           <!-- Graph Resources -->
           <SolidColorBrush x:Key='GraphBackgroundBrush'>#F5F5F5</SolidColorBrush>
@@ -48,13 +44,6 @@
 
         <!-- Dark Theme -->
         <ResourceDictionary x:Key='Dark'>
-          <!-- Legacy Pin Resources (保持) -->
-          <SolidColorBrush x:Key='PinBackgroundBrush'>Black</SolidColorBrush>
-          <SolidColorBrush x:Key='PinPointerOverBackgroundBrush'>Black</SolidColorBrush>
-          <SolidColorBrush x:Key='PinForegroundBrush'>White</SolidColorBrush>
-          <SolidColorBrush x:Key='PinPointerOverForegroundBrush'>Red</SolidColorBrush>
-          <SolidColorBrush x:Key='ConnectorBackgroundBrush'>Red</SolidColorBrush>
-
           <!-- Node Resources -->
           <SolidColorBrush x:Key='NodeBackgroundBrush'>#3C3C3C</SolidColorBrush>
           <SolidColorBrush x:Key='NodeBorderBrush'>#007ACC</SolidColorBrush>
@@ -69,6 +58,9 @@
           <SolidColorBrush x:Key='PortStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
           <SolidColorBrush x:Key='PortForegroundBrush'>#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBackgroundBrush'>#2D2D2F</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBorderBrush'>#4B5563</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueForegroundBrush'>#10B981</SolidColorBrush>
 
           <!-- Graph Resources -->
           <SolidColorBrush x:Key='GraphBackgroundBrush'>#2D2D30</SolidColorBrush>
