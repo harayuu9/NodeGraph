@@ -39,14 +39,34 @@
                         <Canvas x:Name="PART_OverlayCanvas"
                                 ClipToBounds="False"
                                 IsHitTestVisible="False">
-                            <!-- 接続線などはここに描画可能 -->
+                            <!-- 接続線をItemsControlで描画 -->
+                            <ItemsControl ItemsSource="{Binding Graph.Connections, RelativeSource={RelativeSource TemplatedParent}}" ClipToBounds="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas ClipToBounds="False"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <controls:ConnectorControl Connection="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </Canvas>
 
                         <!-- UI オーバーレイ (選択矩形など、トランスフォームなし) -->
                         <Canvas x:Name="PART_UICanvas"
                                 ClipToBounds="False"
                                 IsHitTestVisible="False">
-                            <!-- 選択矩形などはここに描画 -->
+                            <!-- 選択矩形 -->
+                            <Rectangle Fill="{DynamicResource SelectionFillBrush}"
+                                       Stroke="{DynamicResource SelectionStrokeBrush}"
+                                       StrokeThickness="1"
+                                       IsVisible="{Binding IsSelectionVisible, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Canvas.Left="{Binding SelectionLeft, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Canvas.Top="{Binding SelectionTop, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Width="{Binding SelectionWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Height="{Binding SelectionHeight, RelativeSource={RelativeSource TemplatedParent}}"/>
                         </Canvas>
                     </Grid>
                 </Border>

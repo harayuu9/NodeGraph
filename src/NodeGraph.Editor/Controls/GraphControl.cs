@@ -28,13 +28,11 @@ public class GraphControl : TemplatedControl
     private bool _isDragging;
 
     // コネクタ管理
-    private readonly Dictionary<EditorConnection, ConnectorControl> _connectorControls = new();
     private bool _connectorUpdateScheduled;
 
     // 矩形選択用
     private bool _isSelecting;
     private Point _selectionStartPoint;
-    private Rectangle? _selectionRectangle;
 
     // ポートドラッグ用
     private bool _isDraggingPort;
@@ -117,6 +115,46 @@ public class GraphControl : TemplatedControl
         set => SetValue(PanYProperty, value);
     }
 
+    public static readonly StyledProperty<bool> IsSelectionVisibleProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsSelectionVisible), false);
+
+    public bool IsSelectionVisible
+    {
+        get => GetValue(IsSelectionVisibleProperty);
+        set => SetValue(IsSelectionVisibleProperty, value);
+    }
+
+    public static readonly StyledProperty<double> SelectionLeftProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionLeft), 0.0);
+
+    public double SelectionLeft
+    {
+        get => GetValue(SelectionLeftProperty);
+        set => SetValue(SelectionLeftProperty, value);
+    }
+
+    public static readonly StyledProperty<double> SelectionTopProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionTop), 0.0);
+
+    public double SelectionTop
+    {
+        get => GetValue(SelectionTopProperty);
+        set => SetValue(SelectionTopProperty, value);
+    }
+
+    public static readonly StyledProperty<double> SelectionWidthProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionWidth), 0.0);
+
+    public double SelectionWidth
+    {
+        get => GetValue(SelectionWidthProperty);
+        set => SetValue(SelectionWidthProperty, value);
+    }
+
+    public static readonly StyledProperty<double> SelectionHeightProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(SelectionHeight), 0.0);
+
+    public double SelectionHeight
+    {
+        get => GetValue(SelectionHeightProperty);
+        set => SetValue(SelectionHeightProperty, value);
+    }
+
     #endregion
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -137,26 +175,6 @@ public class GraphControl : TemplatedControl
         if (_overlayCanvas != null)
         {
             _overlayCanvas.RenderTransform = _transformGroup;
-        }
-
-        // UIキャンバスにはトランスフォームを適用しない（選択矩形用）
-        if (_uiCanvas != null)
-        {
-            // テーマリソースから色を取得
-            var fillBrush = this.FindResource("SelectionFillBrush") as IBrush ??
-                           new SolidColorBrush(Color.FromArgb(50, 100, 150, 255));
-            var strokeBrush = this.FindResource("SelectionStrokeBrush") as IBrush ??
-                             new SolidColorBrush(Color.FromArgb(200, 100, 150, 255));
-
-            // 選択矩形の初期化
-            _selectionRectangle = new Rectangle
-            {
-                Fill = fillBrush,
-                Stroke = strokeBrush,
-                StrokeThickness = 1,
-                IsVisible = false
-            };
-            _uiCanvas.Children.Add(_selectionRectangle);
         }
     }
 
@@ -205,14 +223,11 @@ public class GraphControl : TemplatedControl
                 _isSelecting = true;
                 _selectionStartPoint = e.GetPosition(this);
 
-                if (_selectionRectangle != null)
-                {
-                    _selectionRectangle.IsVisible = true;
-                    Canvas.SetLeft(_selectionRectangle, _selectionStartPoint.X);
-                    Canvas.SetTop(_selectionRectangle, _selectionStartPoint.Y);
-                    _selectionRectangle.Width = 0;
-                    _selectionRectangle.Height = 0;
-                }
+                IsSelectionVisible = true;
+                SelectionLeft = _selectionStartPoint.X;
+                SelectionTop = _selectionStartPoint.Y;
+                SelectionWidth = 0;
+                SelectionHeight = 0;
 
                 e.Pointer.Capture(this);
                 e.Handled = true;
@@ -287,11 +302,7 @@ public class GraphControl : TemplatedControl
         else if (_isSelecting)
         {
             _isSelecting = false;
-
-            if (_selectionRectangle != null)
-            {
-                _selectionRectangle.IsVisible = false;
-            }
+            IsSelectionVisible = false;
 
             var currentPoint = e.GetPosition(this);
             SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
@@ -358,18 +369,15 @@ public class GraphControl : TemplatedControl
 
     private void UpdateSelectionRectangle(Point start, Point end)
     {
-        if (_selectionRectangle == null)
-            return;
-
         var left = Math.Min(start.X, end.X);
         var top = Math.Min(start.Y, end.Y);
         var width = Math.Abs(end.X - start.X);
         var height = Math.Abs(end.Y - start.Y);
 
-        Canvas.SetLeft(_selectionRectangle, left);
-        Canvas.SetTop(_selectionRectangle, top);
-        _selectionRectangle.Width = width;
-        _selectionRectangle.Height = height;
+        SelectionLeft = left;
+        SelectionTop = top;
+        SelectionWidth = width;
+        SelectionHeight = height;
     }
 
     private void SelectNodesInRectangle(Point start, Point end, KeyModifiers modifiers)
@@ -402,15 +410,15 @@ public class GraphControl : TemplatedControl
             .Cast<Selection.ISelectable>();
 
         // 矩形内の接続を検出（始点または終点が矩形内にある）
-        var selectedConnections = _connectorControls
-            .Where(kvp =>
+        var selectedConnections = GetAllConnectorControls()
+            .Where(connector =>
             {
-                var connector = kvp.Value;
                 var startPoint = new Point(connector.StartX, connector.StartY);
                 var endPoint = new Point(connector.EndX, connector.EndY);
                 return selectionRect.Contains(startPoint) || selectionRect.Contains(endPoint);
             })
-            .Select(kvp => kvp.Key)
+            .Where(connector => connector.Connection != null)
+            .Select(connector => connector.Connection!)
             .Cast<Selection.ISelectable>();
 
         // ノードと接続を結合
@@ -440,7 +448,6 @@ public class GraphControl : TemplatedControl
             return;
 
         _canvas.Children.Clear();
-        _connectorControls.Clear();
 
         // 既存のSelectionManagerのイベントハンドラを解除
         Graph.SelectionManager.SelectionChanged -= OnSelectionChanged;
@@ -466,29 +473,6 @@ public class GraphControl : TemplatedControl
             node.PropertyChanged += OnNodePropertyChanged;
         }
 
-        // コネクタを作成
-        if (_overlayCanvas != null)
-        {
-            // 選択矩形以外のコネクタをクリア
-            var toRemove = _overlayCanvas.Children
-                .OfType<ConnectorControl>()
-                .ToList();
-            foreach (var control in toRemove)
-            {
-                _overlayCanvas.Children.Remove(control);
-            }
-
-            foreach (var connection in Graph.Connections)
-            {
-                var connectorControl = new ConnectorControl
-                {
-                    Connection = connection
-                };
-                _connectorControls[connection] = connectorControl;
-                _overlayCanvas.Children.Add(connectorControl);
-            }
-        }
-
         // 初期座標を設定（レイアウト後に更新）
         Dispatcher.UIThread.Post(UpdateConnectors, DispatcherPriority.Render);
     }
@@ -504,9 +488,13 @@ public class GraphControl : TemplatedControl
     private void OnSelectionChanged(object? sender, Selection.SelectionChangedEventArgs e)
     {
         // ConnectorControlの選択状態を更新
-        foreach (var (connection, connector) in _connectorControls)
+        var connectors = GetAllConnectorControls();
+        foreach (var connector in connectors)
         {
-            connector.IsSelected = Graph?.SelectionManager.IsSelected(connection) ?? false;
+            if (connector.Connection != null)
+            {
+                connector.IsSelected = Graph?.SelectionManager.IsSelected(connector.Connection) ?? false;
+            }
         }
     }
 
@@ -543,8 +531,13 @@ public class GraphControl : TemplatedControl
         if (_canvas == null || _overlayCanvas == null || Graph == null)
             return;
 
-        foreach (var (connection, connector) in _connectorControls)
+        var connectors = GetAllConnectorControls();
+        foreach (var connector in connectors)
         {
+            if (connector.Connection == null)
+                continue;
+
+            var connection = connector.Connection;
             var startPos = GetPortPosition(connection.SourceNode, connection.SourcePort);
             var endPos = GetPortPosition(connection.TargetNode, connection.TargetPort);
 
@@ -556,6 +549,18 @@ public class GraphControl : TemplatedControl
                 connector.EndY = endPos.Value.Y;
             }
         }
+    }
+
+    /// <summary>
+    /// ItemsControlで生成されたすべてのConnectorControlを取得します
+    /// </summary>
+    private IEnumerable<ConnectorControl> GetAllConnectorControls()
+    {
+        if (_overlayCanvas == null)
+            return Enumerable.Empty<ConnectorControl>();
+
+        return _overlayCanvas.GetVisualDescendants()
+            .OfType<ConnectorControl>();
     }
 
     /// <summary>
@@ -642,7 +647,7 @@ public class GraphControl : TemplatedControl
 
     private void DeleteSelectedConnections()
     {
-        if (Graph == null || _overlayCanvas == null)
+        if (Graph == null)
             return;
 
         // 選択されている接続を取得
@@ -656,7 +661,7 @@ public class GraphControl : TemplatedControl
         // 選択を解除
         Graph.SelectionManager.ClearSelection();
 
-        // 接続を削除
+        // 接続を削除（ItemsControlが自動的にConnectorControlを削除します）
         foreach (var connection in selectedConnections)
         {
             // モデルレベルで接続を切断
@@ -664,13 +669,6 @@ public class GraphControl : TemplatedControl
 
             // EditorConnectionを削除
             Graph.Connections.Remove(connection);
-
-            // ConnectorControlを削除
-            if (_connectorControls.TryGetValue(connection, out var connectorControl))
-            {
-                _overlayCanvas.Children.Remove(connectorControl);
-                _connectorControls.Remove(connection);
-            }
         }
     }
 
@@ -871,17 +869,9 @@ public class GraphControl : TemplatedControl
         // モデルレベルで接続
         if (inputPort.Port.Connect(outputPort.Port))
         {
-            // EditorConnectionを作成
+            // EditorConnectionを作成（ItemsControlが自動的にConnectorControlを生成します）
             var connection = new EditorConnection(outputNode, outputPort, inputNode, inputPort);
             Graph.Connections.Add(connection);
-
-            // ConnectorControlを作成
-            var connectorControl = new ConnectorControl
-            {
-                Connection = connection
-            };
-            _connectorControls[connection] = connectorControl;
-            _overlayCanvas?.Children.Add(connectorControl);
 
             // 座標を更新
             ScheduleConnectorUpdate();
