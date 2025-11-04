@@ -13,6 +13,8 @@ public class InputPort<T> : InputPort
     }
     
     public T Value { get; set; }
+    public override string ValueString => Value?.ToString() ?? "None";
+
     public override bool CanConnect(Port other)
     {
         if (Parent == other.Parent) return false;

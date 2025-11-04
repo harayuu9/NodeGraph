@@ -4,7 +4,7 @@
                     x:CompileBindings="True">
 
     <Design.PreviewWith>
-        <Border Padding="20" Background="Black">
+        <Border Padding="20" Background="{DynamicResource NodeBackgroundBrush}">
             <controls:PortControl/>
         </Border>
     </Design.PreviewWith>
@@ -14,7 +14,7 @@
 
         <Setter Property="Template">
             <ControlTemplate>
-                <Grid ColumnDefinitions="*,Auto,*">
+                <Grid ColumnDefinitions="*,Auto,*,Auto">
                     <TextBlock Grid.Column="0"
                                x:Name="LeftText"
                                Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
@@ -43,6 +43,24 @@
                                HorizontalAlignment="Left"
                                Margin="8,0,0,0"
                                IsVisible="False"/>
+                    
+                    <Border Grid.Column="3"
+                            x:Name="Border"
+                            Width="80"
+                            Height="20"
+                            Background="#2D2D2F"
+                            BorderBrush="#4B5563"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Margin="20,0,0,0"
+                            IsVisible="False">
+                        <TextBlock Text="{Binding Port.Value, RelativeSource={RelativeSource TemplatedParent}}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="#10B981"/>
+                    </Border>
+                    
 
                     <!-- Tooltip showing type -->
                     <ToolTip.Tip>
@@ -63,6 +81,9 @@
 
         <!-- Direction=Left: ポートが左側なので、テキストは右側に表示 -->
         <Style Selector="^[Direction=Left] /template/ TextBlock#RightText">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+        <Style Selector="^[Direction=Left] /template/ Border#Border">
             <Setter Property="IsVisible" Value="True"/>
         </Style>
 

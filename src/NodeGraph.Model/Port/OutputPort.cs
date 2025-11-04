@@ -23,7 +23,9 @@ public class OutputPort<T> : OutputPort
             }
         }
     }
-    
+
+    public override string ValueString => "None";
+
     public override bool CanConnect(Port other)
     {
         if (Parent == other.Parent) return false;

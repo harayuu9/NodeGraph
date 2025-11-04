@@ -21,6 +21,7 @@ public partial class EditorPort : ObservableObject
     public Port Port => _port;
 
     public string Name { get; }
+    public string Value => _port.ValueString;
     public string TypeName
     {
         get

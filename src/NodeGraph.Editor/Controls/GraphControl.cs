@@ -90,22 +90,22 @@ public class GraphControl : TemplatedControl
             // ノードの位置とサイズを設定
             testGraph.Nodes[0].X = 100;
             testGraph.Nodes[0].Y = 100;
-            testGraph.Nodes[0].Width = 150;
+            testGraph.Nodes[0].Width = 250;
             testGraph.Nodes[0].Height = 80;
 
             testGraph.Nodes[1].X = 350;
             testGraph.Nodes[1].Y = 50;
-            testGraph.Nodes[1].Width = 150;
+            testGraph.Nodes[1].Width = 250;
             testGraph.Nodes[1].Height = 100;
 
             testGraph.Nodes[2].X = 350;
             testGraph.Nodes[2].Y = 200;
-            testGraph.Nodes[2].Width = 180;
+            testGraph.Nodes[2].Width = 250;
             testGraph.Nodes[2].Height = 90;
 
             testGraph.Nodes[3].X = 600;
             testGraph.Nodes[3].Y = 120;
-            testGraph.Nodes[3].Width = 150;
+            testGraph.Nodes[3].Width = 250;
             testGraph.Nodes[3].Height = 100;
             Graph = testGraph;
         }

@@ -15,7 +15,7 @@ public abstract class Port : IWithId<PortId>
 
     public PortId Id { get; }
     public Node Parent { get; }
-    
+    public abstract string ValueString { get; }
     protected abstract void ConnectPort(Port other);
     
     public abstract bool CanConnect(Port port);
