@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.ViewModels;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Models;
@@ -24,6 +25,7 @@ public partial class EditorNode : ObservableObject, ISelectable, IRectangular
 
     public ObservableCollection<EditorPort> InputPorts { get; }
     public ObservableCollection<EditorPort> OutputPorts { get; }
+    public ObservableCollection<PropertyViewModel> Properties { get; }
 
     [ObservableProperty] public partial double X { get; set; }
     [ObservableProperty] public partial double Y { get; set; }
@@ -38,6 +40,9 @@ public partial class EditorNode : ObservableObject, ISelectable, IRectangular
         SelectionManager = selectionManager;
         InputPorts = new ObservableCollection<EditorPort>(node.InputPorts.Select((x, i) => new EditorPort(node.GetInputPortName(i), x)));
         OutputPorts = new ObservableCollection<EditorPort>(node.OutputPorts.Select((x, i) => new EditorPort(node.GetOutputPortName(i), x)));
+        Properties = new ObservableCollection<PropertyViewModel>(
+            node.GetProperties().Select(descriptor => new PropertyViewModel(node, descriptor))
+        );
     }
 
     public void UpdatePortValues()

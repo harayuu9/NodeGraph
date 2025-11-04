@@ -43,4 +43,36 @@ public abstract class Node : IWithId<NodeId>
         await ExecuteCoreAsync(cancellationToken);
         AfterExecute();
     }
+
+    /// <summary>
+    /// このノードが持つプロパティ記述子の配列を取得します。
+    /// ソースジェネレータによってオーバーライドされます。
+    /// </summary>
+    /// <returns>プロパティ記述子の配列</returns>
+    public virtual PropertyDescriptor[] GetProperties()
+    {
+        return Array.Empty<PropertyDescriptor>();
+    }
+
+    /// <summary>
+    /// 指定した名前のプロパティ値を取得します。
+    /// </summary>
+    /// <param name="name">プロパティ名</param>
+    /// <returns>プロパティ値、存在しない場合はnull</returns>
+    public object? GetPropertyValue(string name)
+    {
+        var property = Array.Find(GetProperties(), p => p.Name == name);
+        return property?.Getter(this);
+    }
+
+    /// <summary>
+    /// 指定した名前のプロパティ値を設定します。
+    /// </summary>
+    /// <param name="name">プロパティ名</param>
+    /// <param name="value">設定する値</param>
+    public void SetPropertyValue(string name, object? value)
+    {
+        var property = Array.Find(GetProperties(), p => p.Name == name);
+        property?.Setter(this, value);
+    }
 }

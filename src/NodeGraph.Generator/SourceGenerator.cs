@@ -35,7 +35,7 @@ public readonly struct PortData
     public readonly string PortType;
     public readonly string RawName;
     public readonly string Name;
-    
+
     public PortData(IFieldSymbol fieldSymbol, bool isInput)
     {
         Type = fieldSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -45,12 +45,28 @@ public readonly struct PortData
         }
         else
         {
-            PortType = $"global::NodeGraph.Model.OutputPort<{Type}>";       
+            PortType = $"global::NodeGraph.Model.OutputPort<{Type}>";
         }
         RawName = fieldSymbol.Name;
         Name = StringCaseConverter.ToUpperCamelCase(fieldSymbol.Name);
     }
-    
+
+}
+
+public readonly struct PropertyData
+{
+    public readonly string Type;
+    public readonly string RawName;
+    public readonly string Name;
+    public readonly IFieldSymbol FieldSymbol;
+
+    public PropertyData(IFieldSymbol fieldSymbol)
+    {
+        Type = fieldSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        RawName = fieldSymbol.Name;
+        Name = StringCaseConverter.ToUpperCamelCase(fieldSymbol.Name);
+        FieldSymbol = fieldSymbol;
+    }
 }
 
 public static class Emitter
@@ -84,6 +100,10 @@ public static class Emitter
         var outputFields = typeSymbol.GetMembers().OfType<IFieldSymbol>()
             .Where(field => !field.IsStatic && field.ContainsAttribute(reference.OutputAttribute))
             .Select(field => new PortData(field, false))
+            .ToArray();
+        var propertyFields = typeSymbol.GetMembers().OfType<IFieldSymbol>()
+            .Where(field => !field.IsStatic && field.ContainsAttribute(reference.PropertyAttribute))
+            .Select(field => new PropertyData(field))
             .ToArray();
         
         var codeGen = new CSharpCodeGenerator(ns);
@@ -155,9 +175,101 @@ public static class Emitter
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid output port index\");");
                 }
             }
-            
+
+            // Generate GetProperties override
+            if (propertyFields.Length > 0)
+            {
+                codeGen.WriteLine("public override global::NodeGraph.Model.PropertyDescriptor[] GetProperties()");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("return new global::NodeGraph.Model.PropertyDescriptor[]");
+                    using (codeGen.Scope(isFinishSemicolon: true))
+                    {
+                        for (var i = 0; i < propertyFields.Length; i++)
+                        {
+                            var prop = propertyFields[i];
+                            var comma = i < propertyFields.Length - 1 ? "," : "";
+
+                            codeGen.WriteLine("new global::NodeGraph.Model.PropertyDescriptor");
+                            using (codeGen.Scope(isFinishSemicolon: false))
+                            {
+                                codeGen.WriteLine($"Name = \"{prop.Name}\",");
+                                codeGen.WriteLine($"Type = typeof({prop.Type}),");
+                                codeGen.WriteLine($"Getter = node => (({typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)})node).{prop.RawName},");
+                                codeGen.WriteLine($"Setter = (node, value) => (({typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)})node).{prop.RawName} = ({prop.Type})value,");
+
+                                // Generate attributes array
+                                var attributes = GenerateAttributeInstances(prop.FieldSymbol, reference);
+                                codeGen.WriteLine($"Attributes = new global::System.Attribute[] {{ {string.Join(", ", attributes)} }}");
+                            }
+                            codeGen.WriteLine(comma);
+                        }
+                    }
+                }
+            }
+
         }
         context.AddSource($"{fullType}.NodeGraphGenerator.g.cs", codeGen.GetResult());
+    }
+
+    private static string[] GenerateAttributeInstances(IFieldSymbol fieldSymbol, ReferenceSymbols reference)
+    {
+        var attributes = new System.Collections.Generic.List<string>();
+
+        foreach (var attr in fieldSymbol.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, reference.PropertyAttribute))
+            {
+                var displayName = GetNamedArgument(attr, "DisplayName");
+                var category = GetNamedArgument(attr, "Category");
+                var tooltip = GetNamedArgument(attr, "Tooltip");
+
+                var parts = new System.Collections.Generic.List<string>();
+                if (displayName != null) parts.Add($"DisplayName = {displayName}");
+                if (category != null) parts.Add($"Category = {category}");
+                if (tooltip != null) parts.Add($"Tooltip = {tooltip}");
+
+                if (parts.Count > 0)
+                    attributes.Add($"new global::NodeGraph.Model.PropertyAttribute {{ {string.Join(", ", parts)} }}");
+                else
+                    attributes.Add("new global::NodeGraph.Model.PropertyAttribute()");
+            }
+            else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, reference.RangeAttribute))
+            {
+                var min = attr.ConstructorArguments[0].Value;
+                var max = attr.ConstructorArguments[1].Value;
+                attributes.Add($"new global::NodeGraph.Model.RangeAttribute({min}, {max})");
+            }
+            else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, reference.MultilineAttribute))
+            {
+                var lines = GetNamedArgument(attr, "Lines");
+                if (lines != null)
+                    attributes.Add($"new global::NodeGraph.Model.MultilineAttribute {{ Lines = {lines} }}");
+                else
+                    attributes.Add("new global::NodeGraph.Model.MultilineAttribute()");
+            }
+            else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, reference.ReadOnlyAttribute))
+            {
+                attributes.Add("new global::NodeGraph.Model.ReadOnlyAttribute()");
+            }
+        }
+
+        return attributes.ToArray();
+
+        static string? GetNamedArgument(AttributeData attr, string name)
+        {
+            foreach (var pair in attr.NamedArguments)
+            {
+                if (pair.Key == name && pair.Value.Value != null)
+                {
+                    if (pair.Value.Value is string s)
+                        return $"\"{s}\"";
+                    else
+                        return pair.Value.Value.ToString();
+                }
+            }
+            return null;
+        }
     }
 
     private static bool IsPartial(TypeDeclarationSyntax typeDeclaration)
@@ -178,7 +290,11 @@ public class ReferenceSymbols
         NodeAttribute = GetTypeByMetadataName("NodeGraph.Model.NodeAttribute");
         InputAttribute = GetTypeByMetadataName("NodeGraph.Model.InputAttribute");
         OutputAttribute = GetTypeByMetadataName("NodeGraph.Model.OutputAttribute");
-        
+        PropertyAttribute = GetTypeByMetadataName("NodeGraph.Model.PropertyAttribute");
+        RangeAttribute = GetTypeByMetadataName("NodeGraph.Model.RangeAttribute");
+        MultilineAttribute = GetTypeByMetadataName("NodeGraph.Model.MultilineAttribute");
+        ReadOnlyAttribute = GetTypeByMetadataName("NodeGraph.Model.ReadOnlyAttribute");
+
         return;
         INamedTypeSymbol GetTypeByMetadataName(string metadataName)
         {
@@ -190,10 +306,14 @@ public class ReferenceSymbols
             return symbol;
         }
     }
-    
+
     public INamedTypeSymbol NodeAttribute { get; }
     public INamedTypeSymbol InputAttribute { get; }
     public INamedTypeSymbol OutputAttribute { get; }
+    public INamedTypeSymbol PropertyAttribute { get; }
+    public INamedTypeSymbol RangeAttribute { get; }
+    public INamedTypeSymbol MultilineAttribute { get; }
+    public INamedTypeSymbol ReadOnlyAttribute { get; }
 
 
 }
