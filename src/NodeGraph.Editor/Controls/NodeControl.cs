@@ -21,12 +21,8 @@ public class NodeControl : ContentControl
     {
         if (Design.IsDesignMode)
         {
-            var n = new FloatAddNode();
-            Node = new EditorNode(new SelectionManager(), n)
-            {
-                Height = 300,
-                Width = 300
-            };
+            var n = new FloatConstantNode();
+            Node = new EditorNode(new SelectionManager(), n);
         }
         
         // イベントハンドラの登録

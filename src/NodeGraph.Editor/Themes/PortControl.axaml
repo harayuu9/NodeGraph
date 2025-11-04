@@ -14,7 +14,7 @@
 
         <Setter Property="Template">
             <ControlTemplate>
-                <Grid ColumnDefinitions="*,Auto,*,Auto">
+                <Grid ColumnDefinitions="*,Auto,*,Auto" Height="20">
                     <TextBlock Grid.Column="0"
                                x:Name="LeftText"
                                Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"

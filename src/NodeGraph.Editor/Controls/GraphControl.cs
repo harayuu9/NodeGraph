@@ -87,26 +87,18 @@ public class GraphControl : TemplatedControl
             
             var testGraph = new EditorGraph(graph, new SelectionManager());
 
-            // ノードの位置とサイズを設定
+            // ノードの位置を設定
             testGraph.Nodes[0].X = 100;
             testGraph.Nodes[0].Y = 100;
-            testGraph.Nodes[0].Width = 250;
-            testGraph.Nodes[0].Height = 80;
 
             testGraph.Nodes[1].X = 350;
             testGraph.Nodes[1].Y = 50;
-            testGraph.Nodes[1].Width = 250;
-            testGraph.Nodes[1].Height = 100;
 
             testGraph.Nodes[2].X = 350;
             testGraph.Nodes[2].Y = 200;
-            testGraph.Nodes[2].Width = 250;
-            testGraph.Nodes[2].Height = 90;
 
             testGraph.Nodes[3].X = 600;
             testGraph.Nodes[3].Y = 120;
-            testGraph.Nodes[3].Width = 250;
-            testGraph.Nodes[3].Height = 100;
             Graph = testGraph;
         }
     }
@@ -467,7 +459,11 @@ public class GraphControl : TemplatedControl
         var selectedNodes = Graph.Nodes
             .Where(node =>
             {
-                var nodeRect = new Rect(node.X, node.Y, node.Width, node.Height);
+                var nodeControl = FindNodeControl(node);
+                if (nodeControl == null)
+                    return false;
+
+                var nodeRect = new Rect(node.X, node.Y, nodeControl.Bounds.Width, nodeControl.Bounds.Height);
                 return selectionRect.Intersects(nodeRect);
             })
             .Cast<Selection.ISelectable>();
@@ -623,14 +619,22 @@ public class GraphControl : TemplatedControl
     }
 
     /// <summary>
+    /// 指定されたEditorNodeに対応するNodeControlを検索します
+    /// </summary>
+    private NodeControl? FindNodeControl(EditorNode node)
+    {
+        return _canvas?.Children
+            .OfType<NodeControl>()
+            .FirstOrDefault(nc => nc.Node == node);
+    }
+
+    /// <summary>
     /// 指定されたノードとポートの画面上の座標を取得します
     /// </summary>
     private Point? GetPortPosition(EditorNode node, EditorPort port)
     {
         // ノードに対応するNodeControlを検索
-        var nodeControl = _canvas?.Children
-            .OfType<NodeControl>()
-            .FirstOrDefault(nc => nc.Node == node);
+        var nodeControl = FindNodeControl(node);
 
         if (nodeControl == null)
         {
@@ -978,10 +982,14 @@ public class GraphControl : TemplatedControl
 
         foreach (var node in Graph.Nodes)
         {
+            var nodeControl = FindNodeControl(node);
+            if (nodeControl == null)
+                continue;
+
             minX = Math.Min(minX, node.X);
             minY = Math.Min(minY, node.Y);
-            maxX = Math.Max(maxX, node.X + node.Width);
-            maxY = Math.Max(maxY, node.Y + node.Height);
+            maxX = Math.Max(maxX, node.X + nodeControl.Bounds.Width);
+            maxY = Math.Max(maxY, node.Y + nodeControl.Bounds.Height);
         }
 
         FitToRect(new Rect(minX, minY, maxX - minX, maxY - minY));

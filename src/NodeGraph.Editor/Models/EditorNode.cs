@@ -8,7 +8,7 @@ using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Models;
 
-public partial class EditorNode : ObservableObject, ISelectable, IRectangular
+public partial class EditorNode : ObservableObject, ISelectable, IPositionable
 {
     private readonly Guid _id = Guid.NewGuid();
 
@@ -29,8 +29,6 @@ public partial class EditorNode : ObservableObject, ISelectable, IRectangular
 
     [ObservableProperty] public partial double X { get; set; }
     [ObservableProperty] public partial double Y { get; set; }
-    [ObservableProperty] public partial double Width { get; set; }
-    [ObservableProperty] public partial double Height { get; set; }
 
     private readonly Node _node;
 

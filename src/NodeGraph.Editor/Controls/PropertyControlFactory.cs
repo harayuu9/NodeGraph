@@ -83,12 +83,15 @@ public static class PropertyControlFactory
         slider.Bind(RangeBase.ValueProperty, new Binding("Value")
         {
             Source = propertyViewModel,
-            Mode = BindingMode.TwoWay
+            Mode = BindingMode.TwoWay,
         });
+        panel.Children.Add(slider);
 
         var textBox = new TextBox
         {
             Width = 50,
+            Height = 20,
+            FontSize = 11,
             IsReadOnly = propertyViewModel.IsReadOnly
         };
 
@@ -97,8 +100,6 @@ public static class PropertyControlFactory
             Source = propertyViewModel,
             Mode = BindingMode.TwoWay
         });
-
-        panel.Children.Add(slider);
         panel.Children.Add(textBox);
 
         return panel;

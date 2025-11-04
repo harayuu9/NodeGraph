@@ -47,26 +47,18 @@ public partial class MainWindowViewModel : ViewModelBase
         // EditorGraphでラップ（SelectionManagerを注入）
         TestGraph = new EditorGraph(graph, selectionManager);
 
-        // ノードの位置とサイズを設定
+        // ノードの位置を設定
         TestGraph.Nodes[0].X = 100;
         TestGraph.Nodes[0].Y = 100;
-        TestGraph.Nodes[0].Width = 250;
-        TestGraph.Nodes[0].Height = 80;
 
         TestGraph.Nodes[1].X = 350;
         TestGraph.Nodes[1].Y = 50;
-        TestGraph.Nodes[1].Width = 250;
-        TestGraph.Nodes[1].Height = 100;
 
         TestGraph.Nodes[2].X = 350;
         TestGraph.Nodes[2].Y = 200;
-        TestGraph.Nodes[2].Width = 250;
-        TestGraph.Nodes[2].Height = 90;
 
         TestGraph.Nodes[3].X = 600;
         TestGraph.Nodes[3].Y = 120;
-        TestGraph.Nodes[3].Width = 250;
-        TestGraph.Nodes[3].Height = 100;
 
         // 現在のテーマを取得
         UpdateCurrentTheme();
