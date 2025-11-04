@@ -660,10 +660,7 @@ public class GraphControl : TemplatedControl
         foreach (var connection in selectedConnections)
         {
             // モデルレベルで接続を切断
-            if (connection.TargetPort.InputPort != null)
-            {
-                connection.TargetPort.InputPort.Disconnect();
-            }
+            connection.TargetPort.Port.DisconnectAll();
 
             // EditorConnectionを削除
             Graph.Connections.Remove(connection);
@@ -799,18 +796,7 @@ public class GraphControl : TemplatedControl
 
     private bool CanConnect(EditorPort sourcePort, EditorPort targetPort)
     {
-        // 同じタイプのポート同士は接続できない
-        if (sourcePort.IsOutput == targetPort.IsOutput)
-            return false;
-
-        // 実際の型チェック
-        var outputPort = sourcePort.IsOutput ? sourcePort.OutputPort : targetPort.OutputPort;
-        var inputPort = sourcePort.IsInput ? sourcePort.InputPort : targetPort.InputPort;
-
-        if (outputPort == null || inputPort == null)
-            return false;
-
-        return inputPort.CanConnect(outputPort);
+        return sourcePort.Port.CanConnect(targetPort.Port);
     }
 
     private void CleanupPortDrag()
@@ -883,31 +869,22 @@ public class GraphControl : TemplatedControl
             return;
 
         // モデルレベルで接続
-        if (outputPort.OutputPort != null && inputPort.InputPort != null)
+        if (inputPort.Port.Connect(outputPort.Port))
         {
-            try
+            // EditorConnectionを作成
+            var connection = new EditorConnection(outputNode, outputPort, inputNode, inputPort);
+            Graph.Connections.Add(connection);
+
+            // ConnectorControlを作成
+            var connectorControl = new ConnectorControl
             {
-                inputPort.InputPort.Connect(outputPort.OutputPort);
+                Connection = connection
+            };
+            _connectorControls[connection] = connectorControl;
+            _overlayCanvas?.Children.Add(connectorControl);
 
-                // EditorConnectionを作成
-                var connection = new EditorConnection(outputNode, outputPort, inputNode, inputPort);
-                Graph.Connections.Add(connection);
-
-                // ConnectorControlを作成
-                var connectorControl = new ConnectorControl
-                {
-                    Connection = connection
-                };
-                _connectorControls[connection] = connectorControl;
-                _overlayCanvas?.Children.Add(connectorControl);
-
-                // 座標を更新
-                ScheduleConnectorUpdate();
-            }
-            catch
-            {
-                // 型が合わない場合など、接続できない場合は無視
-            }
+            // 座標を更新
+            ScheduleConnectorUpdate();
         }
     }
 

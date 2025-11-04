@@ -38,17 +38,16 @@ public partial class EditorGraph : ObservableObject
         {
             foreach (var editorPort in editorNode.OutputPorts)
             {
-                var outputPort = editorPort.OutputPort;
-                if (outputPort == null) continue;
+                var outputPort = (OutputPort)editorPort.Port;
                 var connectedPorts = outputPort.ConnectedPorts;
                 foreach (var inputPort in connectedPorts)
                 {
                     // 接続先のEditorNodeとEditorPortを検索
-                    var targetNode = Nodes.FirstOrDefault(n => n.InputPorts.Any(p => p.InputPort == inputPort));
+                    var targetNode = Nodes.FirstOrDefault(n => n.InputPorts.Any(p => p.Port == inputPort));
 
                     if (targetNode == null) continue;
 
-                    var targetPort = targetNode.InputPorts.FirstOrDefault(p => p.InputPort == inputPort);
+                    var targetPort = targetNode.InputPorts.FirstOrDefault(p => p.Port == inputPort);
                     if (targetPort == null) continue;
 
                     // 接続を作成

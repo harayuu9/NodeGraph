@@ -45,11 +45,14 @@ public class GraphExecutor : IDisposable
 
             for (var j = 0; j < portCount; j++)
             {
-                var connected = inputPorts[j].ConnectedPort;
-                var pred = connected?.Parent;
-                if (pred != null && pred != node)
+                var connectedPort = inputPorts[j].ConnectedPort;
+                if (connectedPort != null)
                 {
-                    _predecessors[node].Add(pred);
+                    var pred = connectedPort.Parent;
+                    if (pred != node)
+                    {
+                        _predecessors[node].Add(pred);
+                    }
                 }
             }
         }
