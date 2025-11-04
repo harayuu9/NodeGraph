@@ -892,6 +892,9 @@ public class GraphControl : TemplatedControl
 
         if (existingConnection != null)
             return;
+        
+        DisconnectIfSingleConnect(inputPort);
+        DisconnectIfSingleConnect(outputPort);
 
         // モデルレベルで接続
         if (inputPort.Port.Connect(outputPort.Port))
@@ -902,6 +905,29 @@ public class GraphControl : TemplatedControl
 
             // 座標を更新
             ScheduleConnectorUpdate();
+        }
+
+        return;
+
+        void DisconnectIfSingleConnect(EditorPort port)
+        {
+            if (port.Port is SingleConnectPort singleConnectPort)
+            {
+                var old = singleConnectPort.ConnectedPort;
+                if (old != null)
+                {
+                    var node = Graph!.Nodes.FirstOrDefault(n => n.InputPorts.Contains(port));
+                    node ??= Graph!.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(port));
+                    if (node != null)
+                    {
+                        var oldConnection = Graph!.Connections.FirstOrDefault(c => c.TargetNode == node && c.TargetPort == port);
+                        if (oldConnection != null)
+                        {
+                            Graph.Connections.Remove(oldConnection);
+                        }
+                    }
+                }
+            }
         }
     }
 
