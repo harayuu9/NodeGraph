@@ -51,7 +51,7 @@ public abstract class Node : IWithId<NodeId>
     /// <returns>プロパティ記述子の配列</returns>
     public virtual PropertyDescriptor[] GetProperties()
     {
-        return Array.Empty<PropertyDescriptor>();
+        return [];
     }
 
     /// <summary>

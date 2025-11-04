@@ -28,7 +28,7 @@ public sealed class PropertyDescriptor
     /// <summary>
     /// プロパティに適用されている属性の配列を取得します。
     /// </summary>
-    public Attribute[] Attributes { get; set; } = Array.Empty<Attribute>();
+    public Attribute[] Attributes { get; set; } = [];
 
     /// <summary>
     /// 表示名を取得します。指定されていない場合はNameを返します。
