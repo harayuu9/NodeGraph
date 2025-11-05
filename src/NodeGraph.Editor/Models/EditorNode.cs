@@ -29,6 +29,7 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
 
     [ObservableProperty] public partial double X { get; set; }
     [ObservableProperty] public partial double Y { get; set; }
+    
 
     private readonly Node _node;
 

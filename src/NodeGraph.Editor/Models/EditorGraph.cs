@@ -63,12 +63,14 @@ public partial class EditorGraph : ObservableObject
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         var executor = _graph.CreateExecutor();
-        await executor.ExecuteAsync(cancellationToken);
-
-        // 実行後、すべてのノードのポート値を更新
-        foreach (var editorNode in Nodes)
-        {
-            editorNode.UpdatePortValues();
-        }
+        await executor.ExecuteAsync(
+            x =>
+            {
+                Nodes.FirstOrDefault(xx => xx.Node == x)?.UpdatePortValues();
+            },
+            x =>
+            {
+                Nodes.FirstOrDefault(xx => xx.Node == x)?.UpdatePortValues();
+            }, cancellationToken);
     }
 }
