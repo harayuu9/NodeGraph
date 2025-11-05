@@ -13,5 +13,6 @@
         <FluentTheme />
         
         <StyleInclude Source="avares://NodeGraph.Editor/Themes/NodeGraphEditorTheme.axaml" />
+        <StyleInclude Source="avares://NodeGraph.Editor/Themes/SvgPath.axaml" />
     </Application.Styles>
 </Application>

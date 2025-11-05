@@ -17,6 +17,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderBrush}" />
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="ClipToBounds" Value="False" />
 
     <Setter Property="Template">
       <ControlTemplate>
@@ -74,13 +75,13 @@
                 <ItemsControl ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                      <StackPanel Spacing="5"/>
+                      <StackPanel Spacing="5" />
                     </ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="viewmodels:PropertyViewModel">
                       <StackPanel Orientation="Horizontal" Spacing="5">
-                        <controls:PropertyControlPresenter PropertyViewModel="{Binding}"/>
+                        <controls:PropertyControlPresenter PropertyViewModel="{Binding}" />
                       </StackPanel>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -96,6 +97,17 @@
                                   VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
               </StackPanel>
             </Grid>
+
+            <!-- 左上バッジ（オーバーレイ） -->
+            <Border Grid.Row="0"
+              Width="18" Height="18"
+              HorizontalAlignment="Left" VerticalAlignment="Top"
+              Margin="-8,-8,0,0"
+              Background="#E74C3C" CornerRadius="9"
+              BorderBrush="#FFFFFF" BorderThickness="1"
+              IsHitTestVisible="False">
+                <Path Data="{StaticResource BoltIcon}" Stretch="Uniform" Margin="3" Fill="White" />
+            </Border>
           </Grid>
         </Border>
       </ControlTemplate>
@@ -107,6 +119,10 @@
 
     <Style Selector="^:selected">
       <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderSelectedBrush}" />
+    </Style>
+
+    <Style Selector="^[ExecutionStatus=Executed]">
+      <Setter Property="Opacity" Value="0.5" />
     </Style>
 
   </ControlTheme>

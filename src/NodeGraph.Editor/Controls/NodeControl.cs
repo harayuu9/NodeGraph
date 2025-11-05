@@ -10,6 +10,14 @@ using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Controls;
 
+public enum ExecutionStatus
+{
+    None,
+    Waiting,
+    Executing,
+    Executed,
+}
+
 [PseudoClasses(":selected")]
 public class NodeControl : ContentControl
 {
@@ -37,6 +45,14 @@ public class NodeControl : ContentControl
     {
         get => GetValue(NodeProperty);
         set => SetValue(NodeProperty, value);
+    }
+    
+    public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus));
+    
+    public ExecutionStatus ExecutionStatus
+    {
+        get => GetValue(ExecutionStatusProperty);
+        set => SetValue(ExecutionStatusProperty, value);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

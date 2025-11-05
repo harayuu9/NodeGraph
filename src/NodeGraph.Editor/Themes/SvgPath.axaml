@@ -1,0 +1,13 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:CompileBindings="True">
+  <Styles.Resources>
+    <Geometry x:Key="BoltIcon">M9.33,29.33 L14.67,19.33 L4,18 L20,2.67 L22.67,2.67 L17.33,12.67 L28,14 L12,29.33 L9.33,29.33 Z</Geometry>
+  </Styles.Resources>
+
+  <Design.PreviewWith>
+    <Border Padding="50">
+      <Path Width="64" Height="64" Stretch="Uniform" Fill="Black" Data="{StaticResource BoltIcon}" />
+    </Border>
+  </Design.PreviewWith>
+</Styles>
