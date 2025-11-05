@@ -3,11 +3,27 @@
         x:CompileBindings="True">
   <Styles.Resources>
     <Geometry x:Key="BoltIcon">M9.33,29.33 L14.67,19.33 L4,18 L20,2.67 L22.67,2.67 L17.33,12.67 L28,14 L12,29.33 L9.33,29.33 Z</Geometry>
+    <Geometry x:Key="ScheduleIcon">
+      m612-292 56-56-148-148v-184h-80v216l172 172ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z
+    </Geometry>
   </Styles.Resources>
 
   <Design.PreviewWith>
-    <Border Padding="50">
-      <Path Width="64" Height="64" Stretch="Uniform" Fill="Black" Data="{StaticResource BoltIcon}" />
-    </Border>
+    <StackPanel Margin="10">
+      <Path Data="{StaticResource BoltIcon}" />
+      <Path Data="{StaticResource ScheduleIcon}" />
+
+      <StackPanel.Styles>
+        <Style Selector="Path">
+          <Setter Property="Width" Value="64" />
+          <Setter Property="Height" Value="64" />
+          <Setter Property="Stretch" Value="Uniform" />
+          <Setter Property="Fill" Value="Transparent" />
+          <Setter Property="Stroke" Value="Black" />
+          <Setter Property="StrokeThickness" Value="2" />
+          <Setter Property="Margin" Value="3" />
+        </Style>
+      </StackPanel.Styles>
+    </StackPanel>
   </Design.PreviewWith>
 </Styles>
