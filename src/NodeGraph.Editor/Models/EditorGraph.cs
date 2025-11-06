@@ -62,15 +62,37 @@ public partial class EditorGraph : ObservableObject
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var executor = _graph.CreateExecutor();
-        await executor.ExecuteAsync(
-            x =>
+        try
+        {
+            foreach (var editorNode in Nodes)
             {
-                Nodes.FirstOrDefault(xx => xx.Node == x)?.UpdatePortValues();
-            },
-            x =>
+                editorNode.ExecutionStatus = ExecutionStatus.Waiting;
+            }
+        
+            var executor = _graph.CreateExecutor();
+            await executor.ExecuteAsync(
+                x =>
+                {
+                    var node = Nodes.FirstOrDefault(xx => xx.Node == x);
+                    if (node == null) return;
+                    node.UpdatePortValues();
+                    node.ExecutionStatus = ExecutionStatus.Executing;
+                },
+                x =>
+                {
+                    var node = Nodes.FirstOrDefault(xx => xx.Node == x);
+                    if (node == null) return;
+                    node.UpdatePortValues();
+                    node.ExecutionStatus = ExecutionStatus.Executed;
+                }, cancellationToken);
+            await Task.Delay(5000, cancellationToken);
+        }
+        finally
+        {
+            foreach (var editorNode in Nodes)
             {
-                Nodes.FirstOrDefault(xx => xx.Node == x)?.UpdatePortValues();
-            }, cancellationToken);
+                editorNode.ExecutionStatus = ExecutionStatus.None;
+            }
+        }
     }
 }
