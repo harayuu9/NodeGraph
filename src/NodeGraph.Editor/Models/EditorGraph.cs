@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Model;
@@ -27,9 +28,9 @@ public partial class EditorGraph : ObservableObject
     }
 
     public SelectionManager SelectionManager { get; }
-
+    
+    [ObservableProperty] public partial bool IsExecuting { get; set; }
     public ObservableCollection<EditorNode> Nodes { get; } = [];
-
     public ObservableCollection<EditorConnection> Connections { get; } = [];
 
     public Graph Graph => _graph;
@@ -64,6 +65,7 @@ public partial class EditorGraph : ObservableObject
     {
         try
         {
+            IsExecuting = true;
             foreach (var editorNode in Nodes)
             {
                 editorNode.ExecutionStatus = ExecutionStatus.Waiting;
@@ -75,15 +77,23 @@ public partial class EditorGraph : ObservableObject
                 {
                     var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                     if (node == null) return;
-                    node.UpdatePortValues();
-                    node.ExecutionStatus = ExecutionStatus.Executing;
+                    
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        node.UpdatePortValues();
+                        node.ExecutionStatus = ExecutionStatus.Executing;
+                    });
                 },
                 x =>
                 {
                     var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                     if (node == null) return;
-                    node.UpdatePortValues();
-                    node.ExecutionStatus = ExecutionStatus.Executed;
+                    
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        node.UpdatePortValues();
+                        node.ExecutionStatus = ExecutionStatus.Executed;
+                    });
                 }, cancellationToken);
             await Task.Delay(5000, cancellationToken);
         }
@@ -93,6 +103,7 @@ public partial class EditorGraph : ObservableObject
             {
                 editorNode.ExecutionStatus = ExecutionStatus.None;
             }
+            IsExecuting = false;
         }
     }
 }

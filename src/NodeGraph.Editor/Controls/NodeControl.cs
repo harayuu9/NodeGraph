@@ -40,8 +40,12 @@ public class NodeControl : ContentControl
     }
     
     public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus));
-    
-    public ExecutionStatus ExecutionStatus => Node?.ExecutionStatus ?? ExecutionStatus.None;
+
+    public ExecutionStatus ExecutionStatus
+    {
+        get => GetValue(ExecutionStatusProperty);
+        set => SetValue(ExecutionStatusProperty, value);
+    }
     
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -65,6 +69,8 @@ public class NodeControl : ContentControl
         {
             newNode.PropertyChanged += OnNodePropertyChanged;
             newNode.SelectionManager.SelectionChanged += OnSelectionChanged;
+            
+            ExecutionStatus = newNode.ExecutionStatus;
             UpdatePseudoClassesFromSelectionManager();
             UpdatePosition(newNode);
         }
@@ -78,6 +84,10 @@ public class NodeControl : ContentControl
         if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y))
         {
             UpdatePosition(node);
+        }
+        else if (e.PropertyName == nameof(EditorNode.ExecutionStatus))
+        {
+            ExecutionStatus = node.ExecutionStatus;
         }
     }
 
