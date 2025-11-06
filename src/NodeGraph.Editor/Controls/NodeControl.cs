@@ -47,7 +47,7 @@ public class NodeControl : ContentControl
         set => SetValue(NodeProperty, value);
     }
     
-    public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus), ExecutionStatus.Waiting);
+    public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus));
     
     public ExecutionStatus ExecutionStatus
     {

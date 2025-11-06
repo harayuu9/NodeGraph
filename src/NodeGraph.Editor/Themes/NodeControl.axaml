@@ -21,98 +21,94 @@
 
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Background="{TemplateBinding Background}"
-                BorderBrush="{TemplateBinding BorderBrush}"
-                BorderThickness="{TemplateBinding BorderThickness}"
-                CornerRadius="{TemplateBinding CornerRadius}"
-                BoxShadow="{DynamicResource NodeBoxShadow}">
-          <Grid RowDefinitions="Auto,*">
-            <!-- ヘッダー -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource NodeHeaderBackgroundBrush}"
-                    CornerRadius="4 4 0 0"
-                    Padding="8,4">
-              <TextBlock Text="{Binding Node.Name, RelativeSource={RelativeSource TemplatedParent}}"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource NodeHeaderForegroundBrush}" />
-            </Border>
+        <Grid>
+          <!-- ノード本体 -->
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  BoxShadow="{DynamicResource NodeBoxShadow}">
+            <Grid RowDefinitions="Auto,*">
+              <!-- ヘッダー -->
+              <Border x:Name="NodeHeader"
+                      Grid.Row="0"
+                      Background="{DynamicResource NodeHeaderBackgroundBrush}"
+                      CornerRadius="4 4 0 0"
+                      Padding="8,4">
+                <TextBlock Text="{Binding Node.Name, RelativeSource={RelativeSource TemplatedParent}}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource NodeHeaderForegroundBrush}" />
+              </Border>
 
-            <!-- ボディエリア -->
-            <Grid Grid.Row="1" RowDefinitions="*,*">
-              <Grid Grid.Row="0" ColumnDefinitions="*,*" Margin="0, 5,0,5">
-                <!-- Input Ports -->
-                <ItemsControl Grid.Column="0"
-                              ItemsSource="{Binding Node.InputPorts, RelativeSource={RelativeSource TemplatedParent}}"
-                              Margin="0,0,5,0">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="models:EditorPort">
-                      <controls:PortControl Port="{Binding}"
-                                            VerticalAlignment="Center"
-                                            Direction="Left"
-                                            Margin="2,2,0,2" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+              <!-- ボディエリア -->
+              <Grid x:Name="NodeBody" Grid.Row="1" RowDefinitions="*,*">
+                <Grid Grid.Row="0" ColumnDefinitions="*,*" Margin="0, 5,0,5">
+                  <!-- Input Ports -->
+                  <ItemsControl Grid.Column="0"
+                                ItemsSource="{Binding Node.InputPorts, RelativeSource={RelativeSource TemplatedParent}}"
+                                Margin="0,0,5,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="models:EditorPort">
+                        <controls:PortControl Port="{Binding}"
+                                              VerticalAlignment="Center"
+                                              Direction="Left"
+                                              Margin="2,2,0,2" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
 
-                <!-- Output Ports -->
-                <ItemsControl Grid.Column="1"
-                              ItemsSource="{Binding Node.OutputPorts, RelativeSource={RelativeSource TemplatedParent}}"
-                              HorizontalAlignment="Right">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="models:EditorPort">
-                      <controls:PortControl Port="{Binding}"
-                                            VerticalAlignment="Center"
-                                            Direction="Right"
-                                            Margin="0,2,2,2" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                  <!-- Output Ports -->
+                  <ItemsControl Grid.Column="1"
+                                ItemsSource="{Binding Node.OutputPorts, RelativeSource={RelativeSource TemplatedParent}}"
+                                HorizontalAlignment="Right">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="models:EditorPort">
+                        <controls:PortControl Port="{Binding}"
+                                              VerticalAlignment="Center"
+                                              Direction="Right"
+                                              Margin="0,2,2,2" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+
+                <!-- コンテンツエリア (プロパティ表示) -->
+                <StackPanel Grid.Row="1" Margin="5,0,5,5">
+                  <!-- プロパティリスト -->
+                  <ItemsControl ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="5" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="viewmodels:PropertyViewModel">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <controls:PropertyControlPresenter PropertyViewModel="{Binding}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <!-- カスタムコンテンツ -->
+                  <ContentPresenter x:Name="PART_ContentPresenter"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    Padding="{TemplateBinding Padding}"
+                                    RecognizesAccessKey="True"
+                                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </StackPanel>
               </Grid>
-
-              <!-- コンテンツエリア (プロパティ表示) -->
-              <StackPanel Grid.Row="1" Margin="5,0,5,5">
-                <!-- プロパティリスト -->
-                <ItemsControl ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <StackPanel Spacing="5" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="viewmodels:PropertyViewModel">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <controls:PropertyControlPresenter PropertyViewModel="{Binding}" />
-                      </StackPanel>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <!-- カスタムコンテンツ -->
-                <ContentPresenter x:Name="PART_ContentPresenter"
-                                  Content="{TemplateBinding Content}"
-                                  ContentTemplate="{TemplateBinding ContentTemplate}"
-                                  Padding="{TemplateBinding Padding}"
-                                  RecognizesAccessKey="True"
-                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
-              </StackPanel>
             </Grid>
+          </Border>
 
-            <!-- 左上バッジ（オーバーレイ） -->
-            <Border 
-              x:Name="OverlayBadge"
-              Grid.Row="0"
-              Width="24" Height="24"
-              HorizontalAlignment="Left" VerticalAlignment="Top"
-              Margin="-12,-12,0,0"
-              Background="#EF4444" CornerRadius="12"
-              IsHitTestVisible="False">
-                <Path
-                  x:Name="OverlayPath"
-                  Data="{StaticResource BoltIcon}" Stretch="Uniform" Margin="6" Stroke="White" StrokeThickness="1" />
-            </Border>
-          </Grid>
-        </Border>
+          <!-- 左上バッジ（オーバーレイ） -->
+          <controls:ExecutionStatusBadgeControl
+            HorizontalAlignment="Left" VerticalAlignment="Top"
+            Margin="-12,-12,0,0"
+            ExecutionStatus="{TemplateBinding ExecutionStatus}" />
+        </Grid>
       </ControlTemplate>
     </Setter>
 
@@ -124,25 +120,18 @@
       <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderSelectedBrush}" />
     </Style>
 
-    <Style Selector="^[ExecutionStatus=Executed]">
+    <Style Selector="^[ExecutionStatus=Executed] /template/ Border#NodeHeader">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="^[ExecutionStatus=Executed] /template/ Grid#NodeBody">
       <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <Style Selector="^[ExecutionStatus=Waiting]">
+    <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#NodeHeader">
       <Setter Property="Opacity" Value="0.5" />
     </Style>
-    <Style Selector="^[ExecutionStatus=Waiting] /template/ Path#OverlayPath">
-      <Setter Property="Data" Value="{StaticResource ScheduleIcon}" />
-    </Style>
-    <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#OverlayBadge">
-      <Setter Property="Background" Value="#F59E0B" />
-    </Style>
-
-    <Style Selector="^[ExecutionStatus=Executing] /template/ Path#OverlayPath">
-      <Setter Property="Data" Value="{StaticResource BoltIcon}" />
-    </Style>
-    <Style Selector="^[ExecutionStatus=Executing] /template/ Border#OverlayBadge">
-      <Setter Property="Background" Value="#EF4444" />
+    <Style Selector="^[ExecutionStatus=Waiting] /template/ Grid#NodeBody">
+      <Setter Property="Opacity" Value="0.5" />
     </Style>
 
   </ControlTheme>

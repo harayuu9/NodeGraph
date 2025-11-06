@@ -1,0 +1,68 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:NodeGraph.Editor.Controls"
+                    x:CompileBindings="True">
+
+  <Design.PreviewWith>
+    <StackPanel>
+      <controls:ExecutionStatusBadgeControl ExecutionStatus="None" Margin="5" />
+      <controls:ExecutionStatusBadgeControl ExecutionStatus="Waiting" Margin="5" />
+      <controls:ExecutionStatusBadgeControl ExecutionStatus="Executing" Margin="5" />
+      <controls:ExecutionStatusBadgeControl ExecutionStatus="Executed" Margin="5" />
+    </StackPanel>
+  </Design.PreviewWith>
+
+  <ControlTheme x:Key="{x:Type controls:ExecutionStatusBadgeControl}" TargetType="controls:ExecutionStatusBadgeControl">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border
+          x:Name="BadgeBorder"
+          Width="{TemplateBinding Width}"
+          Height="{TemplateBinding Height}"
+          CornerRadius="12"
+          IsVisible="False">
+          <Path
+            x:Name="BadgePath"
+            Stretch="Uniform"
+            Margin="6"
+            Stroke="White"
+            StrokeThickness="1" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+
+    <!-- Waiting状態 -->
+    <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#BadgeBorder">
+      <Setter Property="IsVisible" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource BadgeWaitingBackgroundBrush}" />
+    </Style>
+    <Style Selector="^[ExecutionStatus=Waiting] /template/ Path#BadgePath">
+      <Setter Property="Data" Value="{StaticResource ScheduleIcon}" />
+    </Style>
+
+    <!-- Executing状態 -->
+    <Style Selector="^[ExecutionStatus=Executing] /template/ Border#BadgeBorder">
+      <Setter Property="IsVisible" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource BadgeExecutingBackgroundBrush}" />
+    </Style>
+    <Style Selector="^[ExecutionStatus=Executing] /template/ Path#BadgePath">
+      <Setter Property="Data" Value="{StaticResource BoltIcon}" />
+    </Style>
+
+    <!-- Executed状態 -->
+    <Style Selector="^[ExecutionStatus=Executed] /template/ Border#BadgeBorder">
+      <Setter Property="IsVisible" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource BadgeExecutedBackgroundBrush}" />
+    </Style>
+    <Style Selector="^[ExecutionStatus=Executed] /template/ Path#BadgePath">
+      <Setter Property="Data" Value="{StaticResource CheckIcon}" />
+      <Setter Property="RenderTransform">
+        <TranslateTransform Y="2"/>
+      </Setter>
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

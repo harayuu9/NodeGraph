@@ -40,6 +40,11 @@
           <!-- Selection Resources -->
           <SolidColorBrush x:Key='SelectionFillBrush'>#32649BFF</SolidColorBrush>
           <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
+
+          <!-- Execution Status Badge Resources -->
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#F59E0B</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#EF4444</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#10B981</SolidColorBrush>
         </ResourceDictionary>
 
         <!-- Dark Theme -->
@@ -78,12 +83,18 @@
           <!-- Selection Resources -->
           <SolidColorBrush x:Key='SelectionFillBrush'>#32649BFF</SolidColorBrush>
           <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
+
+          <!-- Execution Status Badge Resources -->
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#F59E0B</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#EF4444</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#10B981</SolidColorBrush>
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://NodeGraph.Editor/Themes/NodeControl.axaml" />
         <ResourceInclude Source="avares://NodeGraph.Editor/Themes/GraphControl.axaml" />
         <ResourceInclude Source="avares://NodeGraph.Editor/Themes/PortControl.axaml" />
+        <ResourceInclude Source="avares://NodeGraph.Editor/Themes/ExecutionStatusBadgeControl.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Styles.Resources>
