@@ -12,7 +12,7 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
 {
     private readonly Guid _id = Guid.NewGuid();
 
-    public string Name => _node.GetType().Name;
+    public string Name => _node.GetDisplayName();
 
     /// <summary>
     /// この EditorNode の一意な識別子
