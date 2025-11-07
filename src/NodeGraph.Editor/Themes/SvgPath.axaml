@@ -5,6 +5,7 @@
     <Geometry x:Key="BoltIcon">M9.33,29.33 L14.67,19.33 L4,18 L20,2.67 L22.67,2.67 L17.33,12.67 L28,14 L12,29.33 L9.33,29.33 Z</Geometry>
     <Geometry x:Key="CheckIcon">M382 728.5 154 500.5 l57-57 171 171 367-367 57 57 -424 424 Z</Geometry>
     <Geometry x:Key="ScheduleIcon">m612-292 56-56-148-148v-184h-80v216l172 172ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z</Geometry>
+    <Geometry x:Key="ErrorIcon">M440-400v-360h80v360h-80Zm0 200v-80h80v80h-80Z</Geometry>
   </Styles.Resources>
 
   <Design.PreviewWith>
@@ -17,6 +18,9 @@
       </Border>
       <Border Background="Aqua" Margin="5">
         <Path Data="{StaticResource ScheduleIcon}" />
+      </Border>
+      <Border Background="Aqua" Margin="5">
+        <Path Data="{StaticResource ErrorIcon}" />
       </Border>
 
       <StackPanel.Styles>

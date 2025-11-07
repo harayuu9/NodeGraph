@@ -67,7 +67,7 @@ public class GraphExecutor : IDisposable
         }
     }
 
-    public async Task ExecuteAsync(Action<Node>? onExecute = null, Action<Node>? onExecuted = null, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(Action<Node>? onExecute = null, Action<Node>? onExecuted = null, Action<Node, Exception>? onExcepted = null, CancellationToken cancellationToken = default)
     {
         // 各ノードの残り依存数（実行ごとに新規作成）
         using var _1 = DictionaryPool<Node, int>.Shared.Rent(_nodeCount, out var remainingDeps);
@@ -158,7 +158,16 @@ public class GraphExecutor : IDisposable
             var t = Task.Run(async () =>
             {
                 onExecute?.Invoke(n);
-                await n.ExecuteAsync(cancellationToken);
+                try
+                {
+                    await n.ExecuteAsync(cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    onExcepted?.Invoke(n, e);
+                    throw;
+                }
+
                 onExecuted?.Invoke(n);
             }, cancellationToken);
             started.Add(n);

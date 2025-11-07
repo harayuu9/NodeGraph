@@ -6,4 +6,5 @@ public enum ExecutionStatus
     Waiting,
     Executing,
     Executed,
+    Exception,
 }

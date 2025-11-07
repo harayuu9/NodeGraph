@@ -10,6 +10,7 @@
       <controls:NodeControl ExecutionStatus="Waiting" Margin="10" />
       <controls:NodeControl ExecutionStatus="Executing" Margin="10" />
       <controls:NodeControl ExecutionStatus="Executed" Margin="10" />
+      <controls:NodeControl ExecutionStatus="Exception" Margin="10" />
     </StackPanel>
   </Design.PreviewWith>
   <ControlTheme x:Key="{x:Type controls:NodeControl}" TargetType="controls:NodeControl">
@@ -128,6 +129,11 @@
 
     <Style Selector="^[ExecutionStatus=Executed] /template/ Border#Node">
       <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
+    <Style Selector="^[ExecutionStatus=Exception] /template/ Border#Node">
+      <Setter Property="BoxShadow" Value="{DynamicResource NodeExceptionBoxShadow}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BadgeExceptionBackgroundBrush}" />
     </Style>
 
     <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#Node">

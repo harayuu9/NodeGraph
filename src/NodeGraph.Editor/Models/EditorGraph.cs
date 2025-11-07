@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -76,29 +77,44 @@ public partial class EditorGraph : ObservableObject
             }
         
             var executor = _graph.CreateExecutor();
-            await executor.ExecuteAsync(
-                x =>
-                {
-                    var node = Nodes.FirstOrDefault(xx => xx.Node == x);
-                    if (node == null) return;
-                    
-                    Dispatcher.UIThread.Post(() =>
+            try
+            {
+                await executor.ExecuteAsync(
+                    x =>
                     {
-                        node.UpdatePortValues();
-                        node.ExecutionStatus = ExecutionStatus.Executing;
-                    });
-                },
-                x =>
-                {
-                    var node = Nodes.FirstOrDefault(xx => xx.Node == x);
-                    if (node == null) return;
-                    
-                    Dispatcher.UIThread.Post(() =>
+                        var node = Nodes.FirstOrDefault(xx => xx.Node == x);
+                        if (node == null) return;
+
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            node.UpdatePortValues();
+                            node.ExecutionStatus = ExecutionStatus.Executing;
+                        });
+                    },
+                    x =>
                     {
-                        node.UpdatePortValues();
-                        node.ExecutionStatus = ExecutionStatus.Executed;
-                    });
-                }, cancellationToken);
+                        var node = Nodes.FirstOrDefault(xx => xx.Node == x);
+                        if (node == null) return;
+
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            node.UpdatePortValues();
+                            node.ExecutionStatus = ExecutionStatus.Executed;
+                        });
+                    },
+                    (x, exception) =>
+                    {
+                        var node = Nodes.FirstOrDefault(xx => xx.Node == x);
+                        if (node == null) return;
+
+                        Dispatcher.UIThread.Post(() => { node.ExecutionStatus = ExecutionStatus.Exception; });
+                    }, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+
             await Task.Delay(5000, cancellationToken);
         }
         finally

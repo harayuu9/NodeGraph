@@ -12,6 +12,7 @@ public partial class FloatAddNode
     protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
         _result = _a + _b;
+        throw new Exception();
         return Task.Delay(5000, cancellationToken);
         return Task.CompletedTask;
     }

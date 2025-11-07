@@ -15,6 +15,7 @@
           <SolidColorBrush x:Key='NodeHeaderForegroundBrush'>#000000</SolidColorBrush>
           <BoxShadows x:Key='NodeBoxShadow'>0 2 8 #40000000</BoxShadows>
           <BoxShadows x:Key='NodeExecutingBoxShadow'>0 0 100 #007ACC</BoxShadows>
+          <BoxShadows x:Key='NodeExceptionBoxShadow'>0 0 100 #F44336</BoxShadows>
 
           <!-- Port Resources -->
           <SolidColorBrush x:Key='PortFillBrush'>White</SolidColorBrush>
@@ -41,9 +42,11 @@
           <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
 
           <!-- Execution Status Badge Resources -->
-          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#F59E0B</SolidColorBrush>
-          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#EF4444</SolidColorBrush>
-          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#10B981</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#B0BEC5</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#2196F3</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#4CAF50</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#F44336</SolidColorBrush>
+          
         </ResourceDictionary>
 
         <!-- Dark Theme -->
@@ -57,6 +60,7 @@
           <SolidColorBrush x:Key='NodeHeaderForegroundBrush'>#FFFFFF</SolidColorBrush>
           <BoxShadows x:Key='NodeBoxShadow'>0 2 8 #40000000</BoxShadows>
           <BoxShadows x:Key='NodeExecutingBoxShadow'>0 0 100 #007ACC</BoxShadows>
+          <BoxShadows x:Key='NodeExceptionBoxShadow'>0 0 100 #E57373</BoxShadows>
 
           <!-- Port Resources -->
           <SolidColorBrush x:Key='PortFillBrush'>Black</SolidColorBrush>
@@ -83,9 +87,11 @@
           <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
 
           <!-- Execution Status Badge Resources -->
-          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#F59E0B</SolidColorBrush>
-          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#EF4444</SolidColorBrush>
-          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#10B981</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#546E7A</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#64B5F6</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#81C784</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#E57373</SolidColorBrush>
+          
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
       <ResourceDictionary.MergedDictionaries>
