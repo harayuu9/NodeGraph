@@ -44,6 +44,12 @@ public partial class MainWindowViewModel : ViewModelBase
         var res = graph.CreateNode<FloatResultNode>();
         res.ConnectInput(0, add, 0);
         
+        var str1 = graph.CreateNode<StringConstantNode>();
+        str1.SetValue("The result is:");
+        
+        var int1 = graph.CreateNode<IntConstantNode>();
+        int1.SetValue(42);
+        
         // EditorGraphでラップ（SelectionManagerを注入）
         TestGraph = new EditorGraph(graph, selectionManager);
 
@@ -59,6 +65,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
         TestGraph.Nodes[3].X = 600;
         TestGraph.Nodes[3].Y = 120;
+        
+        TestGraph.Nodes[4].X = 600;
+        TestGraph.Nodes[4].Y = 300;
+        
+        TestGraph.Nodes[5].X = 600;
+        TestGraph.Nodes[5].Y = 400;
 
         // 現在のテーマを取得
         UpdateCurrentTheme();

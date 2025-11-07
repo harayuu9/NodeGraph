@@ -29,7 +29,7 @@
                     <Ellipse x:Name="PART_PortEllipse"
                              Grid.Column="1"
                              Fill="{DynamicResource PortFillBrush}"
-                             Stroke="{DynamicResource PortStrokeBrush}"
+                             Stroke="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TypeToColorConverter}}"
                              StrokeThickness="3"
                              Width="12"
                              Height="12"/>

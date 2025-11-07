@@ -1,10 +1,12 @@
 using System;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using NodeGraph.Editor.Converters;
 using NodeGraph.Editor.Models;
 
 namespace NodeGraph.Editor.Controls;
@@ -65,10 +67,12 @@ public class ConnectorControl : Path
         EndXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
         EndYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
         IsSelectedProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
+        ConnectionProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
     }
 
     private IBrush? _normalStrokeBrush;
     private IBrush? _selectedStrokeBrush;
+    private static readonly TypeToColorConverter _typeToColorConverter = new();
 
     public ConnectorControl()
     {
@@ -122,14 +126,23 @@ public class ConnectorControl : Path
     {
         if (IsSelected)
         {
-            // リソースが利用可能な場合はそれを使用、そうでない場合はフォールバック
+            // 選択時は専用の色を使用
             Stroke = _selectedStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0xFF, 0x8C, 0x00));
             StrokeThickness = 3;
         }
         else
         {
-            // リソースが利用可能な場合はそれを使用、そうでない場合はフォールバック
-            Stroke = _normalStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+            // 通常時は型に応じた色を使用
+            IBrush? typeBrush = null;
+
+            if (Connection?.SourcePort?.TypeName is string typeName)
+            {
+                // TypeToColorConverter を使用して型に応じた色を取得
+                typeBrush = _typeToColorConverter.Convert(typeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as IBrush;
+            }
+
+            // 型に応じた色、またはテーマのデフォルト色、またはフォールバック色を使用
+            Stroke = typeBrush ?? _normalStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
             StrokeThickness = 2;
         }
     }

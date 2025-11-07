@@ -63,7 +63,7 @@
                                                        StartY="{Binding DragConnectorLine.StartY, RelativeSource={RelativeSource TemplatedParent}}"
                                                        EndX="{Binding DragConnectorLine.EndX, RelativeSource={RelativeSource TemplatedParent}}"
                                                        EndY="{Binding DragConnectorLine.EndY, RelativeSource={RelativeSource TemplatedParent}}"
-                                                       Stroke="{DynamicResource ConnectorStrokeBrush}"
+                                                       Stroke="{Binding DragConnectorPortType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TypeToColorConverter}}"
                                                        StrokeThickness="2"
                                                        IsHitTestVisible="False"/>
                         </Canvas>

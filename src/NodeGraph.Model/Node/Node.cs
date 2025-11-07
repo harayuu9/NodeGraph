@@ -14,7 +14,7 @@ public abstract class Node : IWithId<NodeId>
     
     protected abstract void BeforeExecute();
     protected abstract void AfterExecute();
-    protected abstract Task ExecuteCoreAsync(CancellationToken cancellationToken);
+    protected virtual Task ExecuteCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     public void ConnectInput(int inputIndex, Node node, int outputIndex)
     {
         if (inputIndex < 0 || inputIndex >= InputPorts.Length)

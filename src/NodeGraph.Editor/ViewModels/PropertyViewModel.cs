@@ -12,14 +12,13 @@ public partial class PropertyViewModel : ObservableObject
     private readonly Node _node;
     private readonly PropertyDescriptor _descriptor;
 
-    [ObservableProperty]
-    private object? _value;
+    [ObservableProperty] public partial object? Value { get; set; }
 
     public PropertyViewModel(Node node, PropertyDescriptor descriptor)
     {
         _node = node;
         _descriptor = descriptor;
-        _value = descriptor.Getter(node);
+        Value = descriptor.Getter(node);
     }
 
     /// <summary>

@@ -177,6 +177,14 @@ public class GraphControl : TemplatedControl
         set => SetValue(DragConnectorLineProperty, value);
     }
 
+    public static readonly StyledProperty<string?> DragConnectorPortTypeProperty = AvaloniaProperty.Register<GraphControl, string?>(nameof(DragConnectorPortType), null);
+
+    public string? DragConnectorPortType
+    {
+        get => GetValue(DragConnectorPortTypeProperty);
+        set => SetValue(DragConnectorPortTypeProperty, value);
+    }
+
     public static readonly StyledProperty<bool> ShowGridProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(ShowGrid), true);
 
     public bool ShowGrid
@@ -751,6 +759,9 @@ public class GraphControl : TemplatedControl
         // ドラッグ接続線の座標を設定
         DragConnectorLine = new ConnectorLine(portCenter.Value, portCenter.Value);
 
+        // ドラッグ中のポートの型を設定
+        DragConnectorPortType = args.PortControl.Port?.TypeName;
+
         // 一時的な接続線を表示
         IsDraggingConnector = true;
     }
@@ -845,6 +856,7 @@ public class GraphControl : TemplatedControl
 
         // ドラッグ状態をクリア
         _dragSourcePort = null;
+        DragConnectorPortType = null;
 
         // 一時的な接続線を非表示
         IsDraggingConnector = false;

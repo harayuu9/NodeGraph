@@ -98,7 +98,7 @@ public static class PropertyControlFactory
         textBox.Bind(TextBox.TextProperty, new Binding("Value")
         {
             Source = propertyViewModel,
-            Mode = BindingMode.TwoWay
+            Mode = BindingMode.OneWay
         });
         panel.Children.Add(textBox);
 
@@ -190,7 +190,7 @@ public static class PropertyControlFactory
             IsEnabled = !propertyViewModel.IsReadOnly
         };
 
-        checkBox.Bind(CheckBox.IsCheckedProperty, new Binding("Value")
+        checkBox.Bind(ToggleButton.IsCheckedProperty, new Binding("Value")
         {
             Source = propertyViewModel,
             Mode = BindingMode.TwoWay
@@ -216,7 +216,7 @@ public static class PropertyControlFactory
         var enumValues = Enum.GetValues(propertyViewModel.PropertyType);
         comboBox.ItemsSource = enumValues;
 
-        comboBox.Bind(ComboBox.SelectedItemProperty, new Binding("Value")
+        comboBox.Bind(SelectingItemsControl.SelectedItemProperty, new Binding("Value")
         {
             Source = propertyViewModel,
             Mode = BindingMode.TwoWay
