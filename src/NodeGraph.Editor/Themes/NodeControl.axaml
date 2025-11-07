@@ -5,11 +5,12 @@
                     xmlns:viewmodels="clr-namespace:NodeGraph.Editor.ViewModels"
                     x:CompileBindings="True">
   <Design.PreviewWith>
-    <Border Padding="20">
-      <controls:NodeControl>
-        <!-- <controls:PortControl/> -->
-      </controls:NodeControl>
-    </Border>
+    <StackPanel Margin="15">
+      <controls:NodeControl ExecutionStatus="None" Margin="10" />
+      <controls:NodeControl ExecutionStatus="Waiting" Margin="10" />
+      <controls:NodeControl ExecutionStatus="Executing" Margin="10" />
+      <controls:NodeControl ExecutionStatus="Executed" Margin="10" />
+    </StackPanel>
   </Design.PreviewWith>
   <ControlTheme x:Key="{x:Type controls:NodeControl}" TargetType="controls:NodeControl">
 
@@ -23,15 +24,15 @@
       <ControlTemplate>
         <Grid>
           <!-- ノード本体 -->
-          <Border Background="{TemplateBinding Background}"
+          <Border x:Name="Node"
+                  Background="{TemplateBinding Background}"
                   BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}"
                   CornerRadius="{TemplateBinding CornerRadius}"
                   BoxShadow="{DynamicResource NodeBoxShadow}">
             <Grid RowDefinitions="Auto,*">
               <!-- ヘッダー -->
-              <Border x:Name="NodeHeader"
-                      Grid.Row="0"
+              <Border Grid.Row="0"
                       Background="{DynamicResource NodeHeaderBackgroundBrush}"
                       CornerRadius="4 4 0 0"
                       Padding="8,4">
@@ -41,7 +42,7 @@
               </Border>
 
               <!-- ボディエリア -->
-              <Grid x:Name="NodeBody" Grid.Row="1" RowDefinitions="*,*">
+              <Grid Grid.Row="1" RowDefinitions="*,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,*" Margin="0, 5,0,5">
                   <!-- Input Ports -->
                   <ItemsControl Grid.Column="0"
@@ -75,7 +76,8 @@
                 <!-- コンテンツエリア (プロパティ表示) -->
                 <StackPanel Grid.Row="1" Margin="5,0,5,5">
                   <!-- プロパティリスト -->
-                  <ItemsControl ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
+                  <ItemsControl
+                    ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
                         <StackPanel Spacing="5" />
@@ -119,18 +121,16 @@
     <Style Selector="^:selected">
       <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderSelectedBrush}" />
     </Style>
-
-    <Style Selector="^[ExecutionStatus=Executed] /template/ Border#NodeHeader">
-      <Setter Property="Opacity" Value="0.5" />
-    </Style>
-    <Style Selector="^[ExecutionStatus=Executed] /template/ Grid#NodeBody">
-      <Setter Property="Opacity" Value="0.5" />
+    
+    <Style Selector="^[ExecutionStatus=Executing] /template/ Border#Node">
+      <Setter Property="BoxShadow" Value="{DynamicResource NodeExecutingBoxShadow}" />
     </Style>
 
-    <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#NodeHeader">
+    <Style Selector="^[ExecutionStatus=Executed] /template/ Border#Node">
       <Setter Property="Opacity" Value="0.5" />
     </Style>
-    <Style Selector="^[ExecutionStatus=Waiting] /template/ Grid#NodeBody">
+
+    <Style Selector="^[ExecutionStatus=Waiting] /template/ Border#Node">
       <Setter Property="Opacity" Value="0.5" />
     </Style>
 
