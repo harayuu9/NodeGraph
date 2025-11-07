@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NodeGraph.Editor.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+        x:Class="NodeGraph.Editor.Views.AddNodeWindow"
+        x:DataType="vm:AddNodeWindowViewModel"
+        Title="Add Node"
+        Width="400"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- 検索ボックス -->
+        <TextBox Grid.Row="0"
+                 Text="{Binding SearchText}"
+                 Watermark="Search nodes..."
+                 Margin="10"
+                 Name="SearchBox"/>
+
+        <!-- ノードツリー -->
+        <Border Grid.Row="1"
+                Margin="10,0,10,10"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1">
+            <TreeView ItemsSource="{Binding TreeItems}"
+                      SelectedItem="{Binding SelectedItem}"
+                      Name="NodeTreeView">
+                <TreeView.ItemTemplate>
+                    <TreeDataTemplate ItemsSource="{Binding Children}">
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="{Binding FontWeight}"/>
+                    </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Border>
+
+        <!-- ボタン -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="10"
+                    Spacing="10">
+            <Button Content="Cancel"
+                    Width="80"
+                    Name="CancelButton"/>
+            <Button Content="Add"
+                    Width="80"
+                    Command="{Binding ConfirmCommand}"
+                    Name="ConfirmButton"
+                    IsDefault="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

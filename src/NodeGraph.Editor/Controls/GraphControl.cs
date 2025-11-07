@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -15,6 +17,8 @@ using Avalonia.VisualTree;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Primitives;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Services;
+using NodeGraph.Editor.Views;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Controls;
@@ -30,6 +34,8 @@ public class GraphControl : TemplatedControl
     private GridDecorator? _gridDecorator;
     private Point _lastDragPoint;
     private bool _isDragging;
+    private bool _isRightButtonDown;
+    private Point _rightButtonDownPoint;
 
     // コネクタ管理
     private bool _connectorUpdateScheduled;
@@ -279,8 +285,18 @@ public class GraphControl : TemplatedControl
 
         var properties = e.GetCurrentPoint(this).Properties;
 
-        // 中ボタンまたは右ボタンでドラッグ開始
-        if (properties.IsMiddleButtonPressed || properties.IsRightButtonPressed)
+        // 右ボタンの処理（ドラッグとコンテキストメニューの判定のため）
+        if (properties.IsRightButtonPressed)
+        {
+            _isRightButtonDown = true;
+            _rightButtonDownPoint = e.GetPosition(this);
+            _lastDragPoint = _rightButtonDownPoint;
+            e.Handled = true;
+            return;
+        }
+
+        // 中ボタンでドラッグ開始
+        if (properties.IsMiddleButtonPressed)
         {
             _isDragging = true;
             _lastDragPoint = e.GetPosition(this);
@@ -314,6 +330,23 @@ public class GraphControl : TemplatedControl
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        // 右ボタンが押されていてドラッグされた場合はパンモードに移行
+        if (_isRightButtonDown && !_isDragging)
+        {
+            var currentPoint = e.GetPosition(this);
+            var delta = currentPoint - _rightButtonDownPoint;
+            var distance = Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
+
+            // 一定距離以上移動したらドラッグモードに移行
+            if (distance > 5)
+            {
+                _isDragging = true;
+                _isRightButtonDown = false;
+                e.Pointer.Capture(this);
+                OnPanStarted();
+            }
+        }
+
         if (_isDragging)
         {
             var currentPoint = e.GetPosition(this);
@@ -359,6 +392,23 @@ public class GraphControl : TemplatedControl
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        var properties = e.GetCurrentPoint(this).Properties;
+
+        // 右ボタンが離された場合
+        if (_isRightButtonDown && properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased)
+        {
+            _isRightButtonDown = false;
+
+            // ドラッグしていない場合はAddNodeWindowを表示
+            if (!_isDragging)
+            {
+                _ = ShowAddNodeWindow(e.GetPosition(this));
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (_isDragging)
         {
             _isDragging = false;
@@ -955,6 +1005,85 @@ public class GraphControl : TemplatedControl
     {
         // Decorator に再描画を依頼（プロパティはXAMLバインドで渡される）
         _gridDecorator?.InvalidateVisual();
+    }
+
+    #endregion
+
+    #region Add Node
+
+    private async Task ShowAddNodeWindow(Point clickPosition)
+    {
+        if (Graph == null || _canvas == null)
+            return;
+
+        // NodeTypeServiceを取得
+        var app = Application.Current as App;
+        var nodeTypeService = app?.Services?.GetService(typeof(NodeTypeService)) as NodeTypeService;
+
+        if (nodeTypeService == null)
+            return;
+
+        // 親ウィンドウを取得
+        var window = this.GetVisualRoot() as Window;
+        if (window == null)
+            return;
+
+        // スクリーン座標を取得
+        var screenPosition = window.PointToScreen(clickPosition);
+
+        // AddNodeWindowを表示
+        var selectedNodeType = await AddNodeWindow.ShowDialog(window, screenPosition, nodeTypeService);
+
+        if (selectedNodeType != null)
+        {
+            // キャンバス座標に変換
+            var canvasPosition = this.TranslatePoint(clickPosition, _canvas);
+            if (canvasPosition.HasValue)
+            {
+                CreateNode(selectedNodeType, canvasPosition.Value);
+            }
+        }
+    }
+
+    private void CreateNode(NodeTypeInfo nodeTypeInfo, Point position)
+    {
+        if (Graph == null)
+            return;
+
+        // リフレクションを使用してノードを作成
+        var createNodeMethod = typeof(Model.Graph).GetMethod(nameof(Model.Graph.CreateNode));
+        if (createNodeMethod == null)
+            return;
+
+        var genericMethod = createNodeMethod.MakeGenericMethod(nodeTypeInfo.NodeType);
+        var node = genericMethod.Invoke(Graph.Graph, null) as Node;
+
+        if (node == null)
+            return;
+
+        // EditorNodeを作成して追加
+        var editorNode = new EditorNode(Graph.SelectionManager, node)
+        {
+            X = position.X,
+            Y = position.Y
+        };
+
+        Graph.Nodes.Add(editorNode);
+
+        // NodeControlを作成して表示
+        if (_canvas != null)
+        {
+            var nodeControl = CreateNodeControl(editorNode);
+            Canvas.SetLeft(nodeControl, editorNode.X);
+            Canvas.SetTop(nodeControl, editorNode.Y);
+            _canvas.Children.Add(nodeControl);
+
+            // プロパティ変更イベントを監視
+            editorNode.PropertyChanged += OnNodePropertyChanged;
+
+            // コネクタを更新
+            ScheduleConnectorUpdate();
+        }
     }
 
     #endregion

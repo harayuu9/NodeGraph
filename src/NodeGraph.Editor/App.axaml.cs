@@ -6,6 +6,7 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Services;
 using NodeGraph.Editor.ViewModels;
 using NodeGraph.Editor.Views;
 
@@ -45,6 +46,7 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         services.AddSingleton<SelectionManager>();
+        services.AddSingleton<NodeTypeService>();
 
         // ViewModelsを登録
         services.AddTransient<MainWindowViewModel>();
