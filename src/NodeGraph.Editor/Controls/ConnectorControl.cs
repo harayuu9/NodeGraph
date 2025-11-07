@@ -130,11 +130,34 @@ public class ConnectorControl : Path
         }
         else
         {
-            // 通常時は型に応じた色を使用（TypeToColorConverterは常にBrushを返す）
-            var typeName = Connection?.SourcePort?.TypeName;
-            var typeBrush = _typeToColorConverter.Convert(typeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as IBrush;
+            // 通常時は型に応じた色を使用
+            // SourcePortとTargetPortの両方から色を取得してグラデーションを作成
+            var sourceTypeName = Connection?.SourcePort.TypeName;
+            var targetTypeName = Connection?.TargetPort.TypeName;
 
-            Stroke = typeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+            var sourceBrush = _typeToColorConverter.Convert(sourceTypeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+            var targetBrush = _typeToColorConverter.Convert(targetTypeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+            var sourceColor = sourceBrush?.Color ?? Color.FromRgb(0x00, 0x7A, 0xCC);
+            var targetColor = targetBrush?.Color ?? Color.FromRgb(0x00, 0x7A, 0xCC);
+
+            // 両方の色が同じ場合は単色、異なる場合はグラデーション
+            if (sourceColor == targetColor)
+            {
+                Stroke = new SolidColorBrush(sourceColor);
+            }
+            else
+            {
+                var gradient = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative)
+                };
+                gradient.GradientStops.Add(new GradientStop(sourceColor, 0));
+                gradient.GradientStops.Add(new GradientStop(targetColor, 1));
+                Stroke = gradient;
+            }
+
             StrokeThickness = 2;
         }
     }
