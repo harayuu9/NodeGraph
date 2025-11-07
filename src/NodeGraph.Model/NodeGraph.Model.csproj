@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="NodeGraph.UnitTest"/>
-        <InternalsVisibleTo Include="NodeGraph.Editor"/>
+        <InternalsVisibleTo Include="NodeGraph.UnitTest" />
+        <InternalsVisibleTo Include="NodeGraph.Editor" />
     </ItemGroup>
 
     <ItemGroup>
@@ -17,6 +17,10 @@
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
         </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="YamlDotNet" Version="16.3.0" />
     </ItemGroup>
 
 </Project>

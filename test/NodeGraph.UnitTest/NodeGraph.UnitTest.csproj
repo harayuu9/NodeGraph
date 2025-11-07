@@ -22,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="Xunit"/>
+        <Using Include="Xunit" />
     </ItemGroup>
 
     <ItemGroup>
@@ -32,6 +32,8 @@
       </ProjectReference>
               
       <ProjectReference Include="..\..\src\NodeGraph.Model\NodeGraph.Model.csproj" />
+              
+      <ProjectReference Include="..\..\src\NodeGraph.Editor\NodeGraph.Editor.csproj" />
     </ItemGroup>
 
 </Project>
