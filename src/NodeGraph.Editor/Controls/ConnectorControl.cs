@@ -70,7 +70,6 @@ public class ConnectorControl : Path
         ConnectionProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
     }
 
-    private IBrush? _normalStrokeBrush;
     private IBrush? _selectedStrokeBrush;
     private static readonly TypeToColorConverter _typeToColorConverter = new();
 
@@ -90,7 +89,6 @@ public class ConnectorControl : Path
         base.OnAttachedToLogicalTree(e);
 
         // テーマリソースから色を取得
-        _normalStrokeBrush = this.FindResource("ConnectorStrokeBrush") as IBrush;
         _selectedStrokeBrush = this.FindResource("ConnectorSelectedStrokeBrush") as IBrush;
 
         // 現在の状態に応じて外観を更新
@@ -132,17 +130,11 @@ public class ConnectorControl : Path
         }
         else
         {
-            // 通常時は型に応じた色を使用
-            IBrush? typeBrush = null;
+            // 通常時は型に応じた色を使用（TypeToColorConverterは常にBrushを返す）
+            var typeName = Connection?.SourcePort?.TypeName;
+            var typeBrush = _typeToColorConverter.Convert(typeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as IBrush;
 
-            if (Connection?.SourcePort?.TypeName is string typeName)
-            {
-                // TypeToColorConverter を使用して型に応じた色を取得
-                typeBrush = _typeToColorConverter.Convert(typeName, typeof(IBrush), null, CultureInfo.InvariantCulture) as IBrush;
-            }
-
-            // 型に応じた色、またはテーマのデフォルト色、またはフォールバック色を使用
-            Stroke = typeBrush ?? _normalStrokeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+            Stroke = typeBrush ?? new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
             StrokeThickness = 2;
         }
     }

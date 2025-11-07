@@ -18,7 +18,6 @@
 
           <!-- Port Resources -->
           <SolidColorBrush x:Key='PortFillBrush'>White</SolidColorBrush>
-          <SolidColorBrush x:Key='PortStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
           <SolidColorBrush x:Key='PortForegroundBrush'>#000000</SolidColorBrush>
           <SolidColorBrush x:Key='PortValueBackgroundBrush'>#F5F5F5</SolidColorBrush>
@@ -35,7 +34,6 @@
           <SolidColorBrush x:Key='WindowInfoForegroundBrush'>#555555</SolidColorBrush>
 
           <!-- Connector Resources -->
-          <SolidColorBrush x:Key='ConnectorStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='ConnectorSelectedStrokeBrush'>#FF8C00</SolidColorBrush>
 
           <!-- Selection Resources -->
@@ -62,7 +60,6 @@
 
           <!-- Port Resources -->
           <SolidColorBrush x:Key='PortFillBrush'>Black</SolidColorBrush>
-          <SolidColorBrush x:Key='PortStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
           <SolidColorBrush x:Key='PortForegroundBrush'>#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key='PortValueBackgroundBrush'>#2D2D2F</SolidColorBrush>
@@ -79,7 +76,6 @@
           <SolidColorBrush x:Key='WindowInfoForegroundBrush'>#CCCCCC</SolidColorBrush>
 
           <!-- Connector Resources -->
-          <SolidColorBrush x:Key='ConnectorStrokeBrush'>#007ACC</SolidColorBrush>
           <SolidColorBrush x:Key='ConnectorSelectedStrokeBrush'>#FF8C00</SolidColorBrush>
 
           <!-- Selection Resources -->
