@@ -20,7 +20,8 @@ public partial class AddNodeWindow : Window
     /// <summary>
     /// 指定された位置にウィンドウを表示してノードタイプを取得
     /// </summary>
-    public static async Task<NodeTypeInfo?> ShowDialog(Window owner, PixelPoint position, NodeTypeService nodeTypeService)
+    public static async Task<NodeTypeInfo?> ShowDialog(Window owner, PixelPoint position,
+        NodeTypeService nodeTypeService)
     {
         var window = new AddNodeWindow
         {
@@ -30,9 +31,15 @@ public partial class AddNodeWindow : Window
         // ウィンドウの位置を設定
         window.Position = position;
 
-        await window.ShowDialog(owner);
+        window.Show();
 
-        return window.ViewModel?.SelectedNodeType;
+        // ウィンドウが閉じられるまで待機
+        while (window.ViewModel?.SelectedNodeType == null)
+        {
+            await Task.Delay(100);
+        }
+
+        return window.ViewModel.SelectedNodeType;
     }
 
     protected override void OnLoaded(RoutedEventArgs e)
@@ -53,6 +60,9 @@ public partial class AddNodeWindow : Window
         // Enterキーでの確定を処理
         KeyDown += OnWindowKeyDown;
 
+        // フォーカスを失った時に閉じる（Window外クリック含む）
+        Deactivated += OnDeactivated;
+
         // ボタンイベントを設定
         var cancelButton = this.FindControl<Button>("CancelButton");
         if (cancelButton != null)
@@ -72,6 +82,11 @@ public partial class AddNodeWindow : Window
                 }
             };
         }
+    }
+
+    private void OnDeactivated(object? sender, System.EventArgs e)
+    {
+        Close();
     }
 
     private void OnTreeViewDoubleTapped(object? sender, TappedEventArgs e)
@@ -99,6 +114,7 @@ public partial class AddNodeWindow : Window
                     Close();
                 }
             }
+
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)

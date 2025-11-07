@@ -14,6 +14,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Primitives;
 using NodeGraph.Editor.Selection;
@@ -1018,14 +1019,13 @@ public class GraphControl : TemplatedControl
 
         // NodeTypeServiceを取得
         var app = Application.Current as App;
-        var nodeTypeService = app?.Services?.GetService(typeof(NodeTypeService)) as NodeTypeService;
+        var nodeTypeService = app?.Services?.GetService<NodeTypeService>();
 
         if (nodeTypeService == null)
             return;
 
         // 親ウィンドウを取得
-        var window = this.GetVisualRoot() as Window;
-        if (window == null)
+        if (this.GetVisualRoot() is not Window window)
             return;
 
         // スクリーン座標を取得

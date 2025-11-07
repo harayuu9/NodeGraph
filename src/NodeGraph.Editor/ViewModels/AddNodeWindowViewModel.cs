@@ -72,37 +72,53 @@ public partial class AddNodeWindowViewModel : ViewModelBase
 
         var filteredNodes = _nodeTypeService.Search(SearchText).ToList();
 
-        // ディレクトリごとにグループ化
-        var groupedNodes = filteredNodes.GroupBy(n => n.Directory);
-
-        foreach (var group in groupedNodes)
+        // SearchTextが入力されている場合はフラット表示
+        if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            var directoryName = string.IsNullOrEmpty(group.Key) ? "Root" : group.Key;
-
-            // ディレクトリノードを作成
-            var directoryItem = new NodeTreeItem
+            // フラット表示：全ノードを並列に表示
+            foreach (var nodeType in filteredNodes)
             {
-                Name = directoryName,
-                IsExpanded = true
-            };
-
-            // 子ノードを追加
-            foreach (var nodeType in group)
-            {
-                directoryItem.Children.Add(new NodeTreeItem
+                TreeItems.Add(new NodeTreeItem
                 {
-                    Name = nodeType.DisplayName,
+                    Name = $"{nodeType.Directory}/{nodeType.DisplayName}",
                     NodeTypeInfo = nodeType
                 });
             }
 
-            TreeItems.Add(directoryItem);
+            // 検索結果が1つだけの場合は自動選択
+            if (filteredNodes.Count == 1)
+            {
+                SelectedItem = TreeItems[0];
+            }
         }
-
-        // 検索結果が1つだけの場合は自動選択
-        if (filteredNodes.Count == 1 && TreeItems.Count == 1 && TreeItems[0].Children.Count == 1)
+        else
         {
-            SelectedItem = TreeItems[0].Children[0];
+            // SearchTextが空の場合は階層表示
+            var groupedNodes = filteredNodes.GroupBy(n => n.Directory);
+
+            foreach (var group in groupedNodes)
+            {
+                var directoryName = string.IsNullOrEmpty(group.Key) ? "Root" : group.Key;
+
+                // ディレクトリノードを作成
+                var directoryItem = new NodeTreeItem
+                {
+                    Name = directoryName,
+                    IsExpanded = true
+                };
+
+                // 子ノードを追加
+                foreach (var nodeType in group)
+                {
+                    directoryItem.Children.Add(new NodeTreeItem
+                    {
+                        Name = nodeType.DisplayName,
+                        NodeTypeInfo = nodeType
+                    });
+                }
+
+                TreeItems.Add(directoryItem);
+            }
         }
     }
 

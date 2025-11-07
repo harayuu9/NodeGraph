@@ -3,26 +3,25 @@
         xmlns:vm="using:NodeGraph.Editor.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+        mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="300"
         x:Class="NodeGraph.Editor.Views.AddNodeWindow"
         x:DataType="vm:AddNodeWindowViewModel"
         Title="Add Node"
-        Width="400"
-        Height="500"
-        WindowStartupLocation="CenterOwner"
-        CanResize="True">
+        Width="200"
+        Height="300"
+        SystemDecorations="BorderOnly">
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- 検索ボックス -->
         <TextBox Grid.Row="0"
                  Text="{Binding SearchText}"
                  Watermark="Search nodes..."
-                 Margin="10"
+                 Margin="2"
                  Name="SearchBox"/>
 
         <!-- ノードツリー -->
         <Border Grid.Row="1"
-                Margin="10,0,10,10"
+                Margin="2,0,2,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1">
             <TreeView ItemsSource="{Binding TreeItems}"
@@ -40,14 +39,17 @@
         <!-- ボタン -->
         <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="10"
+                    HorizontalAlignment="Center"
                     Spacing="10">
             <Button Content="Cancel"
-                    Width="80"
+                    Width="60"
+                    Height="25"
+                    FontSize="12"
                     Name="CancelButton"/>
             <Button Content="Add"
-                    Width="80"
+                    Width="60"
+                    Height="25"
+                    FontSize="12"
                     Command="{Binding ConfirmCommand}"
                     Name="ConfirmButton"
                     IsDefault="True"/>
