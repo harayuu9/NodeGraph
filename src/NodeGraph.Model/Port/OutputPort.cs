@@ -16,20 +16,26 @@ public class OutputPort<T> : OutputPort
     {
         set
         {
-            foreach (var port1 in ConnectedPorts)
+            foreach (var port in ConnectedPorts)
             {
-                var port = (InputPort<T>)port1;
-                port.Value = value;
+                if (port is not InputPort inputPort)
+                    continue;
+
+                inputPort.SetValueFrom(value);
             }
         }
     }
 
+    public override Type PortType => typeof(T);
     public override string ValueString => "None";
 
     public override bool CanConnect(Port other)
     {
         if (Parent == other.Parent) return false;
-        return other is InputPort<T>;
+        if (other is not InputPort) return false;
+
+        // Check if this output port's type can be converted to the input port's type
+        return PortTypeConverterProvider.CanConvert(typeof(T), other.PortType);
     }
 }
 
