@@ -23,6 +23,7 @@
                                FontSize="11"
                                HorizontalAlignment="Right"
                                Margin="0,0,8,0"
+                               IsHitTestVisible="False"
                                IsVisible="False"/>
 
                     <!-- Port circle -->
@@ -42,6 +43,7 @@
                                FontSize="11"
                                HorizontalAlignment="Left"
                                Margin="8,0,0,0"
+                               IsHitTestVisible="False"
                                IsVisible="False"/>
                     
                     <Border Grid.Column="3"
@@ -53,6 +55,7 @@
                             BorderThickness="1"
                             CornerRadius="4"
                             Margin="20,0,0,0"
+                            IsHitTestVisible="False"
                             IsVisible="False">
                         <TextBlock Text="{Binding Port.Value, RelativeSource={RelativeSource TemplatedParent}}"
                                    HorizontalAlignment="Center"

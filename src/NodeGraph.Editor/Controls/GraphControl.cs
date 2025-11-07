@@ -33,6 +33,7 @@ public class GraphControl : TemplatedControl
     private Canvas? _overlayCanvas;
     private Canvas? _uiCanvas;
     private GridDecorator? _gridDecorator;
+    private Border? _touchGuard;
     private Point _lastDragPoint;
     private bool _isDragging;
     private bool _isRightButtonDown;
@@ -216,16 +217,34 @@ public class GraphControl : TemplatedControl
         set => SetValue(GridBrushProperty, value);
     }
 
+    public static readonly StyledProperty<bool> IsInputBlockedProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsInputBlocked), false);
+
+    public bool IsInputBlocked
+    {
+        get => GetValue(IsInputBlockedProperty);
+        set => SetValue(IsInputBlockedProperty, value);
+    }
+
     #endregion
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
 
+        // 既存のタッチガードのイベントハンドラを解除
+        if (_touchGuard != null)
+        {
+            _touchGuard.PointerPressed -= OnPointerPressed;
+            _touchGuard.PointerMoved -= OnPointerMoved;
+            _touchGuard.PointerReleased -= OnPointerReleased;
+            _touchGuard.PointerWheelChanged -= OnPointerWheelChanged;
+        }
+
         _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
         _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
         _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
         _gridDecorator = e.NameScope.Find<GridDecorator>("PART_GridDecorator");
+        _touchGuard = e.NameScope.Find<Border>("PART_TouchGuard");
 
         if (_canvas != null)
         {
@@ -244,6 +263,15 @@ public class GraphControl : TemplatedControl
         if (_gridDecorator != null)
         {
             UpdateGrid();
+        }
+
+        // タッチガードのイベントハンドラを登録（すべてのポインターイベントを処理済みにする）
+        if (_touchGuard != null)
+        {
+            _touchGuard.PointerPressed += OnPointerPressed;
+            _touchGuard.PointerMoved += OnPointerMoved;
+            _touchGuard.PointerReleased += OnPointerReleased;
+            _touchGuard.PointerWheelChanged += OnPointerWheelChanged;
         }
     }
 
@@ -281,13 +309,18 @@ public class GraphControl : TemplatedControl
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (Graph == null)
+        {
+            return;
+        }
+        
         // フォーカスを取得（Deleteキーなどを受け取るため）
         Focus();
 
         var properties = e.GetCurrentPoint(this).Properties;
 
         // 右ボタンの処理（ドラッグとコンテキストメニューの判定のため）
-        if (properties.IsRightButtonPressed)
+        if (properties.IsRightButtonPressed && !Graph.IsExecuting)
         {
             _isRightButtonDown = true;
             _rightButtonDownPoint = e.GetPosition(this);
@@ -306,7 +339,8 @@ public class GraphControl : TemplatedControl
 
             OnPanStarted();
         }
-        else if (properties.IsLeftButtonPressed)
+        
+        if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
         {
             // NodeControl上またはポートドラッグ中でのクリックでない場合のみ矩形選択を開始
             if (e.Source is not NodeControl && !_isDraggingPort)
@@ -562,13 +596,17 @@ public class GraphControl : TemplatedControl
 
     private void OnGraphChanged()
     {
-        if (_canvas == null || Graph == null)
+        if (_canvas == null)
             return;
 
         _canvas.Children.Clear();
 
-        // 既存のSelectionManagerのイベントハンドラを解除
+        if (Graph == null)
+            return;
+
+        // 既存のイベントハンドラを解除
         Graph.SelectionManager.SelectionChanged -= OnSelectionChanged;
+        Graph.PropertyChanged -= OnGraphPropertyChanged;
 
         // 既存のノードのイベントハンドラを解除
         foreach (var node in Graph.Nodes)
@@ -576,8 +614,12 @@ public class GraphControl : TemplatedControl
             node.PropertyChanged -= OnNodePropertyChanged;
         }
 
-        // SelectionManagerのイベントハンドラを登録
+        // イベントハンドラを登録
         Graph.SelectionManager.SelectionChanged += OnSelectionChanged;
+        Graph.PropertyChanged += OnGraphPropertyChanged;
+
+        // IsInputBlockedの初期値を設定
+        IsInputBlocked = Graph.IsExecuting;
 
         // ノードを作成
         foreach (var node in Graph.Nodes)
@@ -593,6 +635,14 @@ public class GraphControl : TemplatedControl
 
         // 初期座標を設定（レイアウト後に更新）
         Dispatcher.UIThread.Post(UpdateConnectors, DispatcherPriority.Render);
+    }
+
+    private void OnGraphPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(EditorGraph.IsExecuting))
+        {
+            IsInputBlocked = Graph?.IsExecuting ?? false;
+        }
     }
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)

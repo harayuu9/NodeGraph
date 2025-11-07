@@ -82,6 +82,12 @@
                                        Width="{Binding SelectionRect.Width, RelativeSource={RelativeSource TemplatedParent}}"
                                        Height="{Binding SelectionRect.Height, RelativeSource={RelativeSource TemplatedParent}}"/>
                         </Canvas>
+
+                        <!-- タッチガード: Execute中は全ての入力を遮断 -->
+                        <Border x:Name="PART_TouchGuard"
+                                Background="Transparent"
+                                IsVisible="{Binding IsInputBlocked, RelativeSource={RelativeSource TemplatedParent}}"
+                                IsHitTestVisible="True"/>
                     </Grid>
                 </Border>
             </ControlTemplate>

@@ -66,6 +66,10 @@ public partial class EditorGraph : ObservableObject
         try
         {
             IsExecuting = true;
+
+            // 既存の選択を全てクリア
+            SelectionManager.ClearSelection();
+
             foreach (var editorNode in Nodes)
             {
                 editorNode.ExecutionStatus = ExecutionStatus.Waiting;
