@@ -489,6 +489,11 @@ public class GraphControl : TemplatedControl
             DeleteSelectedConnections();
             e.Handled = true;
         }
+        else if (e.Key == Key.R && Graph != null)
+        {
+            ArrangeSelectedNodes();
+            e.Handled = true;
+        }
     }
 
     private void ZoomAtPoint(Point point, double factor)
@@ -807,6 +812,150 @@ public class GraphControl : TemplatedControl
     protected virtual void OnZoomChanged(double oldZoom, double newZoom, Point zoomCenter)
     {
         ScheduleConnectorUpdate();
+    }
+
+    #endregion
+
+    #region Node Arrangement
+
+    /// <summary>
+    /// 選択されたノードをConnection情報に基づいて左から右に整列します
+    /// </summary>
+    private void ArrangeSelectedNodes()
+    {
+        if (Graph == null)
+            return;
+
+        var selectedNodes = Graph.SelectionManager.SelectedItems
+            .OfType<EditorNode>()
+            .ToList();
+
+        if (selectedNodes.Count == 0)
+            return;
+
+        // ノードを階層ごとに分類（トポロジカルソート）
+        var layers = ComputeNodeLayers(selectedNodes);
+
+        // 各階層の配置パラメータ
+        const double horizontalSpacing = 250.0; // 階層間の水平間隔
+        const double verticalSpacing = 80.0;    // 同一階層内のノード間の垂直間隔
+        const double nodeHeight = 100.0;        // ノードの推定高さ
+
+        // 最初のノードの位置を基準点とする
+        var baseX = selectedNodes.Min(n => n.X);
+        var baseY = selectedNodes.Min(n => n.Y);
+
+        // 各階層のノードを配置
+        for (int layerIndex = 0; layerIndex < layers.Count; layerIndex++)
+        {
+            var layer = layers[layerIndex];
+            var x = baseX + layerIndex * horizontalSpacing;
+
+            for (int nodeIndex = 0; nodeIndex < layer.Count; nodeIndex++)
+            {
+                var node = layer[nodeIndex];
+                var y = baseY + nodeIndex * (nodeHeight + verticalSpacing);
+
+                node.X = x;
+                node.Y = y;
+            }
+        }
+
+        // コネクタの更新をスケジュール
+        ScheduleConnectorUpdate();
+    }
+
+    /// <summary>
+    /// ノードを階層に分類します（トポロジカルソートベース）
+    /// </summary>
+    private List<List<EditorNode>> ComputeNodeLayers(List<EditorNode> nodes)
+    {
+        if (Graph == null)
+            return [];
+
+        var layers = new List<List<EditorNode>>();
+        var nodeToLayer = new Dictionary<EditorNode, int>();
+        var processedNodes = new HashSet<EditorNode>();
+
+        // 各ノードの入力依存関係を計算
+        var dependencies = new Dictionary<EditorNode, List<EditorNode>>();
+        foreach (var node in nodes)
+        {
+            dependencies[node] = [];
+        }
+
+        // 選択されたノード間の接続のみを考慮
+        foreach (var connection in Graph.Connections)
+        {
+            if (nodes.Contains(connection.SourceNode) && nodes.Contains(connection.TargetNode))
+            {
+                dependencies[connection.TargetNode].Add(connection.SourceNode);
+            }
+        }
+
+        // 深さ優先探索で各ノードの階層を決定
+        void AssignLayer(EditorNode node, int layer)
+        {
+            if (nodeToLayer.TryGetValue(node, out var existingLayer))
+            {
+                // 既に割り当てられている場合は、より深い階層を優先
+                if (layer > existingLayer)
+                {
+                    nodeToLayer[node] = layer;
+                }
+                return;
+            }
+
+            nodeToLayer[node] = layer;
+
+            // このノードに依存しているノードは次の階層
+            foreach (var connection in Graph.Connections)
+            {
+                if (connection.SourceNode == node && nodes.Contains(connection.TargetNode))
+                {
+                    AssignLayer(connection.TargetNode, layer + 1);
+                }
+            }
+        }
+
+        // 入力依存関係がないノード（ルートノード）から開始
+        var rootNodes = nodes.Where(n => dependencies[n].Count == 0).ToList();
+
+        // ルートノードがない場合（循環依存がある場合）は全ノードをルートとして扱う
+        if (rootNodes.Count == 0)
+        {
+            rootNodes = nodes.ToList();
+        }
+
+        foreach (var rootNode in rootNodes)
+        {
+            AssignLayer(rootNode, 0);
+        }
+
+        // 階層ごとにノードをグループ化
+        var maxLayer = nodeToLayer.Values.DefaultIfEmpty(-1).Max();
+        for (int i = 0; i <= maxLayer; i++)
+        {
+            layers.Add([]);
+        }
+
+        foreach (var (node, layer) in nodeToLayer)
+        {
+            layers[layer].Add(node);
+        }
+
+        // 階層に属していないノード（孤立ノード）を最初の階層に追加
+        var unassignedNodes = nodes.Where(n => !nodeToLayer.ContainsKey(n)).ToList();
+        if (unassignedNodes.Count > 0)
+        {
+            if (layers.Count == 0)
+            {
+                layers.Add([]);
+            }
+            layers[0].AddRange(unassignedNodes);
+        }
+
+        return layers;
     }
 
     #endregion
