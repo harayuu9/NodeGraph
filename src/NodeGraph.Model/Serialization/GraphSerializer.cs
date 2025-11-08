@@ -1,4 +1,3 @@
-using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -232,63 +231,24 @@ public static class GraphSerializer
     /// </summary>
     private static Node CreateNodeWithPorts(Type nodeType, NodeData nodeData)
     {
-        // リフレクションでノードを作成
-        var node = Activator.CreateInstance(nodeType) as Node;
-        if (node == null)
+        // ポートIDを入力と出力に分ける
+        var inputPortIds = nodeData.Ports
+            .Where(p => p.Direction == "input")
+            .OrderBy(p => p.Index)
+            .Select(p => new PortId(p.Id))
+            .ToArray();
+
+        var outputPortIds = nodeData.Ports
+            .Where(p => p.Direction == "output")
+            .OrderBy(p => p.Index)
+            .Select(p => new PortId(p.Id))
+            .ToArray();
+
+        // デシリアライズ用コンストラクタでノードを作成
+        var nodeId = new NodeId(nodeData.Id);
+        if (Activator.CreateInstance(nodeType, nodeId, inputPortIds, outputPortIds) is not Node node)
         {
             throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
-        }
-
-        // ポートIDを復元するため、リフレクションでポート配列にアクセス
-        var inputPortsProperty = typeof(Node).GetProperty("InputPorts",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        var outputPortsProperty = typeof(Node).GetProperty("OutputPorts",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-
-        if (inputPortsProperty == null || outputPortsProperty == null)
-        {
-            throw new InvalidOperationException("Could not access port properties");
-        }
-
-        var inputPorts = (Port[])inputPortsProperty.GetValue(node)!;
-        var outputPorts = (Port[])outputPortsProperty.GetValue(node)!;
-
-        // 各ポートのIDを復元
-        foreach (var portData in nodeData.Ports)
-        {
-            Port[] ports;
-
-            if (portData.Direction == "input")
-            {
-                ports = inputPorts;
-            }
-            else
-            {
-                ports = outputPorts;
-            }
-
-            var index = portData.Index;
-
-            if (index >= 0 && index < ports.Length)
-            {
-                // ポートのIDプロパティのバッキングフィールドを設定
-                // C#の自動プロパティのバッキングフィールド名は <PropertyName>k__BackingField
-                var portType = ports[index].GetType();
-                var idField = portType.GetField("<Id>k__BackingField",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-
-                if (idField == null)
-                {
-                    // 基底クラスで定義されている可能性
-                    idField = typeof(Port).GetField("<Id>k__BackingField",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                }
-
-                if (idField != null)
-                {
-                    idField.SetValue(ports[index], new PortId(portData.Id));
-                }
-            }
         }
 
         return node;

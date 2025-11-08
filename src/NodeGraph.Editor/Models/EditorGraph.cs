@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -7,7 +8,9 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Serialization;
 using NodeGraph.Model;
+using NodeGraph.Model.Serialization;
 
 namespace NodeGraph.Editor.Models;
 
@@ -29,8 +32,10 @@ public partial class EditorGraph : ObservableObject
     }
 
     public SelectionManager SelectionManager { get; }
-    
+
     [ObservableProperty] public partial bool IsExecuting { get; set; }
+    [ObservableProperty] public partial string? CurrentFilePath { get; set; }
+
     public ObservableCollection<EditorNode> Nodes { get; } = [];
     public ObservableCollection<EditorConnection> Connections { get; } = [];
 
@@ -125,5 +130,55 @@ public partial class EditorGraph : ObservableObject
             }
             IsExecuting = false;
         }
+    }
+
+    /// <summary>
+    /// グラフとレイアウトを保存します
+    /// </summary>
+    public void Save(string filePath)
+    {
+        // .graph.yml と .layout.yml の両方を保存
+        var graphPath = Path.ChangeExtension(filePath, ".graph.yml");
+        var layoutPath = Path.ChangeExtension(filePath, ".layout.yml");
+
+        GraphSerializer.SaveToYaml(_graph, graphPath);
+        EditorLayoutSerializer.SaveLayout(this, layoutPath);
+
+        CurrentFilePath = filePath;
+    }
+
+    /// <summary>
+    /// 現在のファイルパスに上書き保存します
+    /// </summary>
+    public void Save()
+    {
+        if (string.IsNullOrEmpty(CurrentFilePath))
+        {
+            throw new InvalidOperationException("CurrentFilePath is not set. Use Save(string filePath) instead.");
+        }
+
+        Save(CurrentFilePath);
+    }
+
+    /// <summary>
+    /// グラフとレイアウトを読み込んで新しいEditorGraphを作成します
+    /// </summary>
+    public static EditorGraph Load(string filePath, SelectionManager selectionManager)
+    {
+        // .graph.yml と .layout.yml の両方を読み込む
+        var graphPath = Path.ChangeExtension(filePath, ".graph.yml");
+        var layoutPath = Path.ChangeExtension(filePath, ".layout.yml");
+
+        var graph = GraphSerializer.LoadFromYaml(graphPath);
+        var editorGraph = new EditorGraph(graph, selectionManager);
+
+        // レイアウトファイルが存在する場合は読み込む
+        if (File.Exists(layoutPath))
+        {
+            EditorLayoutSerializer.LoadLayout(layoutPath, editorGraph);
+        }
+
+        editorGraph.CurrentFilePath = filePath;
+        return editorGraph;
     }
 }

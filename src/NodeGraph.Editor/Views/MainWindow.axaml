@@ -19,11 +19,24 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- メニューバー -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New" Command="{Binding NewCommand}" InputGesture="Ctrl+N"/>
+                <MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O"/>
+                <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
+                <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
+            </MenuItem>
+        </Menu>
+
         <!-- ヘッダー -->
-        <Border Grid.Row="0" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
+        <Border Grid.Row="1" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="GraphControl テスト"
@@ -62,7 +75,7 @@
         </Border>
 
         <!-- GraphControl -->
-        <controls:GraphControl Grid.Row="1"
+        <controls:GraphControl Grid.Row="2"
                               Graph="{Binding TestGraph}"
                               Background="{DynamicResource GraphBackgroundBrush}"/>
     </Grid>

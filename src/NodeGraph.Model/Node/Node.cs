@@ -13,6 +13,13 @@ public abstract class Node : IWithId<NodeId>
         InputPorts = new InputPort[inputPortCount];
         OutputPorts = new OutputPort[outputPortCount];
     }
+
+    protected Node(NodeId nodeId, PortId[] inputPortIds, PortId[] outputPortIds)
+    {
+        Id = nodeId;
+        InputPorts = new InputPort[inputPortIds.Length];
+        OutputPorts = new OutputPort[outputPortIds.Length];
+    }
     
     protected abstract void BeforeExecute();
     protected abstract void AfterExecute();

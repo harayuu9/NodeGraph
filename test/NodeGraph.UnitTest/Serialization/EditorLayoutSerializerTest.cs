@@ -2,6 +2,7 @@ using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Serialization;
 using NodeGraph.Model;
+using NodeGraph.Model.Serialization;
 
 namespace NodeGraph.UnitTest.Serialization;
 
@@ -394,6 +395,208 @@ nodes: {}
             {
                 File.Delete(tempFile);
             }
+        }
+    }
+
+    [Fact]
+    public void FullSaveLoad_GraphAndLayout_BothAreRestored()
+    {
+        // Arrange
+        var graph = new Graph();
+        var constant1 = graph.CreateNode<FloatConstantNode>();
+        constant1.SetPropertyValue("Value", 10.0f);
+
+        var constant2 = graph.CreateNode<FloatConstantNode>();
+        constant2.SetPropertyValue("Value", 5.0f);
+
+        var add = graph.CreateNode<FloatAddNode>();
+        add.ConnectInput(0, constant1, 0);
+        add.ConnectInput(1, constant2, 0);
+
+        var result = graph.CreateNode<FloatResultNode>();
+        result.ConnectInput(0, add, 0);
+
+        var selectionManager = new SelectionManager();
+        var editorGraph = new EditorGraph(graph, selectionManager);
+
+        // ノード位置を設定
+        editorGraph.Nodes[0].X = 100.0;
+        editorGraph.Nodes[0].Y = 150.0;
+        editorGraph.Nodes[1].X = 100.0;
+        editorGraph.Nodes[1].Y = 250.0;
+        editorGraph.Nodes[2].X = 400.0;
+        editorGraph.Nodes[2].Y = 200.0;
+        editorGraph.Nodes[3].X = 700.0;
+        editorGraph.Nodes[3].Y = 200.0;
+
+        var basePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        try
+        {
+            // Act - EditorGraph.Save を使って保存
+            editorGraph.Save(basePath);
+
+            // 新しいEditorGraphとして読み込む
+            var loadedEditorGraph = EditorGraph.Load(basePath, selectionManager);
+
+            // Assert - グラフの構造が復元されている
+            Assert.Equal(4, loadedEditorGraph.Nodes.Count);
+            Assert.Equal(3, loadedEditorGraph.Connections.Count);
+
+            // ノードタイプが復元されている
+            Assert.Equal(2, loadedEditorGraph.Graph.GetNodes<FloatConstantNode>().Length);
+            Assert.Single(loadedEditorGraph.Graph.GetNodes<FloatAddNode>());
+            Assert.Single(loadedEditorGraph.Graph.GetNodes<FloatResultNode>());
+
+            // プロパティ値が復元されている
+            var loadedConstants = loadedEditorGraph.Graph.GetNodes<FloatConstantNode>();
+            var values = loadedConstants.Select(n => (float)n.GetPropertyValue("Value")!).OrderBy(v => v).ToArray();
+            Assert.Equal(5.0f, values[0]);
+            Assert.Equal(10.0f, values[1]);
+
+            // 接続が復元されている
+            var loadedAdd = loadedEditorGraph.Graph.GetNodes<FloatAddNode>()[0];
+            var loadedResult = loadedEditorGraph.Graph.GetNodes<FloatResultNode>()[0];
+            Assert.NotNull(((SingleConnectPort)loadedAdd.InputPorts[0]).ConnectedPort);
+            Assert.NotNull(((SingleConnectPort)loadedAdd.InputPorts[1]).ConnectedPort);
+            Assert.NotNull(((SingleConnectPort)loadedResult.InputPorts[0]).ConnectedPort);
+
+            // レイアウトが復元されている
+            var loadedConstant1 = loadedEditorGraph.Nodes.First(n =>
+                n.Node.GetType() == typeof(FloatConstantNode) &&
+                Math.Abs((float)n.Node.GetPropertyValue("Value")! - 10.0f) < 0.001f);
+            var loadedConstant2 = loadedEditorGraph.Nodes.First(n =>
+                n.Node.GetType() == typeof(FloatConstantNode) &&
+                Math.Abs((float)n.Node.GetPropertyValue("Value")! - 5.0f) < 0.001f);
+            var loadedAddNode = loadedEditorGraph.Nodes.First(n => n.Node.GetType() == typeof(FloatAddNode));
+            var loadedResultNode = loadedEditorGraph.Nodes.First(n => n.Node.GetType() == typeof(FloatResultNode));
+
+            Assert.Equal(100.0, loadedConstant1.X);
+            Assert.Equal(150.0, loadedConstant1.Y);
+            Assert.Equal(100.0, loadedConstant2.X);
+            Assert.Equal(250.0, loadedConstant2.Y);
+            Assert.Equal(400.0, loadedAddNode.X);
+            Assert.Equal(200.0, loadedAddNode.Y);
+            Assert.Equal(700.0, loadedResultNode.X);
+            Assert.Equal(200.0, loadedResultNode.Y);
+        }
+        finally
+        {
+            // Cleanup
+            var graphPath = Path.ChangeExtension(basePath, ".graph.yml");
+            var layoutPath = Path.ChangeExtension(basePath, ".layout.yml");
+            if (File.Exists(graphPath)) File.Delete(graphPath);
+            if (File.Exists(layoutPath)) File.Delete(layoutPath);
+        }
+    }
+
+    [Fact]
+    public async Task FullSaveLoad_ExecutionResultsMatch()
+    {
+        // Arrange
+        var graph = new Graph();
+        var a = graph.CreateNode<FloatConstantNode>();
+        a.SetPropertyValue("Value", 7.0f);
+
+        var b = graph.CreateNode<FloatConstantNode>();
+        b.SetPropertyValue("Value", 3.0f);
+
+        var multiply = graph.CreateNode<FloatMultiplyNode>();
+        multiply.ConnectInput(0, a, 0);
+        multiply.ConnectInput(1, b, 0);
+
+        var result = graph.CreateNode<FloatResultNode>();
+        result.ConnectInput(0, multiply, 0);
+
+        var selectionManager = new SelectionManager();
+        var editorGraph = new EditorGraph(graph, selectionManager);
+
+        // ノード位置を設定
+        editorGraph.Nodes[0].X = 50.0;
+        editorGraph.Nodes[0].Y = 100.0;
+        editorGraph.Nodes[1].X = 50.0;
+        editorGraph.Nodes[1].Y = 200.0;
+        editorGraph.Nodes[2].X = 300.0;
+        editorGraph.Nodes[2].Y = 150.0;
+        editorGraph.Nodes[3].X = 550.0;
+        editorGraph.Nodes[3].Y = 150.0;
+
+        // 元のグラフを実行
+        var executor1 = graph.CreateExecutor();
+        await executor1.ExecuteAsync();
+        var originalResult = result.Value;
+
+        var basePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        try
+        {
+            // Act - 保存して読み込む
+            editorGraph.Save(basePath);
+            var loadedEditorGraph = EditorGraph.Load(basePath, selectionManager);
+
+            // ロードしたグラフを実行
+            var loadedResult = loadedEditorGraph.Graph.GetNodes<FloatResultNode>()[0];
+            var executor2 = loadedEditorGraph.Graph.CreateExecutor();
+            await executor2.ExecuteAsync();
+
+            // Assert - 同じ結果が得られる
+            Assert.Equal(originalResult, loadedResult.Value);
+            Assert.Equal(21.0f, loadedResult.Value); // 7 * 3 = 21
+
+            // レイアウトも復元されている
+            var loadedMultiply = loadedEditorGraph.Nodes.First(n => n.Node.GetType() == typeof(FloatMultiplyNode));
+            Assert.Equal(300.0, loadedMultiply.X);
+            Assert.Equal(150.0, loadedMultiply.Y);
+        }
+        finally
+        {
+            var graphPath = Path.ChangeExtension(basePath, ".graph.yml");
+            var layoutPath = Path.ChangeExtension(basePath, ".layout.yml");
+            if (File.Exists(graphPath)) File.Delete(graphPath);
+            if (File.Exists(layoutPath)) File.Delete(layoutPath);
+        }
+    }
+
+    [Fact]
+    public void FullSaveLoad_WithoutLayoutFile_GraphStillLoads()
+    {
+        // Arrange
+        var graph = new Graph();
+        var constant = graph.CreateNode<FloatConstantNode>();
+        constant.SetPropertyValue("Value", 42.0f);
+
+        var selectionManager = new SelectionManager();
+        var editorGraph = new EditorGraph(graph, selectionManager);
+        editorGraph.Nodes[0].X = 123.0;
+        editorGraph.Nodes[0].Y = 456.0;
+
+        var basePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        try
+        {
+            // Act - Graphのみ保存してLayoutを削除
+            editorGraph.Save(basePath);
+            var layoutPath = Path.ChangeExtension(basePath, ".layout.yml");
+            File.Delete(layoutPath);
+
+            // Layoutファイルなしで読み込む
+            var loadedEditorGraph = EditorGraph.Load(basePath, selectionManager);
+
+            // Assert - グラフは読み込まれるが、レイアウトはデフォルト
+            Assert.Single(loadedEditorGraph.Nodes);
+            var loadedConstant = loadedEditorGraph.Graph.GetNodes<FloatConstantNode>()[0];
+            Assert.Equal(42.0f, loadedConstant.GetPropertyValue("Value"));
+
+            // レイアウトはデフォルト（0, 0）
+            Assert.Equal(0.0, loadedEditorGraph.Nodes[0].X);
+            Assert.Equal(0.0, loadedEditorGraph.Nodes[0].Y);
+        }
+        finally
+        {
+            var graphPath = Path.ChangeExtension(basePath, ".graph.yml");
+            var layoutPath = Path.ChangeExtension(basePath, ".layout.yml");
+            if (File.Exists(graphPath)) File.Delete(graphPath);
+            if (File.Exists(layoutPath)) File.Delete(layoutPath);
         }
     }
 }

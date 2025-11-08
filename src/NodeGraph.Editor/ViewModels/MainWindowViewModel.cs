@@ -1,5 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +15,11 @@ namespace NodeGraph.Editor.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    public EditorGraph TestGraph { get; }
+    private readonly SelectionManager _selectionManager;
+    private Window? _mainWindow;
+
+    [ObservableProperty]
+    private EditorGraph _testGraph;
 
     [ObservableProperty]
     private string _currentTheme = "Default";
@@ -27,6 +35,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel(SelectionManager selectionManager)
     {
+        _selectionManager = selectionManager;
+
         // テスト用のグラフを作成
         var graph = new Graph();
 
@@ -51,7 +61,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int1.SetValue(42);
         
         // EditorGraphでラップ（SelectionManagerを注入）
-        TestGraph = new EditorGraph(graph, selectionManager);
+        _testGraph = new EditorGraph(graph, selectionManager);
 
         // ノードの位置を設定
         TestGraph.Nodes[0].X = 100;
@@ -115,5 +125,97 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task ExecuteGraphAsync()
     {
         await TestGraph.ExecuteAsync();
+    }
+
+    public void SetMainWindow(Window window)
+    {
+        _mainWindow = window;
+    }
+
+    [RelayCommand]
+    private void New()
+    {
+        // 新しい空のグラフを作成
+        var graph = new Graph();
+        TestGraph = new EditorGraph(graph, _selectionManager);
+    }
+
+    [RelayCommand]
+    private async Task OpenAsync()
+    {
+        if (_mainWindow == null) return;
+
+        var files = await _mainWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open Graph File",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("NodeGraph Files")
+                {
+                    Patterns = new[] { "*.graph.yml" }
+                }
+            }
+        });
+
+        if (files.Count > 0)
+        {
+            var filePath = files[0].Path.LocalPath;
+            // 拡張子を除いたベース名を取得
+            var basePath = Path.ChangeExtension(filePath, null);
+
+            TestGraph = EditorGraph.Load(basePath, _selectionManager);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrEmpty(TestGraph.CurrentFilePath))
+        {
+            await SaveAsAsync();
+        }
+        else
+        {
+            TestGraph.Save();
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsAsync()
+    {
+        if (_mainWindow == null) return;
+
+        var file = await _mainWindow.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Graph File",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("NodeGraph Files")
+                {
+                    Patterns = new[] { "*.graph.yml" }
+                }
+            },
+            DefaultExtension = "graph.yml",
+            SuggestedFileName = "untitled"
+        });
+
+        if (file != null)
+        {
+            var filePath = file.Path.LocalPath;
+            // 拡張子を除いたベース名を取得
+            var basePath = Path.ChangeExtension(filePath, null);
+
+            TestGraph.Save(basePath);
+        }
+    }
+
+    [RelayCommand]
+    private void Exit()
+    {
+        if (_mainWindow != null)
+        {
+            _mainWindow.Close();
+        }
     }
 }

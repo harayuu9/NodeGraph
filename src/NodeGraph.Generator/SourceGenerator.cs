@@ -110,6 +110,7 @@ public static class Emitter
         codeGen.WriteLine($"partial class {typeSymbol.Name} : global::NodeGraph.Model.Node");
         using (codeGen.Scope())
         {
+            // デフォルトコンストラクタ（新規作成用）
             codeGen.WriteLine($"public {typeSymbol.Name}() : base({inputFields.Length}, {outputFields.Length})");
             using (codeGen.Scope())
             {
@@ -123,6 +124,25 @@ public static class Emitter
                 {
                     var outputField = outputFields[i];
                     codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, {outputField.RawName});");
+                }
+            }
+
+            codeGen.WriteLine();
+
+            // デシリアライズ用コンストラクタ（NodeIdとPortIdを受け取る）
+            codeGen.WriteLine($"public {typeSymbol.Name}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds) : base(nodeId, inputPortIds, outputPortIds)");
+            using (codeGen.Scope())
+            {
+                for (var i = 0; i < inputFields.Length; i++)
+                {
+                    var inputField = inputFields[i];
+                    codeGen.WriteLine($"InputPorts[{i}] = new {inputField.PortType}(this, inputPortIds[{i}], {inputField.RawName});");
+                }
+
+                for (var i = 0; i < outputFields.Length; i++)
+                {
+                    var outputField = outputFields[i];
+                    codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, outputPortIds[{i}], {outputField.RawName});");
                 }
             }
             
