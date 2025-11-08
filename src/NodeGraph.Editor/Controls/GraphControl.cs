@@ -313,19 +313,22 @@ public class GraphControl : TemplatedControl
         {
             return;
         }
-        
+
         // フォーカスを取得（Deleteキーなどを受け取るため）
         Focus();
 
         var properties = e.GetCurrentPoint(this).Properties;
 
-        // 右ボタンの処理（ドラッグとコンテキストメニューの判定のため）
+        // 右ボタンの処理（背景クリック時のAddNodeWindow表示用）
         if (properties.IsRightButtonPressed && !Graph.IsExecuting)
         {
-            _isRightButtonDown = true;
-            _rightButtonDownPoint = e.GetPosition(this);
-            _lastDragPoint = _rightButtonDownPoint;
-            e.Handled = true;
+            // NodeControl上でない場合のみ処理（ノードのコンテキストメニューと衝突しないように）
+            if (e.Source is not NodeControl)
+            {
+                _isRightButtonDown = true;
+                _rightButtonDownPoint = e.GetPosition(this);
+                e.Handled = true;
+            }
             return;
         }
 
@@ -339,7 +342,7 @@ public class GraphControl : TemplatedControl
 
             OnPanStarted();
         }
-        
+
         if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
         {
             // NodeControl上またはポートドラッグ中でのクリックでない場合のみ矩形選択を開始
@@ -365,23 +368,6 @@ public class GraphControl : TemplatedControl
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        // 右ボタンが押されていてドラッグされた場合はパンモードに移行
-        if (_isRightButtonDown && !_isDragging)
-        {
-            var currentPoint = e.GetPosition(this);
-            var delta = currentPoint - _rightButtonDownPoint;
-            var distance = Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
-
-            // 一定距離以上移動したらドラッグモードに移行
-            if (distance > 5)
-            {
-                _isDragging = true;
-                _isRightButtonDown = false;
-                e.Pointer.Capture(this);
-                OnPanStarted();
-            }
-        }
-
         if (_isDragging)
         {
             var currentPoint = e.GetPosition(this);
@@ -434,11 +420,8 @@ public class GraphControl : TemplatedControl
         {
             _isRightButtonDown = false;
 
-            // ドラッグしていない場合はAddNodeWindowを表示
-            if (!_isDragging)
-            {
-                _ = ShowAddNodeWindow(e.GetPosition(this));
-            }
+            // AddNodeWindowを表示
+            _ = ShowAddNodeWindow(e.GetPosition(this));
 
             e.Handled = true;
             return;
@@ -823,7 +806,7 @@ public class GraphControl : TemplatedControl
     /// </summary>
     private void ArrangeSelectedNodes()
     {
-        if (Graph == null)
+        if (Graph == null || _canvas == null)
             return;
 
         var selectedNodes = Graph.SelectionManager.SelectedItems
@@ -837,27 +820,134 @@ public class GraphControl : TemplatedControl
         var layers = ComputeNodeLayers(selectedNodes);
 
         // 各階層の配置パラメータ
-        const double horizontalSpacing = 250.0; // 階層間の水平間隔
-        const double verticalSpacing = 80.0;    // 同一階層内のノード間の垂直間隔
-        const double nodeHeight = 100.0;        // ノードの推定高さ
+        const double horizontalSpacing = 100.0; // 階層間の最小水平間隔
+        const double verticalSpacing = 20.0;    // 同一階層内のノード間の最小垂直間隔
 
         // 最初のノードの位置を基準点とする
         var baseX = selectedNodes.Min(n => n.X);
         var baseY = selectedNodes.Min(n => n.Y);
 
-        // 各階層のノードを配置
-        for (int layerIndex = 0; layerIndex < layers.Count; layerIndex++)
+        // ノードサイズのキャッシュを作成
+        var nodeSizes = new Dictionary<EditorNode, (double width, double height)>();
+        foreach (var node in selectedNodes)
         {
-            var layer = layers[layerIndex];
-            var x = baseX + layerIndex * horizontalSpacing;
-
-            for (int nodeIndex = 0; nodeIndex < layer.Count; nodeIndex++)
+            var nodeControl = FindNodeControl(node);
+            if (nodeControl != null)
             {
-                var node = layer[nodeIndex];
-                var y = baseY + nodeIndex * (nodeHeight + verticalSpacing);
+                var width = nodeControl.Bounds.Width > 0 ? nodeControl.Bounds.Width : 200.0;
+                var height = nodeControl.Bounds.Height > 0 ? nodeControl.Bounds.Height : 100.0;
+                nodeSizes[node] = (width, height);
+            }
+            else
+            {
+                nodeSizes[node] = (200.0, 100.0);
+            }
+        }
 
-                node.X = x;
-                node.Y = y;
+        // パス1: X座標を設定
+        var currentX = baseX;
+
+        foreach (var layer in layers)
+        {
+            var maxWidthInLayer = 0.0;
+            foreach (var node in layer)
+            {
+                node.X = currentX;
+                maxWidthInLayer = Math.Max(maxWidthInLayer, nodeSizes[node].width);
+            }
+
+            currentX += maxWidthInLayer + horizontalSpacing;
+        }
+
+        // パス2: Y座標を設定（前方から順番に確定していく）
+        // 階層ごとに前から順番に処理することで、参照するノードは常に確定済み
+        var nodesWithConnections = new HashSet<EditorNode>();
+        var nodesWithoutConnections = new List<EditorNode>();
+
+        foreach (var layer in layers)
+        {
+            foreach (var node in layer)
+            {
+                var nodeHeight = nodeSizes[node].height;
+
+                // このノードに接続されている前の階層（すでに確定済み）のノードを取得
+                var connectedPreviousNodes = Graph.Connections
+                    .Where(c => c.TargetNode == node && selectedNodes.Contains(c.SourceNode))
+                    .Select(c => c.SourceNode)
+                    .Distinct()
+                    .ToList();
+
+                // このノードから接続されている次の階層のノードを取得
+                var connectedNextNodes = Graph.Connections
+                    .Where(c => c.SourceNode == node && selectedNodes.Contains(c.TargetNode))
+                    .Select(c => c.TargetNode)
+                    .Distinct()
+                    .ToList();
+
+                var hasConnections = connectedPreviousNodes.Count > 0 || connectedNextNodes.Count > 0;
+
+                if (hasConnections)
+                {
+                    // 接続があるノード
+                    nodesWithConnections.Add(node);
+
+                    // 前方のノード（確定済み）の中心Y座標の平均を計算
+                    if (connectedPreviousNodes.Count > 0)
+                    {
+                        var avgCenterY = connectedPreviousNodes.Average(n => n.Y + nodeSizes[n].height / 2.0);
+                        node.Y = avgCenterY - nodeHeight / 2.0;
+                    }
+                    else
+                    {
+                        // 前方に接続がなく後方にのみ接続がある場合は基準Y座標
+                        node.Y = baseY;
+                    }
+                }
+                else
+                {
+                    // 接続がないノードは後で配置
+                    nodesWithoutConnections.Add(node);
+                }
+            }
+
+            // 同じ階層内で接続があるノードが重ならないように調整
+            var sortedLayer = layer.Where(n => nodesWithConnections.Contains(n)).OrderBy(n => n.Y).ToList();
+            for (var i = 1; i < sortedLayer.Count; i++)
+            {
+                var prevNode = sortedLayer[i - 1];
+                var currNode = sortedLayer[i];
+                var prevNodeBottom = prevNode.Y + nodeSizes[prevNode].height;
+                var minY = prevNodeBottom + verticalSpacing;
+
+                if (currNode.Y < minY)
+                {
+                    currNode.Y = minY;
+                }
+            }
+        }
+
+        // 接続がないノードを階層ごとに配置
+        if (nodesWithoutConnections.Count > 0)
+        {
+            foreach (var layer in layers)
+            {
+                var disconnectedNodesInLayer = layer.Where(n => nodesWithoutConnections.Contains(n)).ToList();
+
+                if (disconnectedNodesInLayer.Count == 0)
+                    continue;
+
+                // この階層の接続があるノードの最大Y座標を取得
+                var connectedNodesInLayer = layer.Where(n => nodesWithConnections.Contains(n)).ToList();
+                var currentY = connectedNodesInLayer.Count > 0
+                    ? connectedNodesInLayer.Max(n => n.Y + nodeSizes[n].height) + verticalSpacing * 2
+                    : baseY;
+
+                // 接続がないノードを配置
+                foreach (var node in disconnectedNodesInLayer)
+                {
+                    node.Y = currentY;
+                    currentY += nodeSizes[node].height + verticalSpacing;
+                }
             }
         }
 
@@ -875,7 +965,6 @@ public class GraphControl : TemplatedControl
 
         var layers = new List<List<EditorNode>>();
         var nodeToLayer = new Dictionary<EditorNode, int>();
-        var processedNodes = new HashSet<EditorNode>();
 
         // 各ノードの入力依存関係を計算
         var dependencies = new Dictionary<EditorNode, List<EditorNode>>();
@@ -934,7 +1023,7 @@ public class GraphControl : TemplatedControl
 
         // 階層ごとにノードをグループ化
         var maxLayer = nodeToLayer.Values.DefaultIfEmpty(-1).Max();
-        for (int i = 0; i <= maxLayer; i++)
+        for (var i = 0; i <= maxLayer; i++)
         {
             layers.Add([]);
         }

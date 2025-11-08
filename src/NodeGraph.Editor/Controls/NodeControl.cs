@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using CommunityToolkit.Mvvm.Input;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Model;
@@ -24,11 +27,20 @@ public class NodeControl : ContentControl
             var n = new FloatConstantNode();
             Node = new EditorNode(new SelectionManager(), n);
         }
-        
+
         // イベントハンドラの登録
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
+
+        // コマンドの初期化
+        DeleteCommand = new RelayCommand(ExecuteDelete, CanExecuteDelete);
+        DuplicateCommand = new RelayCommand(ExecuteDuplicate, CanExecuteDuplicate);
+        DisconnectAllCommand = new RelayCommand(ExecuteDisconnectAll, CanExecuteDisconnectAll);
+        ShowPropertiesCommand = new RelayCommand(ExecuteShowProperties, CanExecuteShowProperties);
+
+        // DataContextを自身に設定（コマンドバインディング用）
+        DataContext = this;
     }
 
     public static readonly StyledProperty<EditorNode?> NodeProperty = AvaloniaProperty.Register<NodeControl, EditorNode?>(nameof(Node));
@@ -190,5 +202,110 @@ public class NodeControl : ContentControl
             e.Pointer.Capture(null);
             e.Handled = true;
         }
+    }
+
+    // コマンド
+    public ICommand DeleteCommand { get; }
+    public ICommand DuplicateCommand { get; }
+    public ICommand DisconnectAllCommand { get; }
+    public ICommand ShowPropertiesCommand { get; }
+
+    // 削除コマンド
+    private bool CanExecuteDelete() => Node != null;
+
+    private void ExecuteDelete()
+    {
+        if (Node == null)
+            return;
+
+        var graphControl = this.FindAncestorOfType<GraphControl>();
+        if (graphControl?.Graph == null)
+            return;
+
+        // 選択されているノードを削除（このノードを含む）
+        var selectedNodes = Node.SelectionManager.SelectedItems
+            .OfType<EditorNode>()
+            .ToList();
+
+        if (!selectedNodes.Contains(Node))
+            selectedNodes.Add(Node);
+
+        foreach (var editorNode in selectedNodes)
+        {
+            graphControl.Graph.RemoveNode(editorNode);
+        }
+
+        Node.SelectionManager.ClearSelection();
+    }
+
+    // 複製コマンド
+    private bool CanExecuteDuplicate() => Node != null;
+
+    private void ExecuteDuplicate()
+    {
+        if (Node == null)
+            return;
+
+        var graphControl = this.FindAncestorOfType<GraphControl>();
+        if (graphControl?.Graph == null)
+            return;
+
+        // 選択されているノードを複製（このノードを含む）
+        var selectedNodes = Node.SelectionManager.SelectedItems
+            .OfType<EditorNode>()
+            .ToList();
+
+        if (!selectedNodes.Contains(Node))
+            selectedNodes.Add(Node);
+
+        var newNodes = new List<EditorNode>();
+        foreach (var editorNode in selectedNodes)
+        {
+            var duplicated = graphControl.Graph.DuplicateNode(editorNode);
+            if (duplicated != null)
+            {
+                // 少しずらして配置
+                duplicated.X = editorNode.X + 30;
+                duplicated.Y = editorNode.Y + 30;
+                newNodes.Add(duplicated);
+            }
+        }
+
+        // 複製されたノードを選択
+        Node.SelectionManager.ClearSelection();
+        foreach (var newNode in newNodes)
+        {
+            Node.SelectionManager.Select(newNode);
+        }
+    }
+
+    // すべての接続を解除コマンド
+    private bool CanExecuteDisconnectAll() => Node != null;
+
+    private void ExecuteDisconnectAll()
+    {
+        if (Node?.Node == null)
+            return;
+
+        // すべての入力ポートの接続を解除
+        foreach (var port in Node.Node.InputPorts)
+        {
+            port.DisconnectAll();
+        }
+
+        // すべての出力ポートの接続を解除
+        foreach (var port in Node.Node.OutputPorts)
+        {
+            port.DisconnectAll();
+        }
+    }
+
+    // プロパティ表示コマンド（将来的にプロパティウィンドウを開く）
+    private bool CanExecuteShowProperties() => Node != null;
+
+    private void ExecuteShowProperties()
+    {
+        // 現在はプロパティがノード内に表示されているため、何もしない
+        // 将来的にはプロパティウィンドウを開く処理を実装
     }
 }

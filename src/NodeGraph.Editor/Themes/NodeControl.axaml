@@ -21,6 +21,17 @@
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="ClipToBounds" Value="False" />
 
+    <Setter Property="ContextFlyout">
+      <MenuFlyout x:DataType="controls:NodeControl">
+        <MenuItem Header="削除(_D)" Command="{Binding DeleteCommand}" InputGesture="Delete" />
+        <MenuItem Header="複製(_C)" Command="{Binding DuplicateCommand}" InputGesture="Ctrl+D" />
+        <Separator />
+        <MenuItem Header="すべての接続を解除(_A)" Command="{Binding DisconnectAllCommand}" />
+        <Separator />
+        <MenuItem Header="プロパティ(_P)" Command="{Binding ShowPropertiesCommand}" />
+      </MenuFlyout>
+    </Setter>
+
     <Setter Property="Template">
       <ControlTemplate>
         <Grid>

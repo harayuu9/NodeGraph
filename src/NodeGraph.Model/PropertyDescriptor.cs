@@ -85,4 +85,24 @@ public sealed class PropertyDescriptor
     {
         return Attributes.OfType<T>().Any();
     }
+
+    /// <summary>
+    /// プロパティの値を取得します。
+    /// </summary>
+    /// <param name="node">対象のノード</param>
+    /// <returns>プロパティ値</returns>
+    public object? GetValue(Node node)
+    {
+        return Getter(node);
+    }
+
+    /// <summary>
+    /// プロパティの値を設定します。
+    /// </summary>
+    /// <param name="node">対象のノード</param>
+    /// <param name="value">設定する値</param>
+    public void SetValue(Node node, object? value)
+    {
+        Setter(node, value);
+    }
 }

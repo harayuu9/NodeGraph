@@ -181,4 +181,67 @@ public partial class EditorGraph : ObservableObject
         editorGraph.CurrentFilePath = filePath;
         return editorGraph;
     }
+
+    /// <summary>
+    /// ノードを削除します
+    /// </summary>
+    public void RemoveNode(EditorNode editorNode)
+    {
+        // 接続を削除
+        var connectionsToRemove = Connections
+            .Where(c => c.SourceNode == editorNode || c.TargetNode == editorNode)
+            .ToList();
+
+        foreach (var connection in connectionsToRemove)
+        {
+            Connections.Remove(connection);
+        }
+
+        // ノードを削除
+        Nodes.Remove(editorNode);
+        _graph.Nodes.Remove(editorNode.Node);
+    }
+
+    /// <summary>
+    /// ノードを複製します
+    /// </summary>
+    public EditorNode? DuplicateNode(EditorNode editorNode)
+    {
+        // ノードのタイプを取得
+        var nodeType = editorNode.Node.GetType();
+
+        // デフォルトコンストラクタでノードを作成
+        if (Activator.CreateInstance(nodeType) is not Node newNode)
+            return null;
+
+        // プロパティをコピー
+        var properties = editorNode.Node.GetProperties();
+
+        foreach (var prop in properties)
+        {
+            try
+            {
+                var value = prop.GetValue(editorNode.Node);
+                prop.SetValue(newNode, value);
+            }
+            catch
+            {
+                // プロパティのコピーに失敗した場合は無視
+            }
+        }
+
+        // グラフに追加
+        _graph.AddNode(newNode);
+
+        // EditorNodeを作成
+        var newEditorNode = new EditorNode(SelectionManager, newNode)
+        {
+            X = editorNode.X,
+            Y = editorNode.Y
+        };
+
+        Nodes.Add(newEditorNode);
+
+        return newEditorNode;
+    }
 }
