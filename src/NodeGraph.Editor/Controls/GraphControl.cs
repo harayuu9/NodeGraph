@@ -51,6 +51,9 @@ public class GraphControl : TemplatedControl
     private PortControl? _dragSourcePort;
     private PortControl? _currentHoverPort;
 
+    // コピー&ペースト用
+    private List<EditorNode>? _copiedNodes;
+
     // トランスフォーム
     private readonly TranslateTransform _translateTransform = new();
     private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
@@ -74,7 +77,10 @@ public class GraphControl : TemplatedControl
 
         // フォーカス可能にする
         Focusable = true;
-        
+
+        // コンテキストメニューの設定
+        SetupContextMenu();
+
         if (Design.IsDesignMode)
         {
             // テスト用のグラフを作成
@@ -109,6 +115,21 @@ public class GraphControl : TemplatedControl
             testGraph.Nodes[3].Y = 120;
             Graph = testGraph;
         }
+    }
+
+    private void SetupContextMenu()
+    {
+        var pasteMenuItem = new MenuItem
+        {
+            Header = "ペースト(_V)",
+            InputGesture = KeyGesture.Parse("V")
+        };
+        pasteMenuItem.Click += (_, _) => PasteNodes();
+
+        ContextFlyout = new MenuFlyout
+        {
+            Items = { pasteMenuItem }
+        };
     }
 
     #region Styled Properties
@@ -477,6 +498,21 @@ public class GraphControl : TemplatedControl
             ArrangeSelectedNodes();
             e.Handled = true;
         }
+        else if (e.Key == Key.C && Graph != null)
+        {
+            CopySelectedNodes();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.V && Graph != null)
+        {
+            PasteNodes();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.X && Graph != null)
+        {
+            CutSelectedNodes();
+            e.Handled = true;
+        }
     }
 
     private void ZoomAtPoint(Point point, double factor)
@@ -595,6 +631,7 @@ public class GraphControl : TemplatedControl
         // 既存のイベントハンドラを解除
         Graph.SelectionManager.SelectionChanged -= OnSelectionChanged;
         Graph.PropertyChanged -= OnGraphPropertyChanged;
+        Graph.Nodes.CollectionChanged -= OnNodesCollectionChanged;
 
         // 既存のノードのイベントハンドラを解除
         foreach (var node in Graph.Nodes)
@@ -605,6 +642,7 @@ public class GraphControl : TemplatedControl
         // イベントハンドラを登録
         Graph.SelectionManager.SelectionChanged += OnSelectionChanged;
         Graph.PropertyChanged += OnGraphPropertyChanged;
+        Graph.Nodes.CollectionChanged += OnNodesCollectionChanged;
 
         // IsInputBlockedの初期値を設定
         IsInputBlocked = Graph.IsExecuting;
@@ -651,6 +689,50 @@ public class GraphControl : TemplatedControl
             {
                 connector.IsSelected = Graph?.SelectionManager.IsSelected(connector.Connection) ?? false;
             }
+        }
+    }
+
+    private void OnNodesCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (_canvas == null)
+            return;
+
+        // 追加されたノードの処理
+        if (e.NewItems != null)
+        {
+            foreach (EditorNode node in e.NewItems)
+            {
+                var nodeControl = CreateNodeControl(node);
+                Canvas.SetLeft(nodeControl, node.X);
+                Canvas.SetTop(nodeControl, node.Y);
+                _canvas.Children.Add(nodeControl);
+
+                // ノードの位置変更を監視
+                node.PropertyChanged += OnNodePropertyChanged;
+            }
+
+            // コネクタを更新
+            ScheduleConnectorUpdate();
+        }
+
+        // 削除されたノードの処理
+        if (e.OldItems != null)
+        {
+            foreach (EditorNode node in e.OldItems)
+            {
+                // イベントハンドラを解除
+                node.PropertyChanged -= OnNodePropertyChanged;
+
+                // 対応するNodeControlを検索して削除
+                var nodeControl = _canvas.Children.OfType<NodeControl>().FirstOrDefault(nc => nc.Node == node);
+                if (nodeControl != null)
+                {
+                    _canvas.Children.Remove(nodeControl);
+                }
+            }
+
+            // コネクタを更新
+            ScheduleConnectorUpdate();
         }
     }
 
@@ -1080,6 +1162,153 @@ public class GraphControl : TemplatedControl
 
     #endregion
 
+    #region Copy/Paste/Cut
+
+    /// <summary>
+    /// 選択されたノードをコピーします
+    /// </summary>
+    private void CopySelectedNodes()
+    {
+        if (Graph == null)
+            return;
+
+        var selectedNodes = Graph.SelectionManager.SelectedItems
+            .OfType<EditorNode>()
+            .ToList();
+
+        if (selectedNodes.Count == 0)
+            return;
+
+        _copiedNodes = selectedNodes;
+    }
+
+    /// <summary>
+    /// コピーしたノードをペーストします
+    /// </summary>
+    private void PasteNodes()
+    {
+        if (Graph == null || _copiedNodes == null || _copiedNodes.Count == 0)
+            return;
+
+        var newNodes = DuplicateNodesWithConnections(_copiedNodes);
+
+        // ペーストされたノードを選択
+        Graph.SelectionManager.ClearSelection();
+        foreach (var newNode in newNodes)
+        {
+            Graph.SelectionManager.Select(newNode);
+        }
+
+        // ペーストしたノードを次回のペースト用にコピー（連続ペースト可能に）
+        _copiedNodes = newNodes;
+    }
+
+    /// <summary>
+    /// ノードを複製し、ノード間の接続も再現します
+    /// </summary>
+    /// <param name="nodesToDuplicate">複製するノードのリスト</param>
+    /// <returns>複製されたノードのリスト</returns>
+    public List<EditorNode> DuplicateNodesWithConnections(List<EditorNode> nodesToDuplicate)
+    {
+        if (Graph == null || nodesToDuplicate == null || nodesToDuplicate.Count == 0)
+            return [];
+
+        var newNodes = new List<EditorNode>();
+        var oldToNewNodeMap = new Dictionary<EditorNode, EditorNode>();
+
+        // ステップ1: すべてのノードを複製
+        foreach (var editorNode in nodesToDuplicate)
+        {
+            var duplicated = Graph.DuplicateNode(editorNode);
+            if (duplicated != null)
+            {
+                // 少しずらして配置
+                duplicated.X = editorNode.X + 30;
+                duplicated.Y = editorNode.Y + 30;
+                newNodes.Add(duplicated);
+                oldToNewNodeMap[editorNode] = duplicated;
+            }
+        }
+
+        // ステップ2: コピー元のノード間の接続を再現
+        foreach (var oldNode in nodesToDuplicate)
+        {
+            if (!oldToNewNodeMap.TryGetValue(oldNode, out var newNode))
+                continue;
+
+            // 出力ポートから接続されている入力ポートを確認
+            for (int outputIndex = 0; outputIndex < oldNode.OutputPorts.Count; outputIndex++)
+            {
+                var oldOutputPort = oldNode.OutputPorts[outputIndex];
+                var outputPort = oldOutputPort.Port as OutputPort;
+                if (outputPort == null)
+                    continue;
+
+                // この出力ポートに接続されているすべての入力ポートを確認
+                foreach (var connectedInputPort in outputPort.ConnectedPorts)
+                {
+                    // 接続先のノードがコピー対象に含まれているか確認
+                    var targetOldNode = nodesToDuplicate.FirstOrDefault(n =>
+                        n.InputPorts.Any(p => p.Port == connectedInputPort));
+
+                    if (targetOldNode != null && oldToNewNodeMap.TryGetValue(targetOldNode, out var targetNewNode))
+                    {
+                        // 対応する入力ポートのインデックスを見つける
+                        var inputIndex = targetOldNode.InputPorts
+                            .Select((p, i) => new { Port = p, Index = i })
+                            .FirstOrDefault(x => x.Port.Port == connectedInputPort)?.Index;
+
+                        if (inputIndex.HasValue)
+                        {
+                            // 新しいノード間で接続を作成
+                            var newOutputPort = newNode.Node.OutputPorts[outputIndex];
+                            var newInputPort = targetNewNode.Node.InputPorts[inputIndex.Value];
+
+                            // 接続を確立
+                            newInputPort.Connect(newOutputPort);
+
+                            // EditorConnectionを作成
+                            var newOutputEditorPort = newNode.OutputPorts[outputIndex];
+                            var newInputEditorPort = targetNewNode.InputPorts[inputIndex.Value];
+                            var connection = new EditorConnection(newNode, newOutputEditorPort, targetNewNode, newInputEditorPort);
+                            Graph.Connections.Add(connection);
+                        }
+                    }
+                }
+            }
+        }
+
+        return newNodes;
+    }
+
+    /// <summary>
+    /// 選択されたノードをカットします（コピー後に削除）
+    /// </summary>
+    private void CutSelectedNodes()
+    {
+        if (Graph == null)
+            return;
+
+        var selectedNodes = Graph.SelectionManager.SelectedItems
+            .OfType<EditorNode>()
+            .ToList();
+
+        if (selectedNodes.Count == 0)
+            return;
+
+        // コピー
+        _copiedNodes = selectedNodes;
+
+        // 削除
+        Graph.SelectionManager.ClearSelection();
+        foreach (var editorNode in selectedNodes)
+        {
+            Graph.RemoveNode(editorNode);
+        }
+    }
+
+    #endregion
+
     #region Port Drag Handling
 
     private void OnPortDragStarted(object? sender, RoutedEventArgs e)
@@ -1320,7 +1549,7 @@ public class GraphControl : TemplatedControl
         var screenPosition = window.PointToScreen(clickPosition);
 
         // AddNodeWindowを表示
-        var selectedNodeType = await AddNodeWindow.ShowDialog(window, screenPosition, nodeTypeService);
+        var selectedNodeType = await AddNodeWindow.ShowDialog(screenPosition, nodeTypeService);
 
         if (selectedNodeType != null)
         {

@@ -24,7 +24,10 @@
     <Setter Property="ContextFlyout">
       <MenuFlyout x:DataType="controls:NodeControl">
         <MenuItem Header="削除(_D)" Command="{Binding DeleteCommand}" InputGesture="Delete" />
-        <MenuItem Header="複製(_C)" Command="{Binding DuplicateCommand}" InputGesture="Ctrl+D" />
+        <MenuItem Header="複製(_U)" Command="{Binding DuplicateCommand}" InputGesture="Ctrl+D" />
+        <Separator />
+        <MenuItem Header="コピー(_C)" Command="{Binding CopyCommand}" InputGesture="C" />
+        <MenuItem Header="カット(_X)" Command="{Binding CutCommand}" InputGesture="X" />
         <Separator />
         <MenuItem Header="すべての接続を解除(_A)" Command="{Binding DisconnectAllCommand}" />
         <Separator />

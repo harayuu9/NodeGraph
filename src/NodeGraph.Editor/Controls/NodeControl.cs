@@ -36,6 +36,8 @@ public class NodeControl : ContentControl
         // コマンドの初期化
         DeleteCommand = new RelayCommand(ExecuteDelete, CanExecuteDelete);
         DuplicateCommand = new RelayCommand(ExecuteDuplicate, CanExecuteDuplicate);
+        CopyCommand = new RelayCommand(ExecuteCopy, CanExecuteCopy);
+        CutCommand = new RelayCommand(ExecuteCut, CanExecuteCut);
         DisconnectAllCommand = new RelayCommand(ExecuteDisconnectAll, CanExecuteDisconnectAll);
         ShowPropertiesCommand = new RelayCommand(ExecuteShowProperties, CanExecuteShowProperties);
 
@@ -207,6 +209,8 @@ public class NodeControl : ContentControl
     // コマンド
     public ICommand DeleteCommand { get; }
     public ICommand DuplicateCommand { get; }
+    public ICommand CopyCommand { get; }
+    public ICommand CutCommand { get; }
     public ICommand DisconnectAllCommand { get; }
     public ICommand ShowPropertiesCommand { get; }
 
@@ -258,18 +262,8 @@ public class NodeControl : ContentControl
         if (!selectedNodes.Contains(Node))
             selectedNodes.Add(Node);
 
-        var newNodes = new List<EditorNode>();
-        foreach (var editorNode in selectedNodes)
-        {
-            var duplicated = graphControl.Graph.DuplicateNode(editorNode);
-            if (duplicated != null)
-            {
-                // 少しずらして配置
-                duplicated.X = editorNode.X + 30;
-                duplicated.Y = editorNode.Y + 30;
-                newNodes.Add(duplicated);
-            }
-        }
+        // GraphControlの共通メソッドを使用して複製（接続も含む）
+        var newNodes = graphControl.DuplicateNodesWithConnections(selectedNodes);
 
         // 複製されたノードを選択
         Node.SelectionManager.ClearSelection();
@@ -277,6 +271,48 @@ public class NodeControl : ContentControl
         {
             Node.SelectionManager.Select(newNode);
         }
+    }
+
+    // コピーコマンド
+    private bool CanExecuteCopy() => Node != null;
+
+    private void ExecuteCopy()
+    {
+        if (Node == null)
+            return;
+
+        var graphControl = this.FindAncestorOfType<GraphControl>();
+        if (graphControl == null)
+            return;
+
+        // GraphControlのCopyメソッドを呼び出すため、KeyDownイベントをシミュレート
+        var keyEventArgs = new KeyEventArgs
+        {
+            RoutedEvent = InputElement.KeyDownEvent,
+            Key = Key.C
+        };
+        graphControl.RaiseEvent(keyEventArgs);
+    }
+
+    // カットコマンド
+    private bool CanExecuteCut() => Node != null;
+
+    private void ExecuteCut()
+    {
+        if (Node == null)
+            return;
+
+        var graphControl = this.FindAncestorOfType<GraphControl>();
+        if (graphControl == null)
+            return;
+
+        // GraphControlのCutメソッドを呼び出すため、KeyDownイベントをシミュレート
+        var keyEventArgs = new KeyEventArgs
+        {
+            RoutedEvent = InputElement.KeyDownEvent,
+            Key = Key.X
+        };
+        graphControl.RaiseEvent(keyEventArgs);
     }
 
     // すべての接続を解除コマンド

@@ -20,8 +20,7 @@ public partial class AddNodeWindow : Window
     /// <summary>
     /// 指定された位置にウィンドウを表示してノードタイプを取得
     /// </summary>
-    public static async Task<NodeTypeInfo?> ShowDialog(Window owner, PixelPoint position,
-        NodeTypeService nodeTypeService)
+    public static async Task<NodeTypeInfo?> ShowDialog(PixelPoint position, NodeTypeService nodeTypeService)
     {
         var window = new AddNodeWindow
         {
@@ -62,26 +61,6 @@ public partial class AddNodeWindow : Window
 
         // フォーカスを失った時に閉じる（Window外クリック含む）
         Deactivated += OnDeactivated;
-
-        // ボタンイベントを設定
-        var cancelButton = this.FindControl<Button>("CancelButton");
-        if (cancelButton != null)
-        {
-            cancelButton.Click += (_, _) => Close();
-        }
-
-        var confirmButton = this.FindControl<Button>("ConfirmButton");
-        if (confirmButton != null)
-        {
-            confirmButton.Click += (_, _) =>
-            {
-                ViewModel?.ConfirmCommand.Execute(null);
-                if (ViewModel?.SelectedNodeType != null)
-                {
-                    Close();
-                }
-            };
-        }
     }
 
     private void OnDeactivated(object? sender, System.EventArgs e)

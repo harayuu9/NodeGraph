@@ -11,19 +11,21 @@
         Height="300"
         SystemDecorations="BorderOnly">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*">
         <!-- 検索ボックス -->
         <TextBox Grid.Row="0"
                  Text="{Binding SearchText}"
                  Watermark="Search nodes..."
-                 Margin="2"
+                 BorderThickness="0"
+                 CornerRadius="0"
+                 Margin="0"
                  Name="SearchBox"/>
 
         <!-- ノードツリー -->
         <Border Grid.Row="1"
-                Margin="2,0,2,0"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                BorderThickness="1">
+                BorderThickness="0"
+                CornerRadius="0"
+                Margin="0">
             <TreeView ItemsSource="{Binding TreeItems}"
                       SelectedItem="{Binding SelectedItem}"
                       Name="NodeTreeView">
@@ -35,24 +37,5 @@
                 </TreeView.ItemTemplate>
             </TreeView>
         </Border>
-
-        <!-- ボタン -->
-        <StackPanel Grid.Row="2"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    Spacing="10">
-            <Button Content="Cancel"
-                    Width="60"
-                    Height="25"
-                    FontSize="12"
-                    Name="CancelButton"/>
-            <Button Content="Add"
-                    Width="60"
-                    Height="25"
-                    FontSize="12"
-                    Command="{Binding ConfirmCommand}"
-                    Name="ConfirmButton"
-                    IsDefault="True"/>
-        </StackPanel>
     </Grid>
 </Window>
