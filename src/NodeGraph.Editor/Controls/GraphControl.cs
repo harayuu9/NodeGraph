@@ -502,8 +502,9 @@ public partial class GraphControl : TemplatedControl
         if (duplicatedNodes == null || duplicatedNodes.Length == 0)
             return null;
 
-        // グラフに追加（PasteNodesと同じ処理）
-        Graph.AddNode(duplicatedNodes);
+        // Undo/Redo対応でノードを追加
+        var action = new Undo.AddNodesAction(Graph, duplicatedNodes);
+        UndoRedoManager!.ExecuteAction(action);
 
         // 選択をクリアして、複製したノードを選択
         Graph.SelectionManager.ClearSelection();

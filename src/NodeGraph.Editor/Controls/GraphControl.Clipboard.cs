@@ -71,8 +71,9 @@ public partial class GraphControl
                 return;
             }
 
-            // グラフに追加
-            Graph.AddNode(editorNodes);
+            // Undo/Redo対応でノードを追加
+            var action = new Undo.AddNodesAction(Graph, editorNodes);
+            UndoRedoManager!.ExecuteAction(action);
 
             // 選択をクリアして、ペーストしたノードを選択
             Graph.SelectionManager.ClearSelection();
@@ -82,6 +83,11 @@ public partial class GraphControl
             }
 
             OnGraphChanged();
+
+            if (DataContext is ViewModels.MainWindowViewModel viewModel)
+            {
+                viewModel.NotifyUndoRedoCanExecuteChanged();
+            }
         }
     }
 }
