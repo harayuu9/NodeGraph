@@ -1,3 +1,5 @@
+using NodeGraph.Model.Pool;
+
 namespace NodeGraph.Model.Serialization;
 
 /// <summary>
@@ -66,7 +68,7 @@ public static class GraphMigrator
     private static List<Func<GraphData, GraphData>> BuildMigrationChain(
         string fromVersion, string toVersion)
     {
-        var chain = new List<Func<GraphData, GraphData>>();
+        using var chainRental = ListPool<Func<GraphData, GraphData>>.Shared.Rent(out var chain);
 
         // TODO: 実際のマイグレーションパスを検索するロジックを実装
         // 現時点では、直接のマイグレーションのみをサポート
@@ -76,7 +78,7 @@ public static class GraphMigrator
             chain.Add(migration);
         }
 
-        return chain;
+        return chain.ToList(); // Rentalから独立したListとして返す
     }
 
     // 将来的なマイグレーション例:

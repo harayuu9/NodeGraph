@@ -41,7 +41,7 @@ public class Graph
 
     public T[] GetNodes<T>() where T : Node
     {
-        var result = new List<T>(Nodes.Count);
+        using var resultRental = ListPool<T>.Shared.Rent(out var result);
         for (var i = 0; i < Nodes.Count; i++)
         {
             if (Nodes[i] is T node)

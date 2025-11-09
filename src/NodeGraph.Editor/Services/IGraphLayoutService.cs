@@ -17,7 +17,7 @@ public interface IGraphLayoutService
     /// <param name="graph">対象のグラフ</param>
     /// <param name="getNodeSize">ノードのサイズを取得する関数</param>
     /// <returns>Undo/Redo可能な配置アクション</returns>
-    ArrangeNodesAction CreateArrangeAction(
+    MoveNodesAction CreateArrangeAction(
         IEnumerable<EditorNode> nodes,
         EditorGraph graph,
         System.Func<EditorNode, (double width, double height)> getNodeSize);

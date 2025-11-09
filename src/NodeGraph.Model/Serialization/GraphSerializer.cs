@@ -1,3 +1,4 @@
+using NodeGraph.Model.Pool;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -144,7 +145,7 @@ public static class GraphSerializer
     private static Graph DeserializeGraph(GraphData graphData)
     {
         var graph = new Graph();
-        var nodeMap = new Dictionary<Guid, Node>();
+        using var nodeMapRental = DictionaryPool<Guid, Node>.Shared.Rent(out var nodeMap);
 
         // Pass 1: すべてのノードを作成
         foreach (var nodeData in graphData.Nodes)

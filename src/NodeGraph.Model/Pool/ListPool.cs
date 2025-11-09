@@ -100,6 +100,11 @@ public struct ListPoolRental<T> : IDisposable
     }
 
     /// <summary>
+    /// レンタルしたリストを取得します。
+    /// </summary>
+    public List<T>? Value => _list;
+
+    /// <summary>
     /// レンタルしたリストをプールに返却します。
     /// </summary>
     public void Dispose()

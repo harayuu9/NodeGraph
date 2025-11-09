@@ -105,6 +105,11 @@ public struct HashSetPoolRental<T> : IDisposable
     }
 
     /// <summary>
+    /// レンタルしたセットを取得します。
+    /// </summary>
+    public HashSet<T>? Value => _hashSet;
+
+    /// <summary>
     /// レンタルしたセットをプールに返却します。
     /// </summary>
     public void Dispose()

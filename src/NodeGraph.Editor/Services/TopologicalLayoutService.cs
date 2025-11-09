@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Undo;
+using NodeGraph.Model;
+using NodeGraph.Model.Pool;
 
 namespace NodeGraph.Editor.Services
 {
@@ -16,7 +18,7 @@ namespace NodeGraph.Editor.Services
             var nodeList = nodes.Distinct().ToList();
             if (nodeList.Count == 0) return new List<List<EditorNode>>();
 
-            var selected = new HashSet<EditorNode>(nodeList);
+            using var selectedRental = nodeList.ToHashSetFromPool(out var selected);
             var edges = graph.Connections
                 .Where(c => selected.Contains(c.SourceNode) && selected.Contains(c.TargetNode))
                 .ToList();
@@ -33,7 +35,7 @@ namespace NodeGraph.Editor.Services
             // Kahnでトポロジカル順（選択サブグラフ）
             var indeg = nodeList.ToDictionary(n => n, n => inAdj[n].Count);
             var q = new Queue<EditorNode>(nodeList.Where(n => indeg[n] == 0));
-            var topo = new List<EditorNode>();
+            using var topoRental = ListPool<EditorNode>.Shared.Rent(out var topo);
             while (q.Count > 0)
             {
                 var u = q.Dequeue();
@@ -75,21 +77,21 @@ namespace NodeGraph.Editor.Services
             return layers;
         }
 
-        public ArrangeNodesAction CreateArrangeAction(
+        public MoveNodesAction CreateArrangeAction(
             IEnumerable<EditorNode> nodes,
             EditorGraph graph,
             Func<EditorNode, (double width, double height)> getNodeSize)
         {
             var selected = nodes.Distinct().ToList();
-            if (selected.Count == 0) return new ArrangeNodesAction([]);
+            if (selected.Count == 0) return new MoveNodesAction([], []);
 
             var old = selected.Select(n => (n, n.X, n.Y)).ToList();
 
             // 層決定（右詰め）
             var layers = ComputeLayersRightPushed(selected, graph);
-            if (layers.Count == 0) return new ArrangeNodesAction([]);
+            if (layers.Count == 0) return new MoveNodesAction([], []);
 
-            var selectedSet = new HashSet<EditorNode>(selected);
+            using var selectedSetRental = selected.ToHashSetFromPool(out var selectedSet);
             var edges = graph.Connections
                 .Where(c => selectedSet.Contains(c.SourceNode) && selectedSet.Contains(c.TargetNode))
                 .ToList();
@@ -159,7 +161,9 @@ namespace NodeGraph.Editor.Services
 
             // ---- Undo/Redo アクションを生成 ----
             var nodePositions = old.Select(o => (o.n, o.X, o.Y, o.n.X, o.n.Y)).ToList();
-            var action = new ArrangeNodesAction(nodePositions);
+            var targets = nodePositions.Select(p => p.n).ToArray();
+            var newPositions = nodePositions.Select(p => new Avalonia.Point(p.Item4, p.Item5)).ToArray();
+            var action = new MoveNodesAction(targets, newPositions);
 
             // Undoのため元に戻す
             foreach (var (n, ox, oy, _, _) in nodePositions) { n.X = ox; n.Y = oy; }
@@ -212,7 +216,7 @@ namespace NodeGraph.Editor.Services
                     else bc[i] = double.NaN;
 
                     // 理想センター m*_i：出力先（次層）と入力元（前層）の両方のアンカーを考慮
-                    var anchors = new List<double>();
+                    using var anchorsRental = ListPool<double>.Shared.Rent(out var anchors);
 
                     // 出力先（次層）のアンカー：既に配置済みなので正確
                     if (outMap.TryGetValue(u, out var outEdges))
@@ -366,8 +370,8 @@ namespace NodeGraph.Editor.Services
                 }
 
                 // 制約つきトポロジカル順（Kahn）＋ score最小優先
-                var ready = new List<EditorNode>(prev.Where(n => indeg[n] == 0));
-                var order = new List<EditorNode>();
+                using var readyRental = prev.Where(n => indeg[n] == 0).ToListFromPool(out var ready);
+                using var orderRental = ListPool<EditorNode>.Shared.Rent(out var order);
                 while (ready.Count > 0)
                 {
                     ready.Sort((a, b) => score[a].CompareTo(score[b]));
