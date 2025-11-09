@@ -32,34 +32,13 @@ namespace NodeGraph.Editor.Controls;
 /// <summary>
 /// GraphControlはEditorGraphを視覚化し、パンとズーム機能を提供します
 /// </summary>
-public class GraphControl : TemplatedControl
+public partial class GraphControl : TemplatedControl
 {
     private Canvas? _canvas;
     private Canvas? _overlayCanvas;
     private Canvas? _uiCanvas;
     private GridDecorator? _gridDecorator;
     private Border? _touchGuard;
-    private Point _lastDragPoint;
-    private bool _isDragging;
-    private bool _isRightButtonDown;
-    private Point _rightButtonDownPoint;
-
-    // コネクタ管理
-    private bool _connectorUpdateScheduled;
-
-    // 矩形選択用
-    private bool _isSelecting;
-    private Point _selectionStartPoint;
-
-    // ポートドラッグ用
-    private bool _isDraggingPort;
-    private PortControl? _dragSourcePort;
-    private PortControl? _currentHoverPort;
-
-    // トランスフォーム
-    private readonly TranslateTransform _translateTransform = new();
-    private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
-    private readonly TransformGroup _transformGroup;
 
     public GraphControl()
     {
@@ -79,7 +58,7 @@ public class GraphControl : TemplatedControl
 
         // フォーカス可能にする
         Focusable = true;
-
+        
         if (Design.IsDesignMode)
         {
             // テスト用のグラフを作成
@@ -318,290 +297,6 @@ public class GraphControl : TemplatedControl
         UpdateGrid();
     }
 
-    #region Pan and Zoom Implementation
-
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (Graph == null)
-        {
-            return;
-        }
-
-        // フォーカスを取得（Deleteキーなどを受け取るため）
-        Focus();
-
-        var properties = e.GetCurrentPoint(this).Properties;
-
-        // 右ボタンの処理（背景クリック時のAddNodeWindow表示用）
-        if (properties.IsRightButtonPressed && !Graph.IsExecuting)
-        {
-            // NodeControl上でない場合のみ処理（ノードのコンテキストメニューと衝突しないように）
-            if (e.Source is not NodeControl)
-            {
-                _isRightButtonDown = true;
-                _rightButtonDownPoint = e.GetPosition(this);
-                e.Handled = true;
-            }
-            return;
-        }
-
-        // 中ボタンでドラッグ開始
-        if (properties.IsMiddleButtonPressed)
-        {
-            _isDragging = true;
-            _lastDragPoint = e.GetPosition(this);
-            e.Pointer.Capture(this);
-            e.Handled = true;
-
-            OnPanStarted();
-        }
-
-        if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
-        {
-            // NodeControl上またはポートドラッグ中でのクリックでない場合のみ矩形選択を開始
-            if (e.Source is not NodeControl && !_isDraggingPort)
-            {
-                _isSelecting = true;
-                _selectionStartPoint = e.GetPosition(this);
-
-                IsSelectionVisible = true;
-                SelectionRect = new Rect(_selectionStartPoint, new Size(0, 0));
-
-                e.Pointer.Capture(this);
-                e.Handled = true;
-
-                // Ctrlキーが押されていない場合は選択をクリア
-                if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
-                {
-                    Graph?.SelectionManager.ClearSelection();
-                }
-            }
-        }
-    }
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_isDragging)
-        {
-            var currentPoint = e.GetPosition(this);
-            var delta = currentPoint - _lastDragPoint;
-
-            PanOffset += delta;
-
-            _lastDragPoint = currentPoint;
-            e.Handled = true;
-
-            OnPanning(delta);
-        }
-        else if (_isSelecting)
-        {
-            var currentPoint = e.GetPosition(this);
-            UpdateSelectionRectangle(_selectionStartPoint, currentPoint);
-
-            // ドラッグ中もリアルタイムで選択を更新
-            SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
-
-            e.Handled = true;
-        }
-        else if (_isDraggingPort && _canvas != null)
-        {
-            // ポートドラッグ中の一時的な接続線を更新
-            var currentPoint = e.GetPosition(_canvas);
-
-            if (_dragSourcePort?.Port?.IsOutput == true)
-            {
-                // Output portからドラッグしている場合、終点を更新
-                DragConnectorLine = new ConnectorLine(DragConnectorLine.Start, currentPoint);
-            }
-            else
-            {
-                // Input portからドラッグしている場合、始点を更新
-                DragConnectorLine = new ConnectorLine(currentPoint, DragConnectorLine.End);
-            }
-
-            // マウス位置のポートを検索してハイライト
-            UpdatePortHighlight(e.GetPosition(this));
-        }
-    }
-
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        var properties = e.GetCurrentPoint(this).Properties;
-
-        // 右ボタンが離された場合
-        if (_isRightButtonDown && properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased)
-        {
-            _isRightButtonDown = false;
-
-            // AddNodeWindowを表示
-            _ = ShowAddNodeWindow(e.GetPosition(this));
-
-            e.Handled = true;
-            return;
-        }
-
-        if (_isDragging)
-        {
-            _isDragging = false;
-            e.Pointer.Capture(null);
-            e.Handled = true;
-
-            OnPanEnded();
-        }
-        else if (_isSelecting)
-        {
-            _isSelecting = false;
-            IsSelectionVisible = false;
-
-            var currentPoint = e.GetPosition(this);
-            SelectNodesInRectangle(_selectionStartPoint, currentPoint, e.KeyModifiers);
-
-            e.Pointer.Capture(null);
-            e.Handled = true;
-        }
-        else if (_isDraggingPort)
-        {
-            // ポートドラッグ完了
-            CompletePortDrag();
-            e.Handled = true;
-        }
-    }
-
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
-    {
-        var delta = e.Delta.Y;
-        var zoomFactor = delta > 0 ? 1.1 : 0.9;
-
-        var pointerPosition = e.GetPosition(this);
-        ZoomAtPoint(pointerPosition, zoomFactor);
-
-        e.Handled = true;
-    }
-
-    private void OnKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Delete && Graph != null)
-        {
-            DeleteSelectedConnections();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.R && Graph != null)
-        {
-            ArrangeSelectedNodes();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.C && Graph != null)
-        {
-            CopySelectedNodes();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.V && Graph != null)
-        {
-            _ = PasteNodes();
-            e.Handled = true;
-        }
-    }
-
-    private void ZoomAtPoint(Point point, double factor)
-    {
-        var oldZoom = Zoom;
-        var newZoom = Math.Clamp(oldZoom * factor, MinZoom, MaxZoom);
-
-        if (Math.Abs(newZoom - oldZoom) < 0.001)
-            return;
-
-        // ポイントを中心にズーム
-        var ratio = newZoom / oldZoom;
-        var newPanX = point.X - (point.X - PanOffset.X) * ratio;
-        var newPanY = point.Y - (point.Y - PanOffset.Y) * ratio;
-        PanOffset = new Vector(newPanX, newPanY);
-        Zoom = newZoom;
-
-        OnZoomChanged(oldZoom, newZoom, point);
-    }
-
-    private void UpdateZoom()
-    {
-        _scaleTransform.ScaleX = Zoom;
-        _scaleTransform.ScaleY = Zoom;
-    }
-
-    private void UpdatePan()
-    {
-        _translateTransform.X = PanOffset.X;
-        _translateTransform.Y = PanOffset.Y;
-    }
-
-    private void UpdateSelectionRectangle(Point start, Point end)
-    {
-        var topLeft = new Point(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y));
-        var bottomRight = new Point(Math.Max(start.X, end.X), Math.Max(start.Y, end.Y));
-        SelectionRect = new Rect(topLeft, bottomRight);
-    }
-
-    private void SelectNodesInRectangle(Point start, Point end, KeyModifiers modifiers)
-    {
-        if (Graph == null || _canvas == null)
-            return;
-
-        // 選択矩形をビューポート座標からキャンバス座標に変換
-        var left = Math.Min(start.X, end.X);
-        var top = Math.Min(start.Y, end.Y);
-        var right = Math.Max(start.X, end.X);
-        var bottom = Math.Max(start.Y, end.Y);
-
-        // GraphControlの座標を_canvasの座標に変換
-        var topLeftCanvas = this.TranslatePoint(new Point(left, top), _canvas);
-        var bottomRightCanvas = this.TranslatePoint(new Point(right, bottom), _canvas);
-
-        if (!topLeftCanvas.HasValue || !bottomRightCanvas.HasValue)
-            return;
-
-        var selectionRect = new Rect(topLeftCanvas.Value, bottomRightCanvas.Value);
-
-        // 矩形内のノードを検出
-        var selectedNodes = Graph.Nodes
-            .Where(node =>
-            {
-                var nodeControl = FindNodeControl(node);
-                if (nodeControl == null)
-                    return false;
-
-                var nodeRect = new Rect(node.X, node.Y, nodeControl.Bounds.Width, nodeControl.Bounds.Height);
-                return selectionRect.Intersects(nodeRect);
-            })
-            .Cast<Selection.ISelectable>();
-
-        // 矩形内の接続を検出（始点または終点が矩形内にある）
-        var selectedConnections = GetAllConnectorControls()
-            .Where(connector =>
-            {
-                var startPoint = new Point(connector.StartX, connector.StartY);
-                var endPoint = new Point(connector.EndX, connector.EndY);
-                return selectionRect.Contains(startPoint) || selectionRect.Contains(endPoint);
-            })
-            .Where(connector => connector.Connection != null)
-            .Select(connector => connector.Connection!)
-            .Cast<Selection.ISelectable>();
-
-        // ノードと接続を結合
-        var selectedItems = selectedNodes.Concat(selectedConnections).ToList();
-
-        // Ctrlキーが押されている場合は既存の選択に追加、そうでなければ新規選択
-        if (modifiers.HasFlag(KeyModifiers.Control))
-        {
-            foreach (var item in selectedItems)
-            {
-                Graph.SelectionManager.AddToSelection(item);
-            }
-        }
-        else
-        {
-            Graph.SelectionManager.SelectRange(selectedItems);
-        }
-    }
-
-    #endregion
 
     #region Graph Management
 
@@ -723,114 +418,6 @@ public class GraphControl : TemplatedControl
         }
     }
 
-    /// <summary>
-    /// コネクタの更新をスケジュールします（次のレンダリングフレームで実行）
-    /// </summary>
-    private void ScheduleConnectorUpdate()
-    {
-        if (_connectorUpdateScheduled)
-            return;
-
-        _connectorUpdateScheduled = true;
-        Dispatcher.UIThread.Post(() =>
-        {
-            _connectorUpdateScheduled = false;
-            UpdateConnectors();
-        }, DispatcherPriority.Render);
-    }
-
-    /// <summary>
-    /// EditorNodeからNodeControlを作成します
-    /// オーバーライドしてカスタムノードコントロールを作成できます
-    /// </summary>
-    protected virtual Control CreateNodeControl(EditorNode node)
-    {
-        return new NodeControl { Node = node };
-    }
-
-    /// <summary>
-    /// すべてのコネクタの座標を更新します
-    /// </summary>
-    private void UpdateConnectors()
-    {
-        if (_canvas == null || _overlayCanvas == null || Graph == null)
-            return;
-
-        var connectors = GetAllConnectorControls();
-        foreach (var connector in connectors)
-        {
-            if (connector.Connection == null)
-                continue;
-
-            var connection = connector.Connection;
-            var startPos = GetPortPosition(connection.SourceNode, connection.SourcePort);
-            var endPos = GetPortPosition(connection.TargetNode, connection.TargetPort);
-
-            if (startPos.HasValue && endPos.HasValue)
-            {
-                connector.StartX = startPos.Value.X + 4;
-                connector.StartY = startPos.Value.Y;
-                connector.EndX = endPos.Value.X - 4;
-                connector.EndY = endPos.Value.Y;
-            }
-        }
-    }
-
-    /// <summary>
-    /// ItemsControlで生成されたすべてのConnectorControlを取得します
-    /// </summary>
-    private IEnumerable<ConnectorControl> GetAllConnectorControls()
-    {
-        return _overlayCanvas == null ? [] : _overlayCanvas.GetVisualDescendants().OfType<ConnectorControl>();
-    }
-
-    /// <summary>
-    /// 指定されたEditorNodeに対応するNodeControlを検索します
-    /// </summary>
-    private NodeControl? FindNodeControl(EditorNode node)
-    {
-        return _canvas?.Children
-            .OfType<NodeControl>()
-            .FirstOrDefault(nc => nc.Node == node);
-    }
-
-    /// <summary>
-    /// 指定されたノードとポートの画面上の座標を取得します
-    /// </summary>
-    private Point? GetPortPosition(EditorNode node, EditorPort port)
-    {
-        // ノードに対応するNodeControlを検索
-        var nodeControl = FindNodeControl(node);
-
-        if (nodeControl == null)
-        {
-            return null;
-        }
-
-        // PortControlを検索
-        var portControl = FindPortControl(nodeControl, port);
-
-        // INFO 本来は_canvas?.Childrenで見てるから、ここでnullな分けないんだけど構文解析がアホだから CS8604のワーニング出す
-        if (_canvas == null)
-        {
-            return null;
-        }
-        
-        // PortControlが自身で中心座標を解決するAPIを使用
-        return portControl?.GetCenterIn(_canvas);
-    }
-
-    /// <summary>
-    /// NodeControl内から指定されたEditorPortに対応するPortControlを検索します
-    /// </summary>
-    private static PortControl? FindPortControl(NodeControl nodeControl, EditorPort port)
-    {
-        // VisualTreeをトラバースしてPortControlを検索
-        // ItemsControlで生成されたコントロールはVisualTreeに配置される
-        return nodeControl.GetVisualDescendants()
-            .OfType<PortControl>()
-            .FirstOrDefault(pc => pc.Port == port);
-    }
 
     #endregion
 
@@ -867,282 +454,12 @@ public class GraphControl : TemplatedControl
     }
 
     #endregion
-
-    #region Node Arrangement
-
-    /// <summary>
-    /// 選択されたノードをConnection情報に基づいて左から右に整列します
-    /// </summary>
-    private void ArrangeSelectedNodes()
-    {
-        if (Graph == null || _canvas == null)
-            return;
-
-        var selectedNodes = Graph.SelectionManager.SelectedItems
-            .OfType<EditorNode>()
-            .ToList();
-
-        if (selectedNodes.Count == 0)
-            return;
-
-        // 古い位置を保存
-        var oldPositions = selectedNodes.Select(n => (n, n.X, n.Y)).ToList();
-
-        // ノードを階層ごとに分類（トポロジカルソート）
-        var layers = ComputeNodeLayers(selectedNodes);
-
-        // 各階層の配置パラメータ
-        const double horizontalSpacing = 100.0; // 階層間の最小水平間隔
-        const double verticalSpacing = 20.0;    // 同一階層内のノード間の最小垂直間隔
-
-        // 最初のノードの位置を基準点とする
-        var baseX = selectedNodes.Min(n => n.X);
-        var baseY = selectedNodes.Min(n => n.Y);
-
-        // ノードサイズのキャッシュを作成
-        var nodeSizes = new Dictionary<EditorNode, (double width, double height)>();
-        foreach (var node in selectedNodes)
-        {
-            var nodeControl = FindNodeControl(node);
-            if (nodeControl != null)
-            {
-                var width = nodeControl.Bounds.Width > 0 ? nodeControl.Bounds.Width : 200.0;
-                var height = nodeControl.Bounds.Height > 0 ? nodeControl.Bounds.Height : 100.0;
-                nodeSizes[node] = (width, height);
-            }
-            else
-            {
-                nodeSizes[node] = (200.0, 100.0);
-            }
-        }
-
-        // パス1: X座標を設定
-        var currentX = baseX;
-
-        foreach (var layer in layers)
-        {
-            var maxWidthInLayer = 0.0;
-            foreach (var node in layer)
-            {
-                node.X = currentX;
-                maxWidthInLayer = Math.Max(maxWidthInLayer, nodeSizes[node].width);
-            }
-
-            currentX += maxWidthInLayer + horizontalSpacing;
-        }
-
-        // パス2: Y座標を設定（前方から順番に確定していく）
-        // 階層ごとに前から順番に処理することで、参照するノードは常に確定済み
-        var nodesWithConnections = new HashSet<EditorNode>();
-        var nodesWithoutConnections = new List<EditorNode>();
-
-        foreach (var layer in layers)
-        {
-            foreach (var node in layer)
-            {
-                var nodeHeight = nodeSizes[node].height;
-
-                // このノードに接続されている前の階層（すでに確定済み）のノードを取得
-                var connectedPreviousNodes = Graph.Connections
-                    .Where(c => c.TargetNode == node && selectedNodes.Contains(c.SourceNode))
-                    .Select(c => c.SourceNode)
-                    .Distinct()
-                    .ToList();
-
-                // このノードから接続されている次の階層のノードを取得
-                var connectedNextNodes = Graph.Connections
-                    .Where(c => c.SourceNode == node && selectedNodes.Contains(c.TargetNode))
-                    .Select(c => c.TargetNode)
-                    .Distinct()
-                    .ToList();
-
-                var hasConnections = connectedPreviousNodes.Count > 0 || connectedNextNodes.Count > 0;
-
-                if (hasConnections)
-                {
-                    // 接続があるノード
-                    nodesWithConnections.Add(node);
-
-                    // 前方のノード（確定済み）の中心Y座標の平均を計算
-                    if (connectedPreviousNodes.Count > 0)
-                    {
-                        var avgCenterY = connectedPreviousNodes.Average(n => n.Y + nodeSizes[n].height / 2.0);
-                        node.Y = avgCenterY - nodeHeight / 2.0;
-                    }
-                    else
-                    {
-                        // 前方に接続がなく後方にのみ接続がある場合は基準Y座標
-                        node.Y = baseY;
-                    }
-                }
-                else
-                {
-                    // 接続がないノードは後で配置
-                    nodesWithoutConnections.Add(node);
-                }
-            }
-
-            // 同じ階層内で接続があるノードが重ならないように調整
-            var sortedLayer = layer.Where(n => nodesWithConnections.Contains(n)).OrderBy(n => n.Y).ToList();
-            for (var i = 1; i < sortedLayer.Count; i++)
-            {
-                var prevNode = sortedLayer[i - 1];
-                var currNode = sortedLayer[i];
-                var prevNodeBottom = prevNode.Y + nodeSizes[prevNode].height;
-                var minY = prevNodeBottom + verticalSpacing;
-
-                if (currNode.Y < minY)
-                {
-                    currNode.Y = minY;
-                }
-            }
-        }
-
-        // 接続がないノードを階層ごとに配置
-        if (nodesWithoutConnections.Count > 0)
-        {
-            foreach (var layer in layers)
-            {
-                var disconnectedNodesInLayer = layer.Where(n => nodesWithoutConnections.Contains(n)).ToList();
-
-                if (disconnectedNodesInLayer.Count == 0)
-                    continue;
-
-                // この階層の接続があるノードの最大Y座標を取得
-                var connectedNodesInLayer = layer.Where(n => nodesWithConnections.Contains(n)).ToList();
-                var currentY = connectedNodesInLayer.Count > 0
-                    ? connectedNodesInLayer.Max(n => n.Y + nodeSizes[n].height) + verticalSpacing * 2
-                    : baseY;
-
-                // 接続がないノードを配置
-                foreach (var node in disconnectedNodesInLayer)
-                {
-                    node.Y = currentY;
-                    currentY += nodeSizes[node].height + verticalSpacing;
-                }
-            }
-        }
-
-        // 新しい位置と古い位置を組み合わせてアクションを作成
-        var nodePositions = oldPositions
-            .Select(old => (old.n, old.X, old.Y, old.n.X, old.n.Y))
-            .ToList();
-
-        var action = new ArrangeNodesAction(nodePositions);
-
-        // 一度Undoして、Actionで再実行
-        foreach (var (node, oldX, oldY, _, _) in nodePositions)
-        {
-            node.X = oldX;
-            node.Y = oldY;
-        }
-
-        UndoRedoManager!.ExecuteAction(action);
-        NotifyCanExecuteChanged();
-
-        // コネクタの更新をスケジュール
-        ScheduleConnectorUpdate();
-    }
-
-    /// <summary>
-    /// ノードを階層に分類します（トポロジカルソートベース）
-    /// </summary>
-    private List<List<EditorNode>> ComputeNodeLayers(List<EditorNode> nodes)
-    {
-        if (Graph == null)
-            return [];
-
-        var layers = new List<List<EditorNode>>();
-        var nodeToLayer = new Dictionary<EditorNode, int>();
-
-        // 各ノードの入力依存関係を計算
-        var dependencies = new Dictionary<EditorNode, List<EditorNode>>();
-        foreach (var node in nodes)
-        {
-            dependencies[node] = [];
-        }
-
-        // 選択されたノード間の接続のみを考慮
-        foreach (var connection in Graph.Connections)
-        {
-            if (nodes.Contains(connection.SourceNode) && nodes.Contains(connection.TargetNode))
-            {
-                dependencies[connection.TargetNode].Add(connection.SourceNode);
-            }
-        }
-
-        // 深さ優先探索で各ノードの階層を決定
-        void AssignLayer(EditorNode node, int layer)
-        {
-            if (nodeToLayer.TryGetValue(node, out var existingLayer))
-            {
-                // 既に割り当てられている場合は、より深い階層を優先
-                if (layer > existingLayer)
-                {
-                    nodeToLayer[node] = layer;
-                }
-                return;
-            }
-
-            nodeToLayer[node] = layer;
-
-            // このノードに依存しているノードは次の階層
-            foreach (var connection in Graph.Connections)
-            {
-                if (connection.SourceNode == node && nodes.Contains(connection.TargetNode))
-                {
-                    AssignLayer(connection.TargetNode, layer + 1);
-                }
-            }
-        }
-
-        // 入力依存関係がないノード（ルートノード）から開始
-        var rootNodes = nodes.Where(n => dependencies[n].Count == 0).ToList();
-
-        // ルートノードがない場合（循環依存がある場合）は全ノードをルートとして扱う
-        if (rootNodes.Count == 0)
-        {
-            rootNodes = nodes.ToList();
-        }
-
-        foreach (var rootNode in rootNodes)
-        {
-            AssignLayer(rootNode, 0);
-        }
-
-        // 階層ごとにノードをグループ化
-        var maxLayer = nodeToLayer.Values.DefaultIfEmpty(-1).Max();
-        for (var i = 0; i <= maxLayer; i++)
-        {
-            layers.Add([]);
-        }
-
-        foreach (var (node, layer) in nodeToLayer)
-        {
-            layers[layer].Add(node);
-        }
-
-        // 階層に属していないノード（孤立ノード）を最初の階層に追加
-        var unassignedNodes = nodes.Where(n => !nodeToLayer.ContainsKey(n)).ToList();
-        if (unassignedNodes.Count > 0)
-        {
-            if (layers.Count == 0)
-            {
-                layers.Add([]);
-            }
-            layers[0].AddRange(unassignedNodes);
-        }
-
-        return layers;
-    }
-
-    #endregion
-
+    
     #region Connection Management
 
     private void DeleteSelectedConnections()
     {
-        if (Graph == null)
+        if (Graph == null || UndoRedoManager == null)
             return;
 
         // 選択されている接続を取得
@@ -1156,176 +473,48 @@ public class GraphControl : TemplatedControl
         // 選択を解除
         Graph.SelectionManager.ClearSelection();
 
-        // Undo/Redo対応で接続を削除
-        foreach (var connection in selectedConnections)
-        {
-            var action = new DeleteConnectionAction(Graph, connection);
-            UndoRedoManager!.ExecuteAction(action);
-        }
+        // ConnectionServiceを使用して削除
+        var connectionService = GetConnectionService();
+        connectionService.DeleteConnections(Graph, selectedConnections, UndoRedoManager);
 
         NotifyCanExecuteChanged();
     }
 
     #endregion
-
-    #region Copy/Paste/Cut
-
-    /// <summary>
-    /// 選択されたノードをコピーします
-    /// </summary>
-    private void CopySelectedNodes()
-    {
-        if (Graph == null)
-            return;
-
-        var selectedNodes = Graph.SelectionManager.SelectedItems
-            .OfType<EditorNode>()
-            .ToArray();
-
-        if (selectedNodes.Length == 0)
-            return;
-
-        if (VisualRoot is Window window)
-        {
-            // 選択されたノードをCloneして、グラフとレイアウトをシリアライズ
-            var clonedGraph = Graph.Clone(selectedNodes);
-            var graphYaml = GraphSerializer.Serialize(clonedGraph.Graph);
-            var layoutYaml = EditorLayoutSerializer.SaveLayout(clonedGraph);
-
-            // グラフとレイアウトを結合してクリップボードに保存
-            var combined = $"---GRAPH---\n{graphYaml}\n---LAYOUT---\n{layoutYaml}";
-            window.Clipboard?.SetTextAsync(combined);
-        }
-    }
-
-    /// <summary>
-    /// コピーしたノードをペーストします
-    /// </summary>
-    private async Task PasteNodes()
-    {
-        if (Graph == null)
-            return;
-
-        if (VisualRoot is Window { Clipboard: not null } window)
-        {
-            var clipBoard = await window.Clipboard.TryGetTextAsync();
-            if (string.IsNullOrEmpty(clipBoard))
-            {
-                return;
-            }
-
-            try
-            {
-                // クリップボードからグラフとレイアウトを分離
-                var parts = clipBoard.Split(["---GRAPH---", "---LAYOUT---"], StringSplitOptions.None);
-                if (parts.Length != 3)
-                {
-                    return;
-                }
-
-                var graphYaml = parts[1];
-                var layoutYaml = parts[2];
-
-                // グラフをデシリアライズ
-                var pastedGraph = GraphSerializer.Deserialize(graphYaml);
-
-                // EditorNodeに変換
-                var editorNodes = pastedGraph.Nodes.Select(n => new EditorNode(Graph.SelectionManager, n)).ToArray();
-                
-                // グラフに追加
-                Graph.AddNode(editorNodes);
-                
-                // レイアウトを適用
-                EditorLayoutSerializer.LoadLayout(layoutYaml, Graph);
-                // 少しオフセットして配置
-                foreach (var editorNode in editorNodes)
-                {
-                    editorNode.X += 30;
-                    editorNode.Y += 30;
-                }
-
-                // 選択をクリアして、ペーストしたノードを選択
-                Graph.SelectionManager.ClearSelection();
-                foreach (var editorNode in editorNodes)
-                {
-                    Graph.SelectionManager.AddToSelection(editorNode);
-                }
-
-                OnGraphChanged();
-            }
-            catch
-            {
-                // デシリアライズ失敗時は何もしない
-            }
-        }
-    }
-
-    #endregion
-
+    
     #region Node Duplication
 
     /// <summary>
-    /// ノードを複製し、ノード間の接続も再現します（Undo/Redo用）
+    /// 選択されたノードを複製します（Copy→Pasteと同じロジック）
     /// </summary>
-    public (List<EditorNode> Nodes, List<EditorConnection> Connections) DuplicateNodesWithConnectionsForUndo(List<EditorNode> nodesToDuplicate)
+    /// <param name="nodesToDuplicate">複製するノード</param>
+    /// <returns>複製されたノードの配列</returns>
+    public EditorNode[]? DuplicateSelectedNodes(List<EditorNode> nodesToDuplicate)
     {
         if (Graph == null || nodesToDuplicate.Count == 0)
-            return ([], []);
+            return null;
 
-        var newNodes = new List<EditorNode>();
-        var newConnections = new List<EditorConnection>();
-        var oldToNewNodeMap = new Dictionary<EditorNode, EditorNode>();
+        // ClipboardServiceを使ってシリアライズ→デシリアライズで複製
+        var clipboardService = GetClipboardService();
+        var clipboardData = clipboardService.SerializeNodes(nodesToDuplicate.ToArray(), Graph);
+        var duplicatedNodes = clipboardService.DeserializeNodes(clipboardData, Graph);
 
-        // すべてのノードを複製（Graphには追加しない）
-        foreach (var editorNode in nodesToDuplicate)
+        if (duplicatedNodes == null || duplicatedNodes.Length == 0)
+            return null;
+
+        // グラフに追加（PasteNodesと同じ処理）
+        Graph.AddNode(duplicatedNodes);
+
+        // 選択をクリアして、複製したノードを選択
+        Graph.SelectionManager.ClearSelection();
+        foreach (var node in duplicatedNodes)
         {
-            var newNode = editorNode.Clone();
-            newNodes.Add(newNode);
-            oldToNewNodeMap[editorNode] = newNode;
+            Graph.SelectionManager.AddToSelection(node);
         }
 
-        // コピー元のノード間の接続を再現
-        foreach (var oldNode in nodesToDuplicate)
-        {
-            if (!oldToNewNodeMap.TryGetValue(oldNode, out var newNode))
-                continue;
+        OnGraphChanged();
 
-            // 出力ポートから接続されている入力ポートを確認
-            for (var outputIndex = 0; outputIndex < oldNode.OutputPorts.Count; outputIndex++)
-            {
-                var oldOutputPort = oldNode.OutputPorts[outputIndex];
-                var outputPort = oldOutputPort.Port as OutputPort;
-                if (outputPort == null)
-                    continue;
-
-                // この出力ポートに接続されているすべての入力ポートを確認
-                foreach (var connectedInputPort in outputPort.ConnectedPorts)
-                {
-                    // 接続先のノードがコピー対象に含まれているか確認
-                    var targetOldNode = nodesToDuplicate.FirstOrDefault(n =>
-                        n.InputPorts.Any(p => p.Port == connectedInputPort));
-
-                    if (targetOldNode != null && oldToNewNodeMap.TryGetValue(targetOldNode, out var targetNewNode))
-                    {
-                        // 対応する入力ポートのインデックスを見つける
-                        var inputIndex = targetOldNode.InputPorts
-                            .Select((p, i) => new { Port = p, Index = i })
-                            .FirstOrDefault(x => x.Port.Port == connectedInputPort)?.Index;
-
-                        if (inputIndex.HasValue)
-                        {
-                            // EditorConnectionを作成（まだモデルレベルでは接続しない）
-                            var newOutputEditorPort = newNode.OutputPorts[outputIndex];
-                            var newInputEditorPort = targetNewNode.InputPorts[inputIndex.Value];
-                            var connection = new EditorConnection(newNode, newOutputEditorPort, targetNewNode, newInputEditorPort);
-                            newConnections.Add(connection);
-                        }
-                    }
-                }
-            }
-        }
-
-        return (newNodes, newConnections);
+        return duplicatedNodes;
     }
 
     #endregion
@@ -1429,7 +618,15 @@ public class GraphControl : TemplatedControl
 
     private bool CanConnect(EditorPort sourcePort, EditorPort targetPort)
     {
-        return sourcePort.Port.CanConnect(targetPort.Port);
+        var connectionService = GetConnectionService();
+        return connectionService.CanConnect(sourcePort, targetPort);
+    }
+
+    private IConnectionService? _connectionService;
+
+    private IConnectionService GetConnectionService()
+    {
+        return _connectionService ??= new ConnectionService();
     }
 
     private void CleanupPortDrag()
@@ -1451,103 +648,22 @@ public class GraphControl : TemplatedControl
         IsDraggingConnector = false;
     }
 
-    private Point? GetPortCenterPosition(PortControl portControl)
-    {
-        if (_canvas == null)
-            return null;
-
-        return portControl.GetCenterIn(_canvas);
-    }
 
     private void CreateConnection(EditorPort sourcePort, EditorPort targetPort)
     {
-        if (Graph == null)
+        if (Graph == null || UndoRedoManager == null)
             return;
 
-        // Output -> Input の順序を確保
-        EditorPort outputPort, inputPort;
-
-        if (sourcePort.IsOutput && targetPort.IsInput)
+        var connectionService = GetConnectionService();
+        if (connectionService.CreateConnection(Graph, sourcePort, targetPort, UndoRedoManager))
         {
-            outputPort = sourcePort;
-            inputPort = targetPort;
-        }
-        else if (sourcePort.IsInput && targetPort.IsOutput)
-        {
-            outputPort = targetPort;
-            inputPort = sourcePort;
-        }
-        else
-        {
-            // 同じ種類のポート同士は接続できない
-            return;
-        }
-
-        // EditorNodeを検索
-        var outputNode = Graph.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(outputPort));
-        var inputNode = Graph.Nodes.FirstOrDefault(n => n.InputPorts.Contains(inputPort));
-
-        if (outputNode == null || inputNode == null)
-            return;
-
-        // 既存の接続があればスキップ
-        var existingConnection = Graph.Connections.FirstOrDefault(c =>
-            c.SourceNode == outputNode && c.SourcePort == outputPort &&
-            c.TargetNode == inputNode && c.TargetPort == inputPort);
-
-        if (existingConnection != null)
-            return;
-        
-        // SingleConnectPortの場合は既存接続を削除
-        DisconnectIfSingleConnect(inputPort);
-        DisconnectIfSingleConnect(outputPort);
-
-        // Undo/Redo対応で接続を作成
-        var action = new CreateConnectionAction(Graph, outputNode, outputPort, inputNode, inputPort);
-        UndoRedoManager!.ExecuteAction(action);
-        NotifyCanExecuteChanged();
-
-        // 座標を更新
-        ScheduleConnectorUpdate();
-
-        return;
-
-        void DisconnectIfSingleConnect(EditorPort port)
-        {
-            if (port.Port is SingleConnectPort singleConnectPort)
-            {
-                var old = singleConnectPort.ConnectedPort;
-                if (old != null)
-                {
-                    var node = Graph!.Nodes.FirstOrDefault(n => n.InputPorts.Contains(port));
-                    node ??= Graph!.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(port));
-                    if (node != null)
-                    {
-                        var oldConnection = Graph!.Connections.FirstOrDefault(c => c.TargetNode == node && c.TargetPort == port);
-                        if (oldConnection != null)
-                        {
-                            // Undo/Redo対応で削除
-                            var deleteAction = new DeleteConnectionAction(Graph, oldConnection);
-                            UndoRedoManager!.ExecuteAction(deleteAction);
-                        }
-                    }
-                }
-            }
+            NotifyCanExecuteChanged();
+            ScheduleConnectorUpdate();
         }
     }
 
     #endregion
-
-    #region Grid Drawing
-
-    private void UpdateGrid()
-    {
-        // Decorator に再描画を依頼（プロパティはXAMLバインドで渡される）
-        _gridDecorator?.InvalidateVisual();
-    }
-
-    #endregion
-
+    
     #region Add Node
 
     private async Task ShowAddNodeWindow(Point clickPosition)

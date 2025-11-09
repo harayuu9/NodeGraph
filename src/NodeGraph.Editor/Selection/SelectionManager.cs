@@ -153,7 +153,7 @@ public class SelectionManager
 
         OnSelectionChanged(previouslySelected, _selectedItems);
     }
-
+    
     private void OnSelectionChanged(IReadOnlyList<ISelectable> previousSelection, IReadOnlyList<ISelectable> currentSelection)
     {
         SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(previousSelection, currentSelection));

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using Avalonia;
@@ -124,7 +125,7 @@ public class NodeControl : ContentControl
 
     private void UpdatePosition(EditorNode node)
     {
-        if (Parent is Canvas canvas)
+        if (Parent is Canvas)
         {
             Canvas.SetLeft(this, node.X);
             Canvas.SetTop(this, node.Y);
@@ -200,19 +201,23 @@ public class NodeControl : ContentControl
     {
         if (_isDragging && Node != null)
         {
+            var graphControl = FindGraphControl();
+            if (graphControl == null)
+                return;
+            
             // 移動があった場合のみアクションを登録
-            if (_selectedNodesStartPositions.Count > 0 && Parent is Visual parent && parent.GetVisualParent() is GraphControl graphControl)
+            if (_selectedNodesStartPositions.Count > 0)
             {
                 // MoveNodesActionに渡す形式に変換
                 var nodes = _selectedNodesStartPositions.Keys.OfType<EditorNode>().ToArray();
                 var newPositions = nodes.Select(n => new Point(n.X, n.Y)).ToArray();
 
                 // 実際に移動があったかチェック
-                bool hasMoved = false;
-                for (int i = 0; i < nodes.Length; i++)
+                var hasMoved = false;
+                for (var i = 0; i < nodes.Length; i++)
                 {
                     var oldPos = _selectedNodesStartPositions[nodes[i]];
-                    if (nodes[i].X != oldPos.X || nodes[i].Y != oldPos.Y)
+                    if (Math.Abs(nodes[i].X - oldPos.X) > float.Epsilon || Math.Abs(nodes[i].Y - oldPos.Y) > float.Epsilon)
                     {
                         hasMoved = true;
                         break;
@@ -222,7 +227,7 @@ public class NodeControl : ContentControl
                 if (hasMoved)
                 {
                     // 一度元に戻してからアクションで再実行
-                    for (int i = 0; i < nodes.Length; i++)
+                    for (var i = 0; i < nodes.Length; i++)
                     {
                         var oldPos = _selectedNodesStartPositions[nodes[i]];
                         nodes[i].X = oldPos.X;
@@ -262,7 +267,7 @@ public class NodeControl : ContentControl
         if (Node == null)
             return;
 
-        var graphControl = this.FindAncestorOfType<GraphControl>();
+        var graphControl = FindGraphControl();
         if (graphControl?.Graph == null)
             return;
 
@@ -297,8 +302,8 @@ public class NodeControl : ContentControl
         if (Node == null)
             return;
 
-        var graphControl = this.FindAncestorOfType<GraphControl>();
-        if (graphControl?.Graph == null)
+        var graphControl = FindGraphControl();
+        if (graphControl == null)
             return;
 
         // 選択されているノードを複製（このノードを含む）
@@ -309,23 +314,13 @@ public class NodeControl : ContentControl
         if (!selectedNodes.Contains(Node))
             selectedNodes.Add(Node);
 
-        // GraphControlのUndo/Redo対応メソッドを使用して複製（接続も含む）
-        var (newNodes, newConnections) = graphControl.DuplicateNodesWithConnectionsForUndo(selectedNodes);
+        // ClipboardServiceを使った複製（Copy→Pasteと同じロジック）
+        var duplicatedNodes = graphControl.DuplicateSelectedNodes(selectedNodes);
 
-        // Undo/Redo対応で複製
-        var action = new DuplicateNodesAction(graphControl.Graph, newNodes, newConnections);
-        graphControl.UndoRedoManager!.ExecuteAction(action);
-
-        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
+        // 成功時はUIを更新
+        if (duplicatedNodes != null && graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
         {
             viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
-
-        // 複製されたノードを選択
-        Node.SelectionManager.ClearSelection();
-        foreach (var newNode in newNodes)
-        {
-            Node.SelectionManager.Select(newNode);
         }
     }
 
@@ -337,14 +332,14 @@ public class NodeControl : ContentControl
         if (Node == null)
             return;
 
-        var graphControl = this.FindAncestorOfType<GraphControl>();
+        var graphControl = FindGraphControl();
         if (graphControl == null)
             return;
 
         // GraphControlのCopyメソッドを呼び出すため、KeyDownイベントをシミュレート
         var keyEventArgs = new KeyEventArgs
         {
-            RoutedEvent = InputElement.KeyDownEvent,
+            RoutedEvent = KeyDownEvent,
             Key = Key.C
         };
         graphControl.RaiseEvent(keyEventArgs);
@@ -358,14 +353,14 @@ public class NodeControl : ContentControl
         if (Node == null)
             return;
 
-        var graphControl = this.FindAncestorOfType<GraphControl>();
+        var graphControl = FindGraphControl();
         if (graphControl == null)
             return;
 
         // GraphControlのCutメソッドを呼び出すため、KeyDownイベントをシミュレート
         var keyEventArgs = new KeyEventArgs
         {
-            RoutedEvent = InputElement.KeyDownEvent,
+            RoutedEvent = KeyDownEvent,
             Key = Key.X
         };
         graphControl.RaiseEvent(keyEventArgs);
@@ -379,7 +374,7 @@ public class NodeControl : ContentControl
         if (Node?.Node == null)
             return;
 
-        var graphControl = this.FindAncestorOfType<GraphControl>();
+        var graphControl = FindGraphControl();
         if (graphControl?.Graph == null)
             return;
 
@@ -401,4 +396,6 @@ public class NodeControl : ContentControl
         // 現在はプロパティがノード内に表示されているため、何もしない
         // 将来的にはプロパティウィンドウを開く処理を実装
     }
+
+    private GraphControl? FindGraphControl() => this.FindAncestorOfType<GraphControl>();
 }
