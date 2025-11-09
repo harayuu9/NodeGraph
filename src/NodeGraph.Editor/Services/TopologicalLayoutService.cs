@@ -211,8 +211,10 @@ namespace NodeGraph.Editor.Services
                     }
                     else bc[i] = double.NaN;
 
-                    // 理想センター m*_i：次層の入力ポートアンカーの中央値（なければフォールバック）
+                    // 理想センター m*_i：出力先（次層）と入力元（前層）の両方のアンカーを考慮
                     var anchors = new List<double>();
+
+                    // 出力先（次層）のアンカー：既に配置済みなので正確
                     if (outMap.TryGetValue(u, out var outEdges))
                     {
                         foreach (var e in outEdges)
@@ -229,6 +231,21 @@ namespace NodeGraph.Editor.Services
                             anchors.Add(anchor);
                         }
                     }
+
+                    // 入力元（前層）のアンカー：暫定位置を使って推定（重み軽め）
+                    if (inMap.TryGetValue(u, out var inEdges))
+                    {
+                        foreach (var e in inEdges)
+                        {
+                            var src = e.SourceNode;
+                            var srcH = nodeSize[src].height;
+                            // 出力ポートは下部に配置されると仮定（簡易推定）
+                            // より正確にしたい場合は GetOutputPortCount/GetSourcePortIndex を追加
+                            double srcAnchor = src.Y + srcH * 0.75;  // 暫定的に下から1/4の位置
+                            anchors.Add(srcAnchor);
+                        }
+                    }
+
                     if (anchors.Count == 0)
                     {
                         // フォールバック：単純な縦積みの目安（層の順序は既に交差削減で決まっている）
