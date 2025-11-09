@@ -11,14 +11,6 @@ namespace NodeGraph.Editor.Services;
 public interface IGraphLayoutService
 {
     /// <summary>
-    /// ノードを階層に分類します（トポロジカルソートベース）
-    /// </summary>
-    /// <param name="nodes">分類するノードのリスト</param>
-    /// <param name="graph">対象のグラフ</param>
-    /// <returns>階層ごとにグループ化されたノード</returns>
-    List<List<EditorNode>> ComputeLayers(IEnumerable<EditorNode> nodes, EditorGraph graph);
-
-    /// <summary>
     /// ノードを自動整列し、Undo/Redo可能なアクションを作成します
     /// </summary>
     /// <param name="nodes">整列するノード</param>
