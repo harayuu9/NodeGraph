@@ -21,11 +21,13 @@ public static class GraphSerializer
     /// <summary>
     /// グラフをYAMLファイルに保存します
     /// </summary>
-    public static void SaveToYaml(Graph graph, string filePath)
+    public static void SaveToYaml(Graph graph, string filePath) => File.WriteAllText(filePath, Serialize(graph));
+
+    public static string Serialize(Graph graph)
     {
         var graphData = SerializeGraph(graph);
         var yaml = YamlSerializer.Serialize(graphData);
-        File.WriteAllText(filePath, yaml);
+        return yaml;
     }
 
     /// <summary>
@@ -34,14 +36,16 @@ public static class GraphSerializer
     public static Graph LoadFromYaml(string filePath)
     {
         var yaml = File.ReadAllText(filePath);
-        var graphData = YamlDeserializer.Deserialize<GraphData>(yaml);
-
-        // バージョンチェック
-        ValidateVersion(graphData.Version);
-
-        return DeserializeGraph(graphData);
+        return Deserialize(yaml);
     }
 
+    public static Graph Deserialize(string yaml)
+    {
+        var graphData = YamlDeserializer.Deserialize<GraphData>(yaml);
+        ValidateVersion(graphData.Version);
+        return DeserializeGraph(graphData);
+    }
+    
     /// <summary>
     /// グラフをGraphDataに変換します
     /// </summary>
@@ -65,7 +69,7 @@ public static class GraphSerializer
             for (var i = 0; i < node.InputPorts.Length; i++)
             {
                 var inputPort = node.InputPorts[i];
-                if (inputPort is SingleConnectPort singlePort && singlePort.ConnectedPort != null)
+                if (inputPort is SingleConnectPort { ConnectedPort: not null } singlePort)
                 {
                     graphData.Connections.Add(new ConnectionData
                     {

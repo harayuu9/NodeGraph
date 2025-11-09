@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Serialization;
 using NodeGraph.Model;
+using NodeGraph.Model.Pool;
 using NodeGraph.Model.Serialization;
 
 namespace NodeGraph.Editor.Models;
@@ -28,7 +30,7 @@ public partial class EditorGraph : ObservableObject
         }
 
         // 既存の接続を読み込む
-        LoadConnections();
+        LoadConnections(Nodes);
     }
 
     public SelectionManager SelectionManager { get; }
@@ -41,9 +43,10 @@ public partial class EditorGraph : ObservableObject
 
     public Graph Graph => _graph;
 
-    private void LoadConnections()
+    private void LoadConnections<T>(T nodes)
+        where T : IEnumerable<EditorNode>
     {
-        foreach (var editorNode in Nodes)
+        foreach (var editorNode in nodes)
         {
             foreach (var editorPort in editorNode.OutputPorts)
             {
@@ -52,15 +55,13 @@ public partial class EditorGraph : ObservableObject
                 foreach (var inputPort in connectedPorts)
                 {
                     // 接続先のEditorNodeとEditorPortを検索
-                    var targetNode = Nodes.FirstOrDefault(n => n.InputPorts.Any(p => p.Port == inputPort));
+                    var targetNode = nodes.FirstOrDefault(n => n.InputPorts.Any(p => p.Port == inputPort));
 
-                    if (targetNode == null) continue;
-
-                    var targetPort = targetNode.InputPorts.FirstOrDefault(p => p.Port == inputPort);
+                    var targetPort = targetNode?.InputPorts.FirstOrDefault(p => p.Port == inputPort);
                     if (targetPort == null) continue;
 
                     // 接続を作成
-                    var connection = new EditorConnection(editorNode, editorPort, targetNode, targetPort);
+                    var connection = new EditorConnection(editorNode, editorPort, targetNode!, targetPort);
                     Connections.Add(connection);
                 }
             }
@@ -142,7 +143,7 @@ public partial class EditorGraph : ObservableObject
         var layoutPath = Path.ChangeExtension(filePath, ".layout.yml");
 
         GraphSerializer.SaveToYaml(_graph, graphPath);
-        EditorLayoutSerializer.SaveLayout(this, layoutPath);
+        EditorLayoutSerializer.SaveLayoutToFile(this, layoutPath);
 
         CurrentFilePath = filePath;
     }
@@ -175,13 +176,28 @@ public partial class EditorGraph : ObservableObject
         // レイアウトファイルが存在する場合は読み込む
         if (File.Exists(layoutPath))
         {
-            EditorLayoutSerializer.LoadLayout(layoutPath, editorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(layoutPath, editorGraph);
         }
 
         editorGraph.CurrentFilePath = filePath;
         return editorGraph;
     }
 
+    public void AddNode(params ReadOnlySpan<EditorNode> editorNode)
+    {
+        using var _ = ListPool<EditorNode>.Shared.Rent(out var list);
+        foreach (var node in editorNode)
+        {
+            if (_graph.AddNode(node.Node))
+            {
+                Nodes.Add(node);
+                list.Add(node);
+            }
+        }
+        
+        LoadConnections(list);
+    }
+    
     /// <summary>
     /// ノードを削除します
     /// </summary>
@@ -203,45 +219,33 @@ public partial class EditorGraph : ObservableObject
     }
 
     /// <summary>
-    /// ノードを複製します
+    /// グラフ全体をクローンします
     /// </summary>
-    public EditorNode? DuplicateNode(EditorNode editorNode)
+    public EditorGraph Clone()
     {
-        // ノードのタイプを取得
-        var nodeType = editorNode.Node.GetType();
+        return Clone(Nodes.ToArray());
+    }
 
-        // デフォルトコンストラクタでノードを作成
-        if (Activator.CreateInstance(nodeType) is not Node newNode)
-            return null;
+    /// <summary>
+    /// 特定のEditorNodeのみをクローンして新しいEditorGraphを作成します
+    /// 接続状態もクローン対象のノード内で完結しているものは複製されます
+    /// </summary>
+    public EditorGraph Clone(EditorNode[] editorNodes)
+    {
+        // Model層のNodeをクローン
+        var nodes = editorNodes.Select(en => en.Node).ToArray();
+        var clonedGraph = Graph.Clone(nodes);
 
-        // プロパティをコピー
-        var properties = editorNode.Node.GetProperties();
+        // 新しいEditorGraphを作成
+        var clonedEditorGraph = new EditorGraph(clonedGraph, SelectionManager);
 
-        foreach (var prop in properties)
+        // 位置情報をコピー（元のノードとクローンされたノードは同じ順序）
+        for (var i = 0; i < editorNodes.Length && i < clonedEditorGraph.Nodes.Count; i++)
         {
-            try
-            {
-                var value = prop.GetValue(editorNode.Node);
-                prop.SetValue(newNode, value);
-            }
-            catch
-            {
-                // プロパティのコピーに失敗した場合は無視
-            }
+            clonedEditorGraph.Nodes[i].X = editorNodes[i].X;
+            clonedEditorGraph.Nodes[i].Y = editorNodes[i].Y;
         }
 
-        // グラフに追加
-        _graph.AddNode(newNode);
-
-        // EditorNodeを作成
-        var newEditorNode = new EditorNode(SelectionManager, newNode)
-        {
-            X = editorNode.X,
-            Y = editorNode.Y
-        };
-
-        Nodes.Add(newEditorNode);
-
-        return newEditorNode;
+        return clonedEditorGraph;
     }
 }

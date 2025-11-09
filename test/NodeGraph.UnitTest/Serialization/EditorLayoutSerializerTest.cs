@@ -30,7 +30,7 @@ public class EditorLayoutSerializerTest
         try
         {
             // Act - Save
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
 
             // 位置をリセット
             editorGraph.Nodes[0].X = 0;
@@ -39,7 +39,7 @@ public class EditorLayoutSerializerTest
             editorGraph.Nodes[1].Y = 0;
 
             // Act - Load
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph);
 
             // Assert - 位置が復元される
             Assert.Equal(100.0, editorGraph.Nodes[0].X);
@@ -67,7 +67,7 @@ public class EditorLayoutSerializerTest
         var nonExistentFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".layout.yml");
 
         // Act & Assert - 例外が発生しない
-        EditorLayoutSerializer.LoadLayout(nonExistentFile, editorGraph);
+        EditorLayoutSerializer.LoadLayoutFromFile(nonExistentFile, editorGraph);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class EditorLayoutSerializerTest
         try
         {
             // Act
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
 
             // 位置をリセット
             foreach (var node in editorGraph.Nodes)
@@ -109,7 +109,7 @@ public class EditorLayoutSerializerTest
                 node.Y = 0;
             }
 
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph);
 
             // Assert
             for (int i = 0; i < editorGraph.Nodes.Count; i++)
@@ -146,7 +146,7 @@ nodes: {}
         {
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() =>
-                EditorLayoutSerializer.LoadLayout(tempFile, editorGraph));
+                EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph));
 
             Assert.Contains("Incompatible layout version", ex.Message);
         }
@@ -176,7 +176,7 @@ nodes: {}
         try
         {
             // Act
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
             var yamlContent = File.ReadAllText(tempFile);
 
             // Assert - YAMLが読みやすい形式になっている
@@ -219,11 +219,11 @@ nodes: {}
         try
         {
             // Act
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
 
             // 新しいEditorGraphを作成（同じGraphから）
             var newEditorGraph = new EditorGraph(graph, selectionManager);
-            EditorLayoutSerializer.LoadLayout(tempFile, newEditorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, newEditorGraph);
 
             // Assert - NodeIdでマッピングされるので、正しい位置が復元される
             var editorNode1 = newEditorGraph.Nodes.First(n => n.Node == node1);
@@ -259,8 +259,8 @@ nodes: {}
         try
         {
             // Act & Assert - 空のグラフでも例外が発生しない
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph);
 
             Assert.True(File.Exists(tempFile));
         }
@@ -293,7 +293,7 @@ nodes: {}
         try
         {
             // レイアウトを保存
-            EditorLayoutSerializer.SaveLayout(editorGraph1, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph1, tempFile);
 
             // 新しいグラフを作成（node1のみ同じNodeIdで再作成）
             var graph2 = new Graph();
@@ -308,7 +308,7 @@ nodes: {}
             var editorGraph2 = new EditorGraph(graph2, selectionManager);
 
             // Act - 部分的にマッチするレイアウトを読み込む
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph2);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph2);
 
             // Assert - node1の位置は復元されるが、node3はデフォルト位置のまま
             var editorNode1 = editorGraph2.Nodes.First(n => n.Node == node1Copy);
@@ -345,10 +345,10 @@ nodes: {}
         try
         {
             // Act
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
             editorGraph.Nodes[0].X = 0;
             editorGraph.Nodes[0].Y = 0;
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph);
 
             // Assert - 負の座標も正しく保存・復元される
             Assert.Equal(-100.5, editorGraph.Nodes[0].X);
@@ -380,10 +380,10 @@ nodes: {}
         try
         {
             // Act
-            EditorLayoutSerializer.SaveLayout(editorGraph, tempFile);
+            EditorLayoutSerializer.SaveLayoutToFile(editorGraph, tempFile);
             editorGraph.Nodes[0].X = 0;
             editorGraph.Nodes[0].Y = 0;
-            EditorLayoutSerializer.LoadLayout(tempFile, editorGraph);
+            EditorLayoutSerializer.LoadLayoutFromFile(tempFile, editorGraph);
 
             // Assert - 大きな座標も正しく保存・復元される
             Assert.Equal(999999.999, editorGraph.Nodes[0].X, precision: 3);

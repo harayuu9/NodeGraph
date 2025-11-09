@@ -5,13 +5,15 @@ namespace NodeGraph.UnitTest;
 [Node]
 public partial class ConstantNode
 {
-    [Output] private int _value;
+    [Property]
+    [Output]
+    private int _value;
 
     public void SetValue(int value)
     {
         _value = value;
     }
-    
+
     protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;

@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Undo;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.ViewModels;
@@ -16,26 +17,32 @@ namespace NodeGraph.Editor.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly SelectionManager _selectionManager;
+    private readonly UndoRedoManager _undoRedoManager;
     private Window? _mainWindow;
 
-    [ObservableProperty]
-    private EditorGraph _testGraph;
+    [ObservableProperty] private EditorGraph _testGraph;
 
-    [ObservableProperty]
-    private string _currentTheme = "Default";
+    [ObservableProperty] private string _currentTheme = "Default";
 
-    [ObservableProperty]
-    private bool _isDefaultTheme = true;
+    [ObservableProperty] private bool _isDefaultTheme = true;
 
-    [ObservableProperty]
-    private bool _isLightTheme = false;
+    [ObservableProperty] private bool _isLightTheme = false;
 
-    [ObservableProperty]
-    private bool _isDarkTheme = false;
+    [ObservableProperty] private bool _isDarkTheme = false;
 
-    public MainWindowViewModel(SelectionManager selectionManager)
+    public bool CanUndo => _undoRedoManager.CanUndo();
+    public bool CanRedo => _undoRedoManager.CanRedo();
+
+    public UndoRedoManager UndoRedoManager => _undoRedoManager;
+
+#if DEBUG
+    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager()) { }
+#endif
+
+    public MainWindowViewModel(SelectionManager selectionManager, UndoRedoManager undoRedoManager)
     {
         _selectionManager = selectionManager;
+        _undoRedoManager = undoRedoManager;
 
         // テスト用のグラフを作成
         var graph = new Graph();
@@ -43,23 +50,23 @@ public partial class MainWindowViewModel : ViewModelBase
         // テスト用のノードを作成
         var a1 = graph.CreateNode<FloatConstantNode>();
         a1.SetValue(10);
-        
+
         var a2 = graph.CreateNode<FloatConstantNode>();
         a2.SetValue(5);
-        
+
         var add = graph.CreateNode<FloatAddNode>();
         add.ConnectInput(0, a1, 0);
         add.ConnectInput(1, a2, 0);
-        
+
         var res = graph.CreateNode<FloatResultNode>();
         res.ConnectInput(0, add, 0);
-        
+
         var str1 = graph.CreateNode<StringConstantNode>();
         str1.SetValue("The result is:");
-        
+
         var int1 = graph.CreateNode<IntConstantNode>();
         int1.SetValue(42);
-        
+
         // EditorGraphでラップ（SelectionManagerを注入）
         _testGraph = new EditorGraph(graph, selectionManager);
 
@@ -75,10 +82,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
         TestGraph.Nodes[3].X = 600;
         TestGraph.Nodes[3].Y = 120;
-        
+
         TestGraph.Nodes[4].X = 600;
         TestGraph.Nodes[4].Y = 300;
-        
+
         TestGraph.Nodes[5].X = 600;
         TestGraph.Nodes[5].Y = 400;
 
@@ -117,7 +124,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var variant = Application.Current.ActualThemeVariant;
         CurrentTheme = variant == ThemeVariant.Dark ? "Dark" :
-                      variant == ThemeVariant.Light ? "Light" : "Default";
+            variant == ThemeVariant.Light ? "Light" : "Default";
         UpdateThemeFlags();
     }
 
@@ -138,6 +145,11 @@ public partial class MainWindowViewModel : ViewModelBase
         // 新しい空のグラフを作成
         var graph = new Graph();
         TestGraph = new EditorGraph(graph, _selectionManager);
+
+        // Undo履歴をクリア
+        _undoRedoManager.Clear();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
     }
 
     [RelayCommand]
@@ -165,6 +177,11 @@ public partial class MainWindowViewModel : ViewModelBase
             var basePath = Path.ChangeExtension(filePath, null);
 
             TestGraph = EditorGraph.Load(basePath, _selectionManager);
+
+            // Undo履歴をクリア
+            _undoRedoManager.Clear();
+            OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(CanRedo));
         }
     }
 
@@ -217,5 +234,32 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             _mainWindow.Close();
         }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private void Undo()
+    {
+        _undoRedoManager.Undo();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private void Redo()
+    {
+        _undoRedoManager.Redo();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+    }
+
+    /// <summary>
+    /// Undo/Redoの状態変更を通知します
+    /// </summary>
+    public void NotifyUndoRedoCanExecuteChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
     }
 }

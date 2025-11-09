@@ -10,14 +10,12 @@ namespace NodeGraph.Editor.Models;
 
 public partial class EditorNode : ObservableObject, ISelectable, IPositionable
 {
-    private readonly Guid _id = Guid.NewGuid();
-
     public string Name => _node.GetDisplayName();
 
     /// <summary>
     /// この EditorNode の一意な識別子
     /// </summary>
-    public object SelectionId => _id;
+    public object SelectionId => Node.Id;
 
     public SelectionManager SelectionManager { get; }
 
@@ -31,7 +29,6 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
     [ObservableProperty] public partial double Y { get; set; }
     [ObservableProperty] public partial ExecutionStatus ExecutionStatus { get; set; }
     
-
     private readonly Node _node;
 
     public EditorNode(SelectionManager selectionManager, Node node)
@@ -55,5 +52,36 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
         {
             port.UpdateValue();
         }
+    }
+
+    public EditorNode Clone()
+    {
+        var nodeType = Node.GetType();
+
+        if (Activator.CreateInstance(nodeType) is not Node newNode)
+        {
+            throw new InvalidOperationException("Failed to create a new instance of the node type.");
+        }
+
+        var properties = Node.GetProperties();
+        foreach (var property in properties)
+        {
+            try
+            {
+                var value = property.GetValue(Node);
+                property.SetValue(newNode, value);
+            }
+            catch
+            {
+                // ignored
+            }
+        }
+
+        var newEditorNode = new EditorNode(SelectionManager, newNode)
+        {
+            X = X + 30,
+            Y = Y + 30,
+        };
+        return newEditorNode;
     }
 }

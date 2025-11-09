@@ -7,6 +7,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Services;
+using NodeGraph.Editor.Undo;
 using NodeGraph.Editor.ViewModels;
 using NodeGraph.Editor.Views;
 
@@ -47,6 +48,7 @@ public partial class App : Application
 
         services.AddSingleton<SelectionManager>();
         services.AddSingleton<NodeTypeService>();
+        services.AddSingleton<UndoRedoManager>();
 
         // ViewModelsを登録
         services.AddTransient<MainWindowViewModel>();

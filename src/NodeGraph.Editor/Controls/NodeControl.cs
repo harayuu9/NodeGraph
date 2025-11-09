@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Undo;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Controls;
@@ -197,8 +198,47 @@ public class NodeControl : ContentControl
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_isDragging)
+        if (_isDragging && Node != null)
         {
+            // 移動があった場合のみアクションを登録
+            if (_selectedNodesStartPositions.Count > 0 && Parent is Visual parent && parent.GetVisualParent() is GraphControl graphControl)
+            {
+                // MoveNodesActionに渡す形式に変換
+                var nodes = _selectedNodesStartPositions.Keys.OfType<EditorNode>().ToArray();
+                var newPositions = nodes.Select(n => new Point(n.X, n.Y)).ToArray();
+
+                // 実際に移動があったかチェック
+                bool hasMoved = false;
+                for (int i = 0; i < nodes.Length; i++)
+                {
+                    var oldPos = _selectedNodesStartPositions[nodes[i]];
+                    if (nodes[i].X != oldPos.X || nodes[i].Y != oldPos.Y)
+                    {
+                        hasMoved = true;
+                        break;
+                    }
+                }
+
+                if (hasMoved)
+                {
+                    // 一度元に戻してからアクションで再実行
+                    for (int i = 0; i < nodes.Length; i++)
+                    {
+                        var oldPos = _selectedNodesStartPositions[nodes[i]];
+                        nodes[i].X = oldPos.X;
+                        nodes[i].Y = oldPos.Y;
+                    }
+
+                    var action = new MoveNodesAction(nodes, newPositions);
+                    graphControl.UndoRedoManager!.ExecuteAction(action);
+
+                    if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
+                    {
+                        viewModel.NotifyUndoRedoCanExecuteChanged();
+                    }
+                }
+            }
+
             _isDragging = false;
             _selectedNodesStartPositions.Clear();
             e.Pointer.Capture(null);
@@ -233,10 +273,17 @@ public class NodeControl : ContentControl
 
         if (!selectedNodes.Contains(Node))
             selectedNodes.Add(Node);
-
+        
+        // Undo/Redo対応で削除
         foreach (var editorNode in selectedNodes)
         {
-            graphControl.Graph.RemoveNode(editorNode);
+            var action = new DeleteNodeAction(graphControl.Graph, editorNode);
+            graphControl.UndoRedoManager!.ExecuteAction(action);
+        }
+
+        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.NotifyUndoRedoCanExecuteChanged();
         }
 
         Node.SelectionManager.ClearSelection();
@@ -262,8 +309,17 @@ public class NodeControl : ContentControl
         if (!selectedNodes.Contains(Node))
             selectedNodes.Add(Node);
 
-        // GraphControlの共通メソッドを使用して複製（接続も含む）
-        var newNodes = graphControl.DuplicateNodesWithConnections(selectedNodes);
+        // GraphControlのUndo/Redo対応メソッドを使用して複製（接続も含む）
+        var (newNodes, newConnections) = graphControl.DuplicateNodesWithConnectionsForUndo(selectedNodes);
+
+        // Undo/Redo対応で複製
+        var action = new DuplicateNodesAction(graphControl.Graph, newNodes, newConnections);
+        graphControl.UndoRedoManager!.ExecuteAction(action);
+
+        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.NotifyUndoRedoCanExecuteChanged();
+        }
 
         // 複製されたノードを選択
         Node.SelectionManager.ClearSelection();
@@ -323,16 +379,17 @@ public class NodeControl : ContentControl
         if (Node?.Node == null)
             return;
 
-        // すべての入力ポートの接続を解除
-        foreach (var port in Node.Node.InputPorts)
-        {
-            port.DisconnectAll();
-        }
+        var graphControl = this.FindAncestorOfType<GraphControl>();
+        if (graphControl?.Graph == null)
+            return;
 
-        // すべての出力ポートの接続を解除
-        foreach (var port in Node.Node.OutputPorts)
+        // Undo/Redo対応ですべての接続を解除
+        var action = new DisconnectAllAction(graphControl.Graph, Node);
+        graphControl.UndoRedoManager!.ExecuteAction(action);
+
+        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
         {
-            port.DisconnectAll();
+            viewModel.NotifyUndoRedoCanExecuteChanged();
         }
     }
 

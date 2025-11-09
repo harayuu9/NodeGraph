@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -18,9 +19,13 @@ using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Primitives;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Serialization;
 using NodeGraph.Editor.Services;
+using NodeGraph.Editor.Undo;
 using NodeGraph.Editor.Views;
 using NodeGraph.Model;
+using NodeGraph.Model.Serialization;
+using YamlDotNet.Serialization;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -51,9 +56,6 @@ public class GraphControl : TemplatedControl
     private PortControl? _dragSourcePort;
     private PortControl? _currentHoverPort;
 
-    // コピー&ペースト用
-    private List<EditorNode>? _copiedNodes;
-
     // トランスフォーム
     private readonly TranslateTransform _translateTransform = new();
     private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
@@ -77,9 +79,6 @@ public class GraphControl : TemplatedControl
 
         // フォーカス可能にする
         Focusable = true;
-
-        // コンテキストメニューの設定
-        SetupContextMenu();
 
         if (Design.IsDesignMode)
         {
@@ -117,21 +116,6 @@ public class GraphControl : TemplatedControl
         }
     }
 
-    private void SetupContextMenu()
-    {
-        var pasteMenuItem = new MenuItem
-        {
-            Header = "ペースト(_V)",
-            InputGesture = KeyGesture.Parse("V")
-        };
-        pasteMenuItem.Click += (_, _) => PasteNodes();
-
-        ContextFlyout = new MenuFlyout
-        {
-            Items = { pasteMenuItem }
-        };
-    }
-
     #region Styled Properties
 
     public static readonly StyledProperty<EditorGraph?> GraphProperty = AvaloniaProperty.Register<GraphControl, EditorGraph?>(nameof(Graph));
@@ -140,6 +124,14 @@ public class GraphControl : TemplatedControl
     {
         get => GetValue(GraphProperty);
         set => SetValue(GraphProperty, value);
+    }
+
+    public static readonly StyledProperty<UndoRedoManager?> UndoRedoManagerProperty = AvaloniaProperty.Register<GraphControl, UndoRedoManager?>(nameof(UndoRedoManager));
+
+    public UndoRedoManager? UndoRedoManager
+    {
+        get => GetValue(UndoRedoManagerProperty);
+        set => SetValue(UndoRedoManagerProperty, value);
     }
 
     public static readonly StyledProperty<double> ZoomProperty = AvaloniaProperty.Register<GraphControl, double>(nameof(Zoom), 1.0);
@@ -505,12 +497,7 @@ public class GraphControl : TemplatedControl
         }
         else if (e.Key == Key.V && Graph != null)
         {
-            PasteNodes();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.X && Graph != null)
-        {
-            CutSelectedNodes();
+            _ = PasteNodes();
             e.Handled = true;
         }
     }
@@ -898,6 +885,9 @@ public class GraphControl : TemplatedControl
         if (selectedNodes.Count == 0)
             return;
 
+        // 古い位置を保存
+        var oldPositions = selectedNodes.Select(n => (n, n.X, n.Y)).ToList();
+
         // ノードを階層ごとに分類（トポロジカルソート）
         var layers = ComputeNodeLayers(selectedNodes);
 
@@ -1033,6 +1023,23 @@ public class GraphControl : TemplatedControl
             }
         }
 
+        // 新しい位置と古い位置を組み合わせてアクションを作成
+        var nodePositions = oldPositions
+            .Select(old => (old.n, old.X, old.Y, old.n.X, old.n.Y))
+            .ToList();
+
+        var action = new ArrangeNodesAction(nodePositions);
+
+        // 一度Undoして、Actionで再実行
+        foreach (var (node, oldX, oldY, _, _) in nodePositions)
+        {
+            node.X = oldX;
+            node.Y = oldY;
+        }
+
+        UndoRedoManager!.ExecuteAction(action);
+        NotifyCanExecuteChanged();
+
         // コネクタの更新をスケジュール
         ScheduleConnectorUpdate();
     }
@@ -1149,15 +1156,14 @@ public class GraphControl : TemplatedControl
         // 選択を解除
         Graph.SelectionManager.ClearSelection();
 
-        // 接続を削除（ItemsControlが自動的にConnectorControlを削除します）
+        // Undo/Redo対応で接続を削除
         foreach (var connection in selectedConnections)
         {
-            // モデルレベルで接続を切断
-            connection.TargetPort.Port.DisconnectAll();
-
-            // EditorConnectionを削除
-            Graph.Connections.Remove(connection);
+            var action = new DeleteConnectionAction(Graph, connection);
+            UndoRedoManager!.ExecuteAction(action);
         }
+
+        NotifyCanExecuteChanged();
     }
 
     #endregion
@@ -1174,70 +1180,118 @@ public class GraphControl : TemplatedControl
 
         var selectedNodes = Graph.SelectionManager.SelectedItems
             .OfType<EditorNode>()
-            .ToList();
+            .ToArray();
 
-        if (selectedNodes.Count == 0)
+        if (selectedNodes.Length == 0)
             return;
 
-        _copiedNodes = selectedNodes;
+        if (VisualRoot is Window window)
+        {
+            // 選択されたノードをCloneして、グラフとレイアウトをシリアライズ
+            var clonedGraph = Graph.Clone(selectedNodes);
+            var graphYaml = GraphSerializer.Serialize(clonedGraph.Graph);
+            var layoutYaml = EditorLayoutSerializer.SaveLayout(clonedGraph);
+
+            // グラフとレイアウトを結合してクリップボードに保存
+            var combined = $"---GRAPH---\n{graphYaml}\n---LAYOUT---\n{layoutYaml}";
+            window.Clipboard?.SetTextAsync(combined);
+        }
     }
 
     /// <summary>
     /// コピーしたノードをペーストします
     /// </summary>
-    private void PasteNodes()
+    private async Task PasteNodes()
     {
-        if (Graph == null || _copiedNodes == null || _copiedNodes.Count == 0)
+        if (Graph == null)
             return;
 
-        var newNodes = DuplicateNodesWithConnections(_copiedNodes);
-
-        // ペーストされたノードを選択
-        Graph.SelectionManager.ClearSelection();
-        foreach (var newNode in newNodes)
+        if (VisualRoot is Window { Clipboard: not null } window)
         {
-            Graph.SelectionManager.Select(newNode);
-        }
-
-        // ペーストしたノードを次回のペースト用にコピー（連続ペースト可能に）
-        _copiedNodes = newNodes;
-    }
-
-    /// <summary>
-    /// ノードを複製し、ノード間の接続も再現します
-    /// </summary>
-    /// <param name="nodesToDuplicate">複製するノードのリスト</param>
-    /// <returns>複製されたノードのリスト</returns>
-    public List<EditorNode> DuplicateNodesWithConnections(List<EditorNode> nodesToDuplicate)
-    {
-        if (Graph == null || nodesToDuplicate == null || nodesToDuplicate.Count == 0)
-            return [];
-
-        var newNodes = new List<EditorNode>();
-        var oldToNewNodeMap = new Dictionary<EditorNode, EditorNode>();
-
-        // ステップ1: すべてのノードを複製
-        foreach (var editorNode in nodesToDuplicate)
-        {
-            var duplicated = Graph.DuplicateNode(editorNode);
-            if (duplicated != null)
+            var clipBoard = await window.Clipboard.TryGetTextAsync();
+            if (string.IsNullOrEmpty(clipBoard))
             {
-                // 少しずらして配置
-                duplicated.X = editorNode.X + 30;
-                duplicated.Y = editorNode.Y + 30;
-                newNodes.Add(duplicated);
-                oldToNewNodeMap[editorNode] = duplicated;
+                return;
+            }
+
+            try
+            {
+                // クリップボードからグラフとレイアウトを分離
+                var parts = clipBoard.Split(["---GRAPH---", "---LAYOUT---"], StringSplitOptions.None);
+                if (parts.Length != 3)
+                {
+                    return;
+                }
+
+                var graphYaml = parts[1];
+                var layoutYaml = parts[2];
+
+                // グラフをデシリアライズ
+                var pastedGraph = GraphSerializer.Deserialize(graphYaml);
+
+                // EditorNodeに変換
+                var editorNodes = pastedGraph.Nodes.Select(n => new EditorNode(Graph.SelectionManager, n)).ToArray();
+                
+                // グラフに追加
+                Graph.AddNode(editorNodes);
+                
+                // レイアウトを適用
+                EditorLayoutSerializer.LoadLayout(layoutYaml, Graph);
+                // 少しオフセットして配置
+                foreach (var editorNode in editorNodes)
+                {
+                    editorNode.X += 30;
+                    editorNode.Y += 30;
+                }
+
+                // 選択をクリアして、ペーストしたノードを選択
+                Graph.SelectionManager.ClearSelection();
+                foreach (var editorNode in editorNodes)
+                {
+                    Graph.SelectionManager.AddToSelection(editorNode);
+                }
+
+                OnGraphChanged();
+            }
+            catch
+            {
+                // デシリアライズ失敗時は何もしない
             }
         }
+    }
 
-        // ステップ2: コピー元のノード間の接続を再現
+    #endregion
+
+    #region Node Duplication
+
+    /// <summary>
+    /// ノードを複製し、ノード間の接続も再現します（Undo/Redo用）
+    /// </summary>
+    public (List<EditorNode> Nodes, List<EditorConnection> Connections) DuplicateNodesWithConnectionsForUndo(List<EditorNode> nodesToDuplicate)
+    {
+        if (Graph == null || nodesToDuplicate.Count == 0)
+            return ([], []);
+
+        var newNodes = new List<EditorNode>();
+        var newConnections = new List<EditorConnection>();
+        var oldToNewNodeMap = new Dictionary<EditorNode, EditorNode>();
+
+        // すべてのノードを複製（Graphには追加しない）
+        foreach (var editorNode in nodesToDuplicate)
+        {
+            var newNode = editorNode.Clone();
+            newNodes.Add(newNode);
+            oldToNewNodeMap[editorNode] = newNode;
+        }
+
+        // コピー元のノード間の接続を再現
         foreach (var oldNode in nodesToDuplicate)
         {
             if (!oldToNewNodeMap.TryGetValue(oldNode, out var newNode))
                 continue;
 
             // 出力ポートから接続されている入力ポートを確認
-            for (int outputIndex = 0; outputIndex < oldNode.OutputPorts.Count; outputIndex++)
+            for (var outputIndex = 0; outputIndex < oldNode.OutputPorts.Count; outputIndex++)
             {
                 var oldOutputPort = oldNode.OutputPorts[outputIndex];
                 var outputPort = oldOutputPort.Port as OutputPort;
@@ -1260,51 +1314,18 @@ public class GraphControl : TemplatedControl
 
                         if (inputIndex.HasValue)
                         {
-                            // 新しいノード間で接続を作成
-                            var newOutputPort = newNode.Node.OutputPorts[outputIndex];
-                            var newInputPort = targetNewNode.Node.InputPorts[inputIndex.Value];
-
-                            // 接続を確立
-                            newInputPort.Connect(newOutputPort);
-
-                            // EditorConnectionを作成
+                            // EditorConnectionを作成（まだモデルレベルでは接続しない）
                             var newOutputEditorPort = newNode.OutputPorts[outputIndex];
                             var newInputEditorPort = targetNewNode.InputPorts[inputIndex.Value];
                             var connection = new EditorConnection(newNode, newOutputEditorPort, targetNewNode, newInputEditorPort);
-                            Graph.Connections.Add(connection);
+                            newConnections.Add(connection);
                         }
                     }
                 }
             }
         }
 
-        return newNodes;
-    }
-
-    /// <summary>
-    /// 選択されたノードをカットします（コピー後に削除）
-    /// </summary>
-    private void CutSelectedNodes()
-    {
-        if (Graph == null)
-            return;
-
-        var selectedNodes = Graph.SelectionManager.SelectedItems
-            .OfType<EditorNode>()
-            .ToList();
-
-        if (selectedNodes.Count == 0)
-            return;
-
-        // コピー
-        _copiedNodes = selectedNodes;
-
-        // 削除
-        Graph.SelectionManager.ClearSelection();
-        foreach (var editorNode in selectedNodes)
-        {
-            Graph.RemoveNode(editorNode);
-        }
+        return (newNodes, newConnections);
     }
 
     #endregion
@@ -1477,19 +1498,17 @@ public class GraphControl : TemplatedControl
         if (existingConnection != null)
             return;
         
+        // SingleConnectPortの場合は既存接続を削除
         DisconnectIfSingleConnect(inputPort);
         DisconnectIfSingleConnect(outputPort);
 
-        // モデルレベルで接続
-        if (inputPort.Port.Connect(outputPort.Port))
-        {
-            // EditorConnectionを作成（ItemsControlが自動的にConnectorControlを生成します）
-            var connection = new EditorConnection(outputNode, outputPort, inputNode, inputPort);
-            Graph.Connections.Add(connection);
+        // Undo/Redo対応で接続を作成
+        var action = new CreateConnectionAction(Graph, outputNode, outputPort, inputNode, inputPort);
+        UndoRedoManager!.ExecuteAction(action);
+        NotifyCanExecuteChanged();
 
-            // 座標を更新
-            ScheduleConnectorUpdate();
-        }
+        // 座標を更新
+        ScheduleConnectorUpdate();
 
         return;
 
@@ -1507,7 +1526,9 @@ public class GraphControl : TemplatedControl
                         var oldConnection = Graph!.Connections.FirstOrDefault(c => c.TargetNode == node && c.TargetPort == port);
                         if (oldConnection != null)
                         {
-                            Graph.Connections.Remove(oldConnection);
+                            // Undo/Redo対応で削除
+                            var deleteAction = new DeleteConnectionAction(Graph, oldConnection);
+                            UndoRedoManager!.ExecuteAction(deleteAction);
                         }
                     }
                 }
@@ -1545,8 +1566,12 @@ public class GraphControl : TemplatedControl
         if (this.GetVisualRoot() is not Window window)
             return;
 
-        // スクリーン座標を取得
-        var screenPosition = window.PointToScreen(clickPosition);
+        // GraphControl内の座標をウィンドウ座標に変換してからスクリーン座標へ変換
+        var windowPosition = this.TranslatePoint(clickPosition, window);
+        if (!windowPosition.HasValue)
+            return;
+
+        var screenPosition = window.PointToScreen(windowPosition.Value);
 
         // AddNodeWindowを表示
         var selectedNodeType = await AddNodeWindow.ShowDialog(screenPosition, nodeTypeService);
@@ -1567,25 +1592,21 @@ public class GraphControl : TemplatedControl
         if (Graph == null)
             return;
 
-        // リフレクションを使用してノードを作成
-        var createNodeMethod = typeof(Model.Graph).GetMethod(nameof(Model.Graph.CreateNode));
-        if (createNodeMethod == null)
+        // ノードを作成（まだGraphに追加しない）
+        if (Activator.CreateInstance(nodeTypeInfo.NodeType) is not Node node)
             return;
 
-        var genericMethod = createNodeMethod.MakeGenericMethod(nodeTypeInfo.NodeType);
-        var node = genericMethod.Invoke(Graph.Graph, null) as Node;
-
-        if (node == null)
-            return;
-
-        // EditorNodeを作成して追加
+        // EditorNodeを作成
         var editorNode = new EditorNode(Graph.SelectionManager, node)
         {
             X = position.X,
             Y = position.Y
         };
 
-        Graph.Nodes.Add(editorNode);
+        // Undo/Redo対応でノードを追加
+        var action = new AddNodeAction(Graph, editorNode);
+        UndoRedoManager!.ExecuteAction(action);
+        NotifyCanExecuteChanged();
 
         // NodeControlを作成して表示
         if (_canvas != null)
@@ -1600,6 +1621,15 @@ public class GraphControl : TemplatedControl
 
             // コネクタを更新
             ScheduleConnectorUpdate();
+        }
+    }
+
+    private void NotifyCanExecuteChanged()
+    {
+        // MainWindowViewModelのCanUndo/CanRedoを更新
+        if (DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.NotifyUndoRedoCanExecuteChanged();
         }
     }
 

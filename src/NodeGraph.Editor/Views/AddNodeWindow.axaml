@@ -9,6 +9,7 @@
         Title="Add Node"
         Width="200"
         Height="300"
+        CanResize="False"
         SystemDecorations="BorderOnly">
 
     <Grid RowDefinitions="Auto,*">

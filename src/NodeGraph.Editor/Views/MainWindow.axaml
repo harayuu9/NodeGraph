@@ -33,6 +33,10 @@
                 <Separator/>
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
             </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z"/>
+                <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y"/>
+            </MenuItem>
         </Menu>
 
         <!-- ヘッダー -->
@@ -77,6 +81,7 @@
         <!-- GraphControl -->
         <controls:GraphControl Grid.Row="2"
                               Graph="{Binding TestGraph}"
+                              UndoRedoManager="{Binding UndoRedoManager}"
                               Background="{DynamicResource GraphBackgroundBrush}"/>
     </Grid>
 

@@ -24,17 +24,18 @@ public static class EditorLayoutSerializer
     /// <summary>
     /// レイアウトをYAMLファイルに保存します
     /// </summary>
-    public static void SaveLayout(EditorGraph editorGraph, string filePath)
+    public static void SaveLayoutToFile(EditorGraph editorGraph, string filePath) => File.WriteAllText(filePath, SaveLayout(editorGraph));
+
+    public static string SaveLayout(EditorGraph editorGraph)
     {
         var layoutData = SerializeLayout(editorGraph);
-        var yaml = YamlSerializer.Serialize(layoutData);
-        File.WriteAllText(filePath, yaml);
+        return YamlSerializer.Serialize(layoutData);
     }
 
     /// <summary>
     /// YAMLファイルからレイアウトを読み込みます
     /// </summary>
-    public static void LoadLayout(string filePath, EditorGraph editorGraph)
+    public static void LoadLayoutFromFile(string filePath, EditorGraph editorGraph)
     {
         if (!File.Exists(filePath))
         {
@@ -43,6 +44,11 @@ public static class EditorLayoutSerializer
         }
 
         var yaml = File.ReadAllText(filePath);
+        LoadLayout(yaml, editorGraph);
+    }
+
+    public static void LoadLayout(string yaml, EditorGraph editorGraph)
+    {
         var layoutData = YamlDeserializer.Deserialize<LayoutData>(yaml);
 
         // バージョンチェック
@@ -51,7 +57,7 @@ public static class EditorLayoutSerializer
         // レイアウトを適用
         ApplyLayout(layoutData, editorGraph);
     }
-
+    
     /// <summary>
     /// EditorGraphからLayoutDataに変換します
     /// </summary>
