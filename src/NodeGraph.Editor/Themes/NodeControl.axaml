@@ -45,7 +45,7 @@
                   BorderThickness="{TemplateBinding BorderThickness}"
                   CornerRadius="{TemplateBinding CornerRadius}"
                   BoxShadow="{DynamicResource NodeBoxShadow}">
-            <Grid RowDefinitions="Auto,*">
+            <Grid RowDefinitions="Auto,Auto,*">
               <!-- ヘッダー -->
               <Border Grid.Row="0"
                       Background="{DynamicResource NodeHeaderBackgroundBrush}"
@@ -56,8 +56,39 @@
                            Foreground="{DynamicResource NodeHeaderForegroundBrush}" />
               </Border>
 
+              <!-- Exec Ports -->
+              <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,5,0,0">
+                <!-- ExecIn Ports -->
+                <ItemsControl Grid.Column="0"
+                              ItemsSource="{Binding Node.ExecInPorts, RelativeSource={RelativeSource TemplatedParent}}"
+                              Margin="0,0,5,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="models:EditorPort">
+                      <controls:PortControl Port="{Binding}"
+                                            VerticalAlignment="Center"
+                                            Direction="Left"
+                                            Margin="2,2,0,2" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- ExecOut Ports -->
+                <ItemsControl Grid.Column="1"
+                              ItemsSource="{Binding Node.ExecOutPorts, RelativeSource={RelativeSource TemplatedParent}}"
+                              HorizontalAlignment="Right">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="models:EditorPort">
+                      <controls:PortControl Port="{Binding}"
+                                            VerticalAlignment="Center"
+                                            Direction="Right"
+                                            Margin="0,2,2,2" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Grid>
+
               <!-- ボディエリア -->
-              <Grid Grid.Row="1" RowDefinitions="*,*">
+              <Grid Grid.Row="2" RowDefinitions="*,*">
                 <Grid Grid.Row="0" ColumnDefinitions="*,*" Margin="0, 5,0,5">
                   <!-- Input Ports -->
                   <ItemsControl Grid.Column="0"

@@ -48,6 +48,7 @@ public partial class EditorGraph : ObservableObject
     {
         foreach (var editorNode in nodes)
         {
+            // データポートの接続をロード
             foreach (var editorPort in editorNode.OutputPorts)
             {
                 var outputPort = (OutputPort)editorPort.Port;
@@ -58,6 +59,25 @@ public partial class EditorGraph : ObservableObject
                     var targetNode = nodes.FirstOrDefault(n => n.InputPorts.Any(p => p.Port == inputPort));
 
                     var targetPort = targetNode?.InputPorts.FirstOrDefault(p => p.Port == inputPort);
+                    if (targetPort == null) continue;
+
+                    // 接続を作成
+                    var connection = new EditorConnection(editorNode, editorPort, targetNode!, targetPort);
+                    Connections.Add(connection);
+                }
+            }
+
+            // Execポートの接続をロード
+            foreach (var editorPort in editorNode.ExecOutPorts)
+            {
+                var execOutPort = (ExecOutPort)editorPort.Port;
+                var connectedPort = execOutPort.ConnectedPort;
+                if (connectedPort is ExecInPort execInPort)
+                {
+                    // 接続先のEditorNodeとEditorPortを検索
+                    var targetNode = nodes.FirstOrDefault(n => n.ExecInPorts.Any(p => p.Port == execInPort));
+
+                    var targetPort = targetNode?.ExecInPorts.FirstOrDefault(p => p.Port == execInPort);
                     if (targetPort == null) continue;
 
                     // 接続を作成

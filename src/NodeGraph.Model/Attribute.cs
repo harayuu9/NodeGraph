@@ -7,6 +7,15 @@ public class NodeAttribute(string? displayName = null, string? directory = null)
     public string? Directory => directory;
 }
 
+[AttributeUsage(AttributeTargets.Class)]
+public class ExecutionNodeAttribute(string? displayName = null, string? directory = null, params string[] execOutNames) : Attribute
+{
+    public string? DisplayName => displayName;
+    public string? Directory => directory;
+    public string[] ExecOutNames => execOutNames;
+    public bool HasExecIn { get; set; } = true;
+}
+
 [AttributeUsage(AttributeTargets.Field)]
 public class InputAttribute : Attribute;
 

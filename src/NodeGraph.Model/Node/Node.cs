@@ -2,6 +2,81 @@ using System.Reflection;
 
 namespace NodeGraph.Model;
 
+public readonly struct ExecutionPort;
+
+public abstract class ExecutionNode : Node
+{
+    protected internal ExecInPort[] ExecInPorts { get; }
+    protected internal ExecOutPort[] ExecOutPorts { get; }
+    private readonly HashSet<int> _triggeredExecOutIndices = new();
+
+    protected ExecutionNode(int inputPortCount, int outputPortCount, int execInPortCount, int execOutPortCount)
+        : base(inputPortCount, outputPortCount)
+    {
+        ExecInPorts = new ExecInPort[execInPortCount];
+        ExecOutPorts = new ExecOutPort[execOutPortCount];
+    }
+
+    protected ExecutionNode(NodeId nodeId, PortId[] inputPortIds, PortId[] outputPortIds, PortId[] execInPortIds, PortId[] execOutPortIds)
+        : base(nodeId, inputPortIds, outputPortIds)
+    {
+        ExecInPorts = new ExecInPort[execInPortIds.Length];
+        ExecOutPorts = new ExecOutPort[execOutPortIds.Length];
+    }
+
+    public abstract string GetExecInPortName(int index);
+    public abstract string GetExecOutPortName(int index);
+
+    /// <summary>
+    /// このノードがExecInポートを持つかどうかを返します。
+    /// </summary>
+    public bool HasExecIn => ExecInPorts.Length > 0;
+
+    /// <summary>
+    /// 指定されたExecOutポートをトリガーします。
+    /// ExecuteCoreAsync内で呼び出して、どのExecOutを有効にするかを指定します。
+    /// </summary>
+    protected void TriggerExecOut(int index)
+    {
+        if (index < 0 || index >= ExecOutPorts.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+        _triggeredExecOutIndices.Add(index);
+    }
+
+    /// <summary>
+    /// トリガーされたExecOutポートのインデックスを取得します。
+    /// TriggerExecOutが呼ばれていない場合は、全てのExecOutがトリガーされたとみなします。
+    /// </summary>
+    internal IEnumerable<int> GetTriggeredExecOutIndices()
+    {
+        if (_triggeredExecOutIndices.Count == 0)
+        {
+            // デフォルトでは全てのExecOutをトリガー
+            for (int i = 0; i < ExecOutPorts.Length; i++)
+            {
+                yield return i;
+            }
+        }
+        else
+        {
+            foreach (var index in _triggeredExecOutIndices)
+            {
+                yield return index;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 実行前にトリガー状態をリセットします。
+    /// </summary>
+    internal void ResetTriggers()
+    {
+        _triggeredExecOutIndices.Clear();
+    }
+}
+
 public abstract class Node : IWithId<NodeId>
 {
     public NodeId Id { get; } = new(Guid.NewGuid());

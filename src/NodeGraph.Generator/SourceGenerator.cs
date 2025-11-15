@@ -12,12 +12,17 @@ public class SourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var provider = context.SyntaxProvider.ForAttributeWithMetadataName(
+        var nodeProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
             "NodeGraph.Model.NodeAttribute",
             static (node, _) => node is ClassDeclarationSyntax,
             static (cont, _) => cont);
+        var executionProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
+            "NodeGraph.Model.ExecutionNodeAttribute",
+            static (node, _) => node is ClassDeclarationSyntax,
+            static (cont, _) => cont);
         
-        context.RegisterSourceOutput(provider, Emit);
+        context.RegisterSourceOutput(nodeProvider, Emit);
+        context.RegisterSourceOutput(executionProvider, EmitExecution);
     }
 
     private static void Emit(SourceProductionContext spc, GeneratorAttributeSyntaxContext source)
@@ -25,7 +30,41 @@ public class SourceGenerator : IIncrementalGenerator
         var typeSymbol = (INamedTypeSymbol)source.TargetSymbol;
         var typeNode = (TypeDeclarationSyntax)source.TargetNode;
         var reference = new ReferenceSymbols(source.SemanticModel.Compilation);
-        Emitter.Emit(spc, typeSymbol, typeNode, reference);
+        Emitter.Emit(spc, typeSymbol, typeNode, reference, false, false, Array.Empty<string>());
+    }
+
+    private static void EmitExecution(SourceProductionContext spc, GeneratorAttributeSyntaxContext source)
+    {
+        var typeSymbol = (INamedTypeSymbol)source.TargetSymbol;
+        var typeNode = (TypeDeclarationSyntax)source.TargetNode;
+        var reference = new ReferenceSymbols(source.SemanticModel.Compilation);
+
+        // ExecutionNodeAttributeから情報を取得
+        var executionAttr = source.Attributes.FirstOrDefault();
+        bool hasExecIn = true;
+        string[] execOutNames = Array.Empty<string>();
+
+        if (executionAttr != null)
+        {
+            // HasExecInプロパティを取得（名前付き引数）
+            var hasExecInArg = executionAttr.NamedArguments.FirstOrDefault(x => x.Key == "HasExecIn");
+            if (hasExecInArg.Value.Value is bool hasExecInValue)
+            {
+                hasExecIn = hasExecInValue;
+            }
+
+            // ExecOutNamesを取得（コンストラクタ引数の3番目以降）
+            if (executionAttr.ConstructorArguments.Length > 2)
+            {
+                var execOutNamesArg = executionAttr.ConstructorArguments[2];
+                if (!execOutNamesArg.IsNull && execOutNamesArg.Kind == TypedConstantKind.Array)
+                {
+                    execOutNames = execOutNamesArg.Values.Select(v => v.Value?.ToString() ?? "").ToArray();
+                }
+            }
+        }
+
+        Emitter.Emit(spc, typeSymbol, typeNode, reference, true, hasExecIn, execOutNames);
     }
 }
 
@@ -53,6 +92,16 @@ public readonly struct PortData
 
 }
 
+public readonly struct ExecPortData
+{
+    public readonly string Name;
+
+    public ExecPortData(string name)
+    {
+        Name = name;
+    }
+}
+
 public readonly struct PropertyData
 {
     public readonly string Type;
@@ -71,7 +120,7 @@ public readonly struct PropertyData
 
 public static class Emitter
 {
-    public static void Emit(SourceProductionContext context, INamedTypeSymbol typeSymbol, TypeDeclarationSyntax typeNode, ReferenceSymbols reference)
+    public static void Emit(SourceProductionContext context, INamedTypeSymbol typeSymbol, TypeDeclarationSyntax typeNode, ReferenceSymbols reference, bool isExecutionNode, bool hasExecIn, string[] execOutNames)
     {
         if (!IsPartial(typeNode))
         {
@@ -105,13 +154,33 @@ public static class Emitter
             .Where(field => !field.IsStatic && field.ContainsAttribute(reference.PropertyAttribute))
             .Select(field => new PropertyData(field))
             .ToArray();
+
+        // ExecutionNodeの場合、Execポートはパラメータから取得
+        var execInCount = isExecutionNode && hasExecIn ? 1 : 0;
+        var execOutCount = isExecutionNode ? execOutNames.Length : 0;
+        var execOutFields = execOutNames.Select(name => new ExecPortData(name)).ToArray();
         
         var codeGen = new CSharpCodeGenerator(ns);
-        codeGen.WriteLine($"partial class {typeSymbol.Name} : global::NodeGraph.Model.Node");
+        if (isExecutionNode)
+        {
+            codeGen.WriteLine($"partial class {typeSymbol.Name} : global::NodeGraph.Model.ExecutionNode");
+        }
+        else
+        {
+            codeGen.WriteLine($"partial class {typeSymbol.Name} : global::NodeGraph.Model.Node");
+        }
+        
         using (codeGen.Scope())
         {
             // デフォルトコンストラクタ（新規作成用）
-            codeGen.WriteLine($"public {typeSymbol.Name}() : base({inputFields.Length}, {outputFields.Length})");
+            if (isExecutionNode)
+            {
+                codeGen.WriteLine($"public {typeSymbol.Name}() : base({inputFields.Length}, {outputFields.Length}, {execInCount}, {execOutCount})");
+            }
+            else
+            {
+                codeGen.WriteLine($"public {typeSymbol.Name}() : base({inputFields.Length}, {outputFields.Length})");
+            }
             using (codeGen.Scope())
             {
                 for (var i = 0; i < inputFields.Length; i++)
@@ -125,12 +194,32 @@ public static class Emitter
                     var outputField = outputFields[i];
                     codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, {outputField.RawName});");
                 }
+
+                if (isExecutionNode)
+                {
+                    for (var i = 0; i < execInCount; i++)
+                    {
+                        codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this);");
+                    }
+
+                    for (var i = 0; i < execOutCount; i++)
+                    {
+                        codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this);");
+                    }
+                }
             }
 
             codeGen.WriteLine();
 
             // デシリアライズ用コンストラクタ（NodeIdとPortIdを受け取る）
-            codeGen.WriteLine($"public {typeSymbol.Name}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds) : base(nodeId, inputPortIds, outputPortIds)");
+            if (isExecutionNode)
+            {
+                codeGen.WriteLine($"public {typeSymbol.Name}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
+            }
+            else
+            {
+                codeGen.WriteLine($"public {typeSymbol.Name}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds) : base(nodeId, inputPortIds, outputPortIds)");
+            }
             using (codeGen.Scope())
             {
                 for (var i = 0; i < inputFields.Length; i++)
@@ -143,6 +232,19 @@ public static class Emitter
                 {
                     var outputField = outputFields[i];
                     codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, outputPortIds[{i}], {outputField.RawName});");
+                }
+
+                if (isExecutionNode)
+                {
+                    for (var i = 0; i < execInCount; i++)
+                    {
+                        codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[{i}]);");
+                    }
+
+                    for (var i = 0; i < execOutCount; i++)
+                    {
+                        codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[{i}]);");
+                    }
                 }
             }
             
@@ -193,6 +295,38 @@ public static class Emitter
                         codeGen.WriteLine($"case {i}: return \"{outputField.Name}\";");
                     }
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid output port index\");");
+                }
+            }
+
+            if (isExecutionNode)
+            {
+                codeGen.WriteLine("public override string GetExecInPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("switch(index)");
+                    using (codeGen.Scope())
+                    {
+                        if (execInCount > 0)
+                        {
+                            codeGen.WriteLine($"case 0: return \"ExecIn\";");
+                        }
+                        codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid exec in port index\");");
+                    }
+                }
+
+                codeGen.WriteLine("public override string GetExecOutPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("switch(index)");
+                    using (codeGen.Scope())
+                    {
+                        for (var i = 0; i < execOutFields.Length; i++)
+                        {
+                            var execOutField = execOutFields[i];
+                            codeGen.WriteLine($"case {i}: return \"{execOutField.Name}\";");
+                        }
+                        codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid exec out port index\");");
+                    }
                 }
             }
 
@@ -308,6 +442,7 @@ public class ReferenceSymbols
     public ReferenceSymbols(Compilation compilation)
     {
         NodeAttribute = GetTypeByMetadataName("NodeGraph.Model.NodeAttribute");
+        ExecutionNodeAttribute = GetTypeByMetadataName("NodeGraph.Model.ExecutionNodeAttribute");
         InputAttribute = GetTypeByMetadataName("NodeGraph.Model.InputAttribute");
         OutputAttribute = GetTypeByMetadataName("NodeGraph.Model.OutputAttribute");
         PropertyAttribute = GetTypeByMetadataName("NodeGraph.Model.PropertyAttribute");
@@ -328,6 +463,7 @@ public class ReferenceSymbols
     }
 
     public INamedTypeSymbol NodeAttribute { get; }
+    public INamedTypeSymbol ExecutionNodeAttribute { get; }
     public INamedTypeSymbol InputAttribute { get; }
     public INamedTypeSymbol OutputAttribute { get; }
     public INamedTypeSymbol PropertyAttribute { get; }

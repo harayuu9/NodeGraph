@@ -67,10 +67,35 @@ public partial class MainWindowViewModel : ViewModelBase
         var int1 = graph.CreateNode<IntConstantNode>();
         int1.SetValue(42);
 
+        // Execution flow example: StartNode → LoopNode → PrintNode (loop back)
+        var start = graph.CreateNode<StartNode>();
+
+        var loopNode = graph.CreateNode<LoopNode>();
+        loopNode.SetCount(3); // 3回ループ
+
+        start.ExecOutPorts[0].Connect(loopNode.ExecInPorts[0]);
+
+        // ループボディのPrintNode
+        var printLoop = graph.CreateNode<PrintNode>();
+        var loopMessage = graph.CreateNode<StringConstantNode>();
+        loopMessage.SetValue("Loop iteration");
+        printLoop.ConnectInput(0, loopMessage, 0);
+        loopNode.ExecOutPorts[0].Connect(printLoop.ExecInPorts[0]);
+
+        // PrintNodeからLoopNodeへのループバック
+        printLoop.ExecOutPorts[0].Connect(loopNode.ExecInPorts[0]);
+
+        // ループ完了後のPrintNode
+        var printCompleted = graph.CreateNode<PrintNode>();
+        var completedMessage = graph.CreateNode<StringConstantNode>();
+        completedMessage.SetValue("Loop completed!");
+        printCompleted.ConnectInput(0, completedMessage, 0);
+        loopNode.ExecOutPorts[1].Connect(printCompleted.ExecInPorts[0]);
+
         // EditorGraphでラップ（SelectionManagerを注入）
         _testGraph = new EditorGraph(graph, selectionManager);
 
-        // ノードの位置を設定
+        // ノードの位置を設定（データフローノード）
         TestGraph.Nodes[0].X = 100;
         TestGraph.Nodes[0].Y = 100;
 
@@ -88,6 +113,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
         TestGraph.Nodes[5].X = 600;
         TestGraph.Nodes[5].Y = 400;
+
+        // 実行フローノードの位置を設定
+        TestGraph.Nodes[6].X = 100;   // start
+        TestGraph.Nodes[6].Y = 500;
+
+        TestGraph.Nodes[7].X = 350;   // loopNode
+        TestGraph.Nodes[7].Y = 500;
+
+        TestGraph.Nodes[8].X = 600;   // printLoop
+        TestGraph.Nodes[8].Y = 550;
+
+        TestGraph.Nodes[9].X = 350;   // loopMessage
+        TestGraph.Nodes[9].Y = 650;
+
+        TestGraph.Nodes[10].X = 600;  // printCompleted
+        TestGraph.Nodes[10].Y = 750;
+
+        TestGraph.Nodes[11].X = 350;  // completedMessage
+        TestGraph.Nodes[11].Y = 800;
 
         // 現在のテーマを取得
         UpdateCurrentTheme();

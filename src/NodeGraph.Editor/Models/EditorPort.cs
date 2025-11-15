@@ -11,12 +11,14 @@ public partial class EditorPort : ObservableObject
     {
         _port = port;
         Name = name;
-        IsInput = _port is InputPort;
+        IsInput = _port is InputPort or ExecInPort;
+        IsExecPort = _port is ExecInPort or ExecOutPort;
         Value = _port.ValueString;
     }
 
     public bool IsInput { get; }
     public bool IsOutput => !IsInput;
+    public bool IsExecPort { get; }
 
     public PortId Id => _port.Id;
     public Port Port => _port;
@@ -30,6 +32,12 @@ public partial class EditorPort : ObservableObject
     {
         get
         {
+            // ExecPortの場合は"Exec"を返す
+            if (_port is ExecInPort or ExecOutPort)
+            {
+                return "Exec";
+            }
+
             var type = _port.GetType();
             if (type.IsGenericType)
             {

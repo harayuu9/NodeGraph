@@ -23,12 +23,14 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
 
     public ObservableCollection<EditorPort> InputPorts { get; }
     public ObservableCollection<EditorPort> OutputPorts { get; }
+    public ObservableCollection<EditorPort> ExecInPorts { get; }
+    public ObservableCollection<EditorPort> ExecOutPorts { get; }
     public ObservableCollection<PropertyViewModel> Properties { get; }
 
     [ObservableProperty] public partial double X { get; set; }
     [ObservableProperty] public partial double Y { get; set; }
     [ObservableProperty] public partial ExecutionStatus ExecutionStatus { get; set; }
-    
+
     private readonly Node _node;
 
     public EditorNode(SelectionManager selectionManager, Node node)
@@ -37,6 +39,19 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
         SelectionManager = selectionManager;
         InputPorts = new ObservableCollection<EditorPort>(node.InputPorts.Select((x, i) => new EditorPort(node.GetInputPortName(i), x)));
         OutputPorts = new ObservableCollection<EditorPort>(node.OutputPorts.Select((x, i) => new EditorPort(node.GetOutputPortName(i), x)));
+
+        // ExecutionNodeの場合、ExecポートをEditorPortとして追加
+        if (node is ExecutionNode execNode)
+        {
+            ExecInPorts = new ObservableCollection<EditorPort>(execNode.ExecInPorts.Select((x, i) => new EditorPort(execNode.GetExecInPortName(i), x)));
+            ExecOutPorts = new ObservableCollection<EditorPort>(execNode.ExecOutPorts.Select((x, i) => new EditorPort(execNode.GetExecOutPortName(i), x)));
+        }
+        else
+        {
+            ExecInPorts = new ObservableCollection<EditorPort>();
+            ExecOutPorts = new ObservableCollection<EditorPort>();
+        }
+
         Properties = new ObservableCollection<PropertyViewModel>(
             node.GetProperties().Select(descriptor => new PropertyViewModel(node, descriptor))
         );

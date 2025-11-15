@@ -14,6 +14,7 @@ public class TypeToColorConverter : IValueConverter
 {
     private static readonly Dictionary<string, Color> PrimitiveTypeColors = new()
     {
+        { "Exec", Color.Parse("#FFFFFF") },      // exec - white (execution flow)
         { "Single", Color.Parse("#007ACC") },    // float - blue (current default)
         { "Int32", Color.Parse("#FF6B6B") },     // int - coral red
         { "String", Color.Parse("#4ECB71") },    // string - green

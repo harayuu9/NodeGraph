@@ -39,9 +39,9 @@ public class ConnectionService : IConnectionService
             return false;
         }
 
-        // EditorNodeを検索
-        var outputNode = graph.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(outputPort));
-        var inputNode = graph.Nodes.FirstOrDefault(n => n.InputPorts.Contains(inputPort));
+        // EditorNodeを検索（データポートまたはExecポート）
+        var outputNode = graph.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(outputPort) || n.ExecOutPorts.Contains(outputPort));
+        var inputNode = graph.Nodes.FirstOrDefault(n => n.InputPorts.Contains(inputPort) || n.ExecInPorts.Contains(inputPort));
 
         if (outputNode == null || inputNode == null)
             return false;
@@ -100,6 +100,8 @@ public class ConnectionService : IConnectionService
             {
                 var node = graph.Nodes.FirstOrDefault(n => n.InputPorts.Contains(port));
                 node ??= graph.Nodes.FirstOrDefault(n => n.OutputPorts.Contains(port));
+                node ??= graph.Nodes.FirstOrDefault(n => n.ExecInPorts.Contains(port));
+                node ??= graph.Nodes.FirstOrDefault(n => n.ExecOutPorts.Contains(port));
                 if (node != null)
                 {
                     var oldConnection = graph.Connections.FirstOrDefault(c => c.TargetNode == node && c.TargetPort == port);

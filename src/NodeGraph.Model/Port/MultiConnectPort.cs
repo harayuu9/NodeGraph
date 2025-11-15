@@ -17,5 +17,6 @@ public abstract class MultiConnectPort : Port
     {
         _connectedPorts.Remove(other);
     }
+
     public override void DisconnectAll() => _connectedPorts.Clear();
 }
