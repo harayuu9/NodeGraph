@@ -166,6 +166,33 @@ public class PortTypeConversionTest
         // Assert
         Assert.False(canConnect, "Float to Int should not be allowed (no implicit conversion)");
     }
+    [Fact]
+    public void Converter_Should_Convert_Int_To_String()
+    {
+        var canConvert = PortTypeConverterProvider.CanConvert(typeof(int), typeof(string));
+        Assert.True(canConvert);
+    }
+
+    [Fact]
+    public void Converter_Should_Convert_String_To_Int()
+    {
+        var canConvert = PortTypeConverterProvider.CanConvert(typeof(string), typeof(int));
+        Assert.True(canConvert);
+    }
+
+    [Fact]
+    public void Converter_Should_Convert_Float_To_String()
+    {
+        var canConvert = PortTypeConverterProvider.CanConvert(typeof(float), typeof(string));
+        Assert.True(canConvert);
+    }
+
+    [Fact]
+    public void Converter_Should_Convert_String_To_Float()
+    {
+        var canConvert = PortTypeConverterProvider.CanConvert(typeof(string), typeof(float));
+        Assert.True(canConvert);
+    }
 }
 
 // Test helper node
@@ -176,7 +203,7 @@ public partial class IntResultNode
     [Input] private int _value;
     public int Value => _value;
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         return Task.CompletedTask;
     }

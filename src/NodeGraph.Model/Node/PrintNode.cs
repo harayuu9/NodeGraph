@@ -9,7 +9,7 @@ public partial class PrintNode
     [Input]
     private string _message = string.Empty;
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         Console.WriteLine($"[PrintNode] {_message}");
         return Task.CompletedTask;

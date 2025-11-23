@@ -8,7 +8,6 @@ public abstract class ExecutionNode : Node
 {
     protected internal ExecInPort[] ExecInPorts { get; }
     protected internal ExecOutPort[] ExecOutPorts { get; }
-    private readonly HashSet<int> _triggeredExecOutIndices = new();
 
     protected ExecutionNode(int inputPortCount, int outputPortCount, int execInPortCount, int execOutPortCount)
         : base(inputPortCount, outputPortCount)
@@ -31,50 +30,6 @@ public abstract class ExecutionNode : Node
     /// このノードがExecInポートを持つかどうかを返します。
     /// </summary>
     public bool HasExecIn => ExecInPorts.Length > 0;
-
-    /// <summary>
-    /// 指定されたExecOutポートをトリガーします。
-    /// ExecuteCoreAsync内で呼び出して、どのExecOutを有効にするかを指定します。
-    /// </summary>
-    protected void TriggerExecOut(int index)
-    {
-        if (index < 0 || index >= ExecOutPorts.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(index));
-        }
-        _triggeredExecOutIndices.Add(index);
-    }
-
-    /// <summary>
-    /// トリガーされたExecOutポートのインデックスを取得します。
-    /// TriggerExecOutが呼ばれていない場合は、全てのExecOutがトリガーされたとみなします。
-    /// </summary>
-    internal IEnumerable<int> GetTriggeredExecOutIndices()
-    {
-        if (_triggeredExecOutIndices.Count == 0)
-        {
-            // デフォルトでは全てのExecOutをトリガー
-            for (int i = 0; i < ExecOutPorts.Length; i++)
-            {
-                yield return i;
-            }
-        }
-        else
-        {
-            foreach (var index in _triggeredExecOutIndices)
-            {
-                yield return index;
-            }
-        }
-    }
-
-    /// <summary>
-    /// 実行前にトリガー状態をリセットします。
-    /// </summary>
-    internal void ResetTriggers()
-    {
-        _triggeredExecOutIndices.Clear();
-    }
 }
 
 public abstract class Node : IWithId<NodeId>
@@ -98,7 +53,7 @@ public abstract class Node : IWithId<NodeId>
     
     protected abstract void BeforeExecute();
     protected abstract void AfterExecute();
-    protected virtual Task ExecuteCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    protected virtual Task ExecuteCoreAsync(NodeExecutionContext context) => Task.CompletedTask;
     public void ConnectInput(int inputIndex, Node node, int outputIndex)
     {
         if (inputIndex < 0 || inputIndex >= InputPorts.Length)
@@ -121,10 +76,10 @@ public abstract class Node : IWithId<NodeId>
     public abstract string GetInputPortName(int index);
     public abstract string GetOutputPortName(int index);
     
-    public async Task ExecuteAsync(CancellationToken cancellationToken)
+    public async Task ExecuteAsync(NodeExecutionContext context)
     {
         BeforeExecute();
-        await ExecuteCoreAsync(cancellationToken);
+        await ExecuteCoreAsync(context);
         AfterExecute();
     }
 

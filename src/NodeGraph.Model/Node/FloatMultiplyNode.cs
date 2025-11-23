@@ -9,7 +9,7 @@ public partial class FloatMultiplyNode
     [Output] private float _result;
     public float Result => _result;
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a * _b;
         return Task.CompletedTask;

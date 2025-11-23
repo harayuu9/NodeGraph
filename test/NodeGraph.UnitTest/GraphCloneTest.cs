@@ -205,7 +205,7 @@ public class GraphCloneTest
     public void CloneGraph_空の配列でクローン()
     {
         // Arrange & Act
-        var clonedGraph = Graph.Clone(Array.Empty<Node>());
+        var clonedGraph = Graph.Clone([]);
 
         // Assert
         Assert.Empty(clonedGraph.Nodes);

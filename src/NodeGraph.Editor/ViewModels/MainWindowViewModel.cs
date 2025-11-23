@@ -205,13 +205,13 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Title = "Open Graph File",
             AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
+            FileTypeFilter =
+            [
                 new FilePickerFileType("NodeGraph Files")
                 {
-                    Patterns = new[] { "*.graph.yml" }
+                    Patterns = ["*.graph.yml"]
                 }
-            }
+            ]
         });
 
         if (files.Count > 0)
@@ -250,13 +250,13 @@ public partial class MainWindowViewModel : ViewModelBase
         var file = await _mainWindow.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Save Graph File",
-            FileTypeChoices = new[]
-            {
+            FileTypeChoices =
+            [
                 new FilePickerFileType("NodeGraph Files")
                 {
-                    Patterns = new[] { "*.graph.yml" }
+                    Patterns = ["*.graph.yml"]
                 }
-            },
+            ],
             DefaultExtension = "graph.yml",
             SuggestedFileName = "untitled"
         });

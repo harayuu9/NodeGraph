@@ -34,6 +34,8 @@ public class GraphExecutor : IDisposable
             HashSetPool<Node>.Shared.Rent(out var successors).AddTo(ref _disposableBag);
             _predecessors[_nodes[i]] = predecessors;
             _successors[_nodes[i]] = successors;
+            _predecessors[_nodes[i]].Clear();
+            _successors[_nodes[i]].Clear();
         }
 
         // 前段（predecessors）を構築
@@ -82,6 +84,7 @@ public class GraphExecutor : IDisposable
         using var _4 = HashSetPool<Node>.Shared.Rent(_nodeCount, out var started);
         using var _5 = HashSetPool<Node>.Shared.Rent(_nodeCount, out var execFlowReady); // Exec flowが到達したノード
         using var _6 = HashSetPool<Node>.Shared.Rent(_nodeCount, out var currentlyExecuting); // 現在実行中のノード
+        using var _7 = DictionaryPool<Task, NodeExecutionContext>.Shared.Rent(_nodeCount, out var taskToContext); // TaskとContextの紐づけ
 
         // 入次数0のノードを起動
         // ExecutionNodeでExecInを持つノードは、フロー到達まで待機
@@ -112,13 +115,13 @@ public class GraphExecutor : IDisposable
 
         // 実行ループ：完了次第、後続を解放
         List<Exception>? exceptions = null;  // 遅延初期化
-        var completedCount = 0;
 
         while (running.Count > 0)
         {
             var finished = await Task.WhenAny(running);
             running.Remove(finished);
             var finishedNode = taskToNode[finished];
+            var context = taskToContext[finished];
 
             try
             {
@@ -130,8 +133,6 @@ public class GraphExecutor : IDisposable
                 exceptions.Add(ex);
             }
 
-            completedCount++;
-
             if (exceptions == null)
             {
                 // 実行完了したノードを現在実行中リストから削除
@@ -140,7 +141,13 @@ public class GraphExecutor : IDisposable
                 // データ依存の後続ノードを処理
                 foreach (var succ in _successors[finishedNode])
                 {
-                    remainingDeps[succ]--;
+                    // startedに含まれていないノード、またはstartedに含まれているが実行中のノードのみremainingDepsを減算
+                    // (startedから削除されたノードは、再実行のためにremainingDepsを維持する)
+                    if (!started.Contains(succ) || currentlyExecuting.Contains(succ))
+                    {
+                        remainingDeps[succ]--;
+                    }
+
                     if (remainingDeps[succ] == 0 && !started.Contains(succ))
                     {
                         // ExecInを持たないノードは即座に実行
@@ -159,7 +166,7 @@ public class GraphExecutor : IDisposable
                 // Exec flowの後続ノードを処理
                 if (finishedNode is ExecutionNode execNode)
                 {
-                    var triggeredIndices = execNode.GetTriggeredExecOutIndices().ToArray();
+                    var triggeredIndices = context.GetTriggeredExecOutIndices();
 
                     // トリガーされたExecOutのみを処理
                     foreach (var execOutIndex in triggeredIndices)
@@ -175,11 +182,24 @@ public class GraphExecutor : IDisposable
                             // ただし、現在実行中でないことを確認
                             if (!currentlyExecuting.Contains(target))
                             {
-                                // ExecutionNodeでExecInを持つ場合は、Exec flowのみで制御（データ依存無視）
+                                // ExecutionNodeでExecInを持つ場合でも、データ依存が解決済みの場合のみ実行
                                 if (target is ExecutionNode targetExecNode && targetExecNode.HasExecIn)
                                 {
-                                    // Exec flowで制御されるので、データ依存に関係なく実行
-                                    Start(target);
+                                    // 再実行の場合、先に依存データノードをリセット
+                                    if (started.Contains(target))
+                                    {
+                                        // 自分自身をstartedから削除
+                                        started.Remove(target);
+                                        // 依存先のデータノードをリセット
+                                        ResetDependentDataNodes(target);
+                                    }
+
+                                    // Exec flowが到達したが、データ依存が未解決の場合は待つ
+                                    if (remainingDeps[target] == 0)
+                                    {
+                                        Start(target);
+                                    }
+                                    // データ依存が未解決の場合は、依存解決後に実行される
                                 }
                                 // ExecutionNodeだがExecInを持たない場合は、データ依存をチェック
                                 else if (target is ExecutionNode)
@@ -190,29 +210,31 @@ public class GraphExecutor : IDisposable
                                     }
                                 }
                                 // 通常のNodeの場合
-                                else if (remainingDeps[target] == 0 && !started.Contains(target))
+                                else
                                 {
-                                    Start(target);
+                                    if (remainingDeps[target] == 0 && !started.Contains(target))
+                                    {
+                                        Start(target);
+                                    }
                                 }
                             }
                         }
                     }
-
-                    // 次回の実行のためにトリガー状態をリセット
-                    execNode.ResetTriggers();
                 }
+
+                onExecuted?.Invoke(finishedNode);
+            }
+            else
+            {
+                onExcepted?.Invoke(finishedNode, exceptions[^1]);
             }
         }
 
-        if (exceptions is { Count: > 0 })
+        // すべてのタスクが完了した後、例外があれば投げる
+        if (exceptions != null && exceptions.Count > 0)
         {
-            throw new AggregateException("ノードの実行中にエラーが発生しました。", exceptions);
+            throw new AggregateException("グラフの実行中に1つ以上のエラーが発生しました。", exceptions);
         }
-
-        // ExecutionNodeでExecInを持つノードは、実行されない可能性があるため、
-        // completedCount != _nodeCountのチェックは行わない（または調整が必要）
-        // ここでは簡易的に、未完了のノードがあってもエラーとしない
-        // （実際には、ExecInを持つノードで到達不可能なものは無視する）
 
         return;
 
@@ -234,12 +256,15 @@ public class GraphExecutor : IDisposable
 
         void Start(Node n)
         {
+            // リセット処理はExecフロー処理の中で行われるため、ここでは何もしない
+
+            var context = new NodeExecutionContext(n, cancellationToken);
             var t = Task.Run(async () =>
             {
                 onExecute?.Invoke(n);
                 try
                 {
-                    await n.ExecuteAsync(cancellationToken);
+                    await n.ExecuteAsync(context);
                 }
                 catch (Exception e)
                 {
@@ -253,6 +278,78 @@ public class GraphExecutor : IDisposable
             currentlyExecuting.Add(n);
             running.Add(t);
             taskToNode[t] = n;
+            taskToContext[t] = context;
+        }
+
+        void ResetDependentDataNodes(Node execNode)
+        {
+            // execNodeの入力ポートから遡って依存しているデータノードを収集
+            using var _dataNodes = HashSetPool<Node>.Shared.Rent(out var dataNodes);
+            CollectDependentDataNodes(execNode, dataNodes);
+
+            // リセット処理：startedから削除して再実行可能にする
+            // 実行中のノードはリセットしない（完了を待つ）
+            foreach (var dataNode in dataNodes)
+            {
+                if (started.Contains(dataNode) && !currentlyExecuting.Contains(dataNode))
+                {
+                    started.Remove(dataNode);
+
+                    // remainingDepsを再計算：完了済みの依存先を除外
+                    var unfinishedDeps = 0;
+                    foreach (var pred in _predecessors[dataNode])
+                    {
+                        // リセット対象のデータノードは未完了としてカウント
+                        if (dataNodes.Contains(pred) && !currentlyExecuting.Contains(pred))
+                        {
+                            unfinishedDeps++;
+                        }
+                        // リセット対象外で未開始のノードは未完了
+                        else if (!started.Contains(pred))
+                        {
+                            unfinishedDeps++;
+                        }
+                        // 実行中のノードは未完了
+                        else if (currentlyExecuting.Contains(pred))
+                        {
+                            unfinishedDeps++;
+                        }
+                        // それ以外は完了済み
+                    }
+                    remainingDeps[dataNode] = unfinishedDeps;
+                }
+            }
+
+            // リセット後、依存関係が解決済みのデータノードを再実行
+            foreach (var dataNode in dataNodes)
+            {
+                if (remainingDeps[dataNode] == 0 && !started.Contains(dataNode) && !currentlyExecuting.Contains(dataNode))
+                {
+                    // データノードを再実行する際、そのsuccessorsのremainingDepsを増やす
+                    // （再実行されたデータノードの完了を待つため）
+                    foreach (var succ in _successors[dataNode])
+                    {
+                        remainingDeps[succ]++;
+                    }
+
+                    // データノードは即座に実行（ExecInを持たない）
+                    Start(dataNode);
+                }
+            }
+        }
+
+        void CollectDependentDataNodes(Node node, HashSet<Node> visited)
+        {
+            // このノードの依存先（predecessors）を走査
+            foreach (var pred in _predecessors[node])
+            {
+                // ExecutionNodeは含めない（データノードのみをリセット対象とする）
+                if (pred is not ExecutionNode && visited.Add(pred))
+                {
+                    // 再帰的に依存先を収集
+                    CollectDependentDataNodes(pred, visited);
+                }
+            }
         }
     }
 

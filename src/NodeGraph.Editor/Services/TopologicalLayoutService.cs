@@ -16,7 +16,7 @@ namespace NodeGraph.Editor.Services
         private static List<List<EditorNode>> ComputeLayersRightPushed(IEnumerable<EditorNode> nodes, EditorGraph graph)
         {
             var nodeList = nodes.Distinct().ToList();
-            if (nodeList.Count == 0) return new List<List<EditorNode>>();
+            if (nodeList.Count == 0) return [];
 
             using var selectedRental = nodeList.ToHashSetFromPool(out var selected);
             var edges = graph.Connections

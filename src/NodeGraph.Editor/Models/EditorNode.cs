@@ -48,8 +48,8 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
         }
         else
         {
-            ExecInPorts = new ObservableCollection<EditorPort>();
-            ExecOutPorts = new ObservableCollection<EditorPort>();
+            ExecInPorts = [];
+            ExecOutPorts = [];
         }
 
         Properties = new ObservableCollection<PropertyViewModel>(

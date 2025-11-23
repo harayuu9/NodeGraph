@@ -26,7 +26,7 @@ public class NodeTypeInfo
 /// </summary>
 public class NodeTypeService
 {
-    private readonly List<NodeTypeInfo> _nodeTypes = new();
+    private readonly List<NodeTypeInfo> _nodeTypes = [];
 
     public IReadOnlyList<NodeTypeInfo> NodeTypes => _nodeTypes;
 

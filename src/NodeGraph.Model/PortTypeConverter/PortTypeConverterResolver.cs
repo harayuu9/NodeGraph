@@ -122,6 +122,7 @@ public static class PortTypeConverterProvider
 
         // float conversions
         Register<float, double>(v => v);
+        Register<float, int>(v => (int)v);
 
         // sbyte conversions
         Register<sbyte, short>(v => v);
@@ -155,6 +156,17 @@ public static class PortTypeConverterProvider
         Register<char, float>(v => v);
         Register<char, double>(v => v);
         Register<char, decimal>(v => v);
+
+        // string conversions
+        Register<int, string>(v => v.ToString());
+        Register<long, string>(v => v.ToString());
+        Register<float, string>(v => v.ToString());
+        Register<double, string>(v => v.ToString());
+
+        Register<string, int>(int.Parse);
+        Register<string, long>(long.Parse);
+        Register<string, float>(float.Parse);
+        Register<string, double>(double.Parse);
     }
 
     private static class Cache<TFrom, TTo>

@@ -21,7 +21,7 @@ public partial class NodeTreeItem : ObservableObject
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
-    public ObservableCollection<NodeTreeItem> Children { get; } = new();
+    public ObservableCollection<NodeTreeItem> Children { get; } = [];
 
     /// <summary>
     /// nullの場合はディレクトリ、値がある場合は実際のノード

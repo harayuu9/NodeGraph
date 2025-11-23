@@ -14,7 +14,7 @@ public partial class ConstantNode
         _value = value;
     }
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         return Task.CompletedTask;
     }
@@ -25,7 +25,7 @@ public partial class ResultNode
 {
     [Input] private int _value;
     public int Value => _value;
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         return Task.CompletedTask;
     }
@@ -40,7 +40,7 @@ public partial class AddNode
     [Output] private int _result;
     public int Result => _result;
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a + _b;
         return Task.CompletedTask;

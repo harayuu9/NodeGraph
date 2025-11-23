@@ -15,6 +15,8 @@ namespace NodeGraph.Editor;
 
 public partial class App : Application
 {
+    public static IServiceProvider? ServiceProvider => App.Current is App app ? app.Services : null;
+    
     public IServiceProvider? Services { get; private set; }
 
     public override void Initialize()

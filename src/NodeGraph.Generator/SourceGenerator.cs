@@ -30,7 +30,7 @@ public class SourceGenerator : IIncrementalGenerator
         var typeSymbol = (INamedTypeSymbol)source.TargetSymbol;
         var typeNode = (TypeDeclarationSyntax)source.TargetNode;
         var reference = new ReferenceSymbols(source.SemanticModel.Compilation);
-        Emitter.Emit(spc, typeSymbol, typeNode, reference, false, false, Array.Empty<string>());
+        Emitter.Emit(spc, typeSymbol, typeNode, reference, false, false, []);
     }
 
     private static void EmitExecution(SourceProductionContext spc, GeneratorAttributeSyntaxContext source)
@@ -42,7 +42,7 @@ public class SourceGenerator : IIncrementalGenerator
         // ExecutionNodeAttributeから情報を取得
         var executionAttr = source.Attributes.FirstOrDefault();
         bool hasExecIn = true;
-        string[] execOutNames = Array.Empty<string>();
+        string[] execOutNames = [];
 
         if (executionAttr != null)
         {

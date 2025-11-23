@@ -25,7 +25,7 @@ public class StartNodeTypeTest
         _output.WriteLine($"ExecOutPorts count: {start.ExecOutPorts.Length}");
 
         Assert.True(start is ExecutionNode);
-        Assert.Equal(1, start.ExecOutPorts.Length);
+        Assert.Single(start.ExecOutPorts);
     }
 
     [Fact]

@@ -196,7 +196,7 @@ public partial class BoolConstantNode
         _value = value;
     }
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         return Task.CompletedTask;
     }

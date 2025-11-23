@@ -6,7 +6,7 @@ namespace NodeGraph.Model;
 [ExecutionNode("Start", "Control Flow", "Out", HasExecIn = false)]
 public partial class StartNode
 {
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         // 何もしない。単にExecOutにフローを渡すだけ。
         return Task.CompletedTask;

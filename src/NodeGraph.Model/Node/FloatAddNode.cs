@@ -8,10 +8,9 @@ public partial class FloatAddNode
 
     [Output] private float _result;
 
-    protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a + _b;
-        return Task.Delay(5000, cancellationToken);
-        return Task.CompletedTask;
+        await Task.Delay(1000);
     }
 }
