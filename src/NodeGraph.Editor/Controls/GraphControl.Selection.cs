@@ -45,14 +45,9 @@ public partial class GraphControl
             })
             .Cast<ISelectable>();
 
-        // 矩形内の接続を検出（始点または終点が矩形内にある）
+        // 矩形内の接続を検出
         var selectedConnections = GetAllConnectorControls()
-            .Where(connector =>
-            {
-                var startPoint = new Point(connector.StartX, connector.StartY);
-                var endPoint = new Point(connector.EndX, connector.EndY);
-                return selectionRect.Contains(startPoint) || selectionRect.Contains(endPoint);
-            })
+            .Where(connector => connector.Intersects(selectionRect))
             .Where(connector => connector.Connection != null)
             .Select(connector => connector.Connection!)
             .Cast<ISelectable>();
@@ -72,5 +67,30 @@ public partial class GraphControl
         {
             Graph.SelectionManager.SelectRange(selectedItems);
         }
+    }
+
+    /// <summary>
+    /// 指定された座標（ビューポート座標）の近くにあるConnectorControlを検索します
+    /// </summary>
+    private ConnectorControl? FindConnectorAt(Point point, double tolerance)
+    {
+        if (Graph == null || _canvas == null)
+            return null;
+
+        // ビューポート座標をキャンバス座標に変換
+        var canvasPoint = this.TranslatePoint(point, _canvas);
+        if (!canvasPoint.HasValue)
+            return null;
+
+        // 遊び（tolerance）を持たせた判定矩形を作成
+        var hitRect = new Rect(
+            canvasPoint.Value.X - tolerance,
+            canvasPoint.Value.Y - tolerance,
+            tolerance * 2,
+            tolerance * 2);
+
+        // 矩形と交差するコネクタを検索
+        return GetAllConnectorControls()
+            .FirstOrDefault(connector => connector.Intersects(hitRect));
     }
 }

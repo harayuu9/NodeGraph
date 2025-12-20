@@ -193,4 +193,70 @@ public class ConnectorControl : Path
 
         Data = pathGeometry;
     }
+
+    /// <summary>
+    /// 指定された矩形とこのコネクタが交差するかどうかを判定します
+    /// </summary>
+    public bool Intersects(Rect rect)
+    {
+        var p0 = new Point(StartX, StartY);
+        var distance = Math.Abs(EndX - StartX);
+        var offset = Math.Min(distance * 0.5, 100);
+        var p1 = new Point(StartX + offset, StartY);
+        var p2 = new Point(EndX - offset, EndY);
+        var p3 = new Point(EndX, EndY);
+
+        // 簡易的な交差判定：曲線をN分割して線分として判定
+        const int subdivisions = 10;
+        Point prevPoint = p0;
+        for (int i = 1; i <= subdivisions; i++)
+        {
+            double t = (double)i / subdivisions;
+            Point currentPoint = CalculateBezier(t, p0, p1, p2, p3);
+            if (LineIntersectsRect(prevPoint, currentPoint, rect))
+            {
+                return true;
+            }
+            prevPoint = currentPoint;
+        }
+        return false;
+    }
+
+    private static Point CalculateBezier(double t, Point p0, Point p1, Point p2, Point p3)
+    {
+        double u = 1 - t;
+        double tt = t * t;
+        double uu = u * u;
+        double uuu = uu * u;
+        double ttt = tt * t;
+
+        double x = uuu * p0.X + 3 * uu * t * p1.X + 3 * u * tt * p2.X + ttt * p3.X;
+        double y = uuu * p0.Y + 3 * uu * t * p1.Y + 3 * u * tt * p2.Y + ttt * p3.Y;
+
+        return new Point(x, y);
+    }
+
+    private static bool LineIntersectsRect(Point p1, Point p2, Rect rect)
+    {
+        // 線分の両端のいずれかが矩形内にある
+        if (rect.Contains(p1) || rect.Contains(p2)) return true;
+
+        // 線分が矩形のいずれかの辺と交差するか
+        // Line-Rectangle intersection
+        return LineIntersectsLine(p1, p2, rect.TopLeft, rect.TopRight) ||
+               LineIntersectsLine(p1, p2, rect.TopRight, rect.BottomRight) ||
+               LineIntersectsLine(p1, p2, rect.BottomRight, rect.BottomLeft) ||
+               LineIntersectsLine(p1, p2, rect.BottomLeft, rect.TopLeft);
+    }
+
+    private static bool LineIntersectsLine(Point a1, Point a2, Point b1, Point b2)
+    {
+        double d = (a2.X - a1.X) * (b2.Y - b1.Y) - (a2.Y - a1.Y) * (b2.X - b1.X);
+        if (d == 0) return false;
+
+        double u = ((b1.X - a1.X) * (b2.Y - b1.Y) - (b1.Y - a1.Y) * (b2.X - b1.X)) / d;
+        double v = ((b1.X - a1.X) * (a2.Y - a1.Y) - (b1.Y - a1.Y) * (a2.X - a1.X)) / d;
+
+        return u >= 0 && u <= 1 && v >= 0 && v <= 1;
+    }
 }

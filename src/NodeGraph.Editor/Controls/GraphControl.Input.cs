@@ -14,7 +14,7 @@ public partial class GraphControl
 {
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (Graph == null)
+        if (e.Handled || Graph == null)
         {
             return;
         }
@@ -50,9 +50,30 @@ public partial class GraphControl
 
         if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
         {
-            // NodeControl上またはポートドラッグ中でのクリックでない場合のみ矩形選択を開始
+            // NodeControl上またはポートドラッグ中でのクリックでない場合
             if (e.Source is not NodeControl && !_isDraggingPort)
             {
+                // コネクタの近くをクリックしたかチェック（遊びを持たせる）
+                // ズームに関わらず画面上で一定のクリックしやすさを提供するため、判定範囲をズームで調整
+                var tolerance = 8.0 / Zoom;
+                var hitConnector = FindConnectorAt(e.GetPosition(this), tolerance);
+
+                if (hitConnector?.Connection != null)
+                {
+                    if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                    {
+                        Graph.SelectionManager.ToggleSelection(hitConnector.Connection);
+                    }
+                    else
+                    {
+                        Graph.SelectionManager.Select(hitConnector.Connection);
+                    }
+
+                    e.Handled = true;
+                    return;
+                }
+
+                // コネクタもヒットしなかった場合は矩形選択を開始
                 _isSelecting = true;
                 _selectionStartPoint = e.GetPosition(this);
 
