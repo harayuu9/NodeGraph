@@ -1,14 +1,14 @@
 namespace NodeGraph.Model;
 
-[Node(HasExecIn = false, HasExecOut = false)]
+[Node]
 public partial class FloatResultNode
 {
     [Input] private float _value;
     public float Value => _value;
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }
 

@@ -131,6 +131,7 @@ public class PortTypeConversionTest
     {
         // Arrange
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var intNode = graph.CreateNode<IntConstantNode>();
         var floatNode = graph.CreateNode<FloatResultNode>();
 
@@ -140,6 +141,9 @@ public class PortTypeConversionTest
         var intOutput = intNode.OutputPorts[0];
         var floatInput = floatNode.InputPorts[0];
         intOutput.Connect(floatInput);
+
+        // Exec接続: Start → FloatResultNode
+        start.ExecOutPorts[0].Connect(floatNode.ExecInPorts[0]);
 
         // Execute to propagate values
         var executor = graph.CreateExecutor();

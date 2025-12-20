@@ -1,3 +1,4 @@
+using System.Text;
 using NodeGraph.Model.Pool;
 
 namespace NodeGraph.Model;
@@ -124,5 +125,92 @@ public class Graph
         }
 
         return newGraph;
+    }
+
+    /// <summary>
+    /// グラフの接続状況をMermaid形式の文字列として出力します。
+    /// </summary>
+    /// <param name="direction">グラフの方向 (LR: 左から右, TD: 上から下, RL: 右から左, BT: 下から上)</param>
+    /// <returns>Mermaid形式のグラフ定義文字列</returns>
+    public string ToMermaid(string direction = "LR")
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"graph {direction}");
+
+        // ノードIDとMermaid用識別子のマッピングを作成
+        using var _ = DictionaryPool<NodeId, string>.Shared.Rent(out var nodeIdMap);
+        var nodeIndex = 0;
+        foreach (var node in Nodes)
+        {
+            var mermaidId = $"node_{nodeIndex++}";
+            nodeIdMap[node.Id] = mermaidId;
+
+            // ノード定義を出力
+            var displayName = node.GetDisplayName();
+            sb.AppendLine($"    {mermaidId}[\"{EscapeMermaidString(displayName)}\"]");
+        }
+
+        // データポートの接続を出力
+        foreach (var node in Nodes)
+        {
+            var sourceId = nodeIdMap[node.Id];
+
+            for (var outputIndex = 0; outputIndex < node.OutputPorts.Length; outputIndex++)
+            {
+                var outputPort = node.OutputPorts[outputIndex];
+                var outputPortName = node.GetOutputPortName(outputIndex);
+
+                foreach (var connectedPort in outputPort.ConnectedPorts)
+                {
+                    if (connectedPort is InputPort inputPort)
+                    {
+                        var targetNode = inputPort.Parent;
+                        if (nodeIdMap.TryGetValue(targetNode.Id, out var targetId))
+                        {
+                            var inputIndex = Array.IndexOf(targetNode.InputPorts, inputPort);
+                            var inputPortName = inputIndex >= 0 ? targetNode.GetInputPortName(inputIndex) : "?";
+
+                            sb.AppendLine($"    {sourceId} -->|\"{EscapeMermaidString(outputPortName)} → {EscapeMermaidString(inputPortName)}\"| {targetId}");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 実行フローポートの接続を出力
+        foreach (var node in Nodes)
+        {
+            var sourceId = nodeIdMap[node.Id];
+
+            for (var execOutIndex = 0; execOutIndex < node.ExecOutPorts.Length; execOutIndex++)
+            {
+                var execOutPort = node.ExecOutPorts[execOutIndex];
+                var execOutPortName = node.GetExecOutPortName(execOutIndex);
+
+                if (execOutPort.ConnectedPort is ExecInPort execInPort)
+                {
+                    var targetNode = execInPort.Parent;
+                    if (nodeIdMap.TryGetValue(targetNode.Id, out var targetId))
+                    {
+                        var execInIndex = Array.IndexOf(targetNode.ExecInPorts, execInPort);
+                        var execInPortName = execInIndex >= 0 ? targetNode.GetExecInPortName(execInIndex) : "?";
+
+                        // 実行フローは破線で表現
+                        sb.AppendLine($"    {sourceId} -.->|\"{EscapeMermaidString(execOutPortName)} ⇒ {EscapeMermaidString(execInPortName)}\"| {targetId}");
+                    }
+                }
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeMermaidString(string input)
+    {
+        return input
+            .Replace("\\", "\\\\")
+            .Replace("\"", "#quot;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;");
     }
 }

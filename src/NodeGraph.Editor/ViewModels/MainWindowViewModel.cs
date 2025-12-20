@@ -296,6 +296,19 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanRedo));
     }
 
+    [RelayCommand]
+    private async Task CopyMermaidToClipboardAsync()
+    {
+        if (_mainWindow == null) return;
+
+        var mermaidGraph = TestGraph.Graph.ToMermaid();
+        var clipboard = _mainWindow.Clipboard;
+        if (clipboard != null)
+        {
+            await clipboard.SetTextAsync(mermaidGraph);
+        }
+    }
+
     /// <summary>
     /// Undo/Redoの状態変更を通知します
     /// </summary>

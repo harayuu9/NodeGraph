@@ -122,6 +122,8 @@ public class GraphSerializerTest
     {
         // Arrange
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
+
         var a = graph.CreateNode<FloatConstantNode>();
         a.SetPropertyValue("Value", 7.0f);
 
@@ -134,6 +136,10 @@ public class GraphSerializerTest
 
         var result = graph.CreateNode<FloatResultNode>();
         result.ConnectInput(0, subtract, 0);
+
+        // Exec接続: Start → Subtract → Result
+        start.ExecOutPorts[0].Connect(subtract.ExecInPorts[0]);
+        subtract.ExecOutPorts[0].Connect(result.ExecInPorts[0]);
 
         // 元のグラフを実行
         var executor1 = graph.CreateExecutor();

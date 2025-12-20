@@ -41,13 +41,7 @@ public class DisconnectAllAction : IUndoableAction
         foreach (var connection in connectionsToRemove)
         {
             // モデルレベルの接続を削除
-            var sourcePort = connection.SourcePort.Port as Model.OutputPort;
-            var targetPort = connection.TargetPort.Port as Model.InputPort;
-
-            if (sourcePort != null && targetPort != null)
-            {
-                targetPort.Disconnect(sourcePort);
-            }
+            DisconnectModel(connection.SourcePort, connection.TargetPort);
 
             // UIレベルの接続を削除
             _graph.Connections.Remove(connection);
@@ -60,13 +54,7 @@ public class DisconnectAllAction : IUndoableAction
         foreach (var conn in _removedConnections)
         {
             // モデルレベルの接続を復元
-            var sourcePort = conn.SourcePort.Port as Model.OutputPort;
-            var targetPort = conn.TargetPort.Port as Model.InputPort;
-
-            if (sourcePort != null && targetPort != null)
-            {
-                targetPort.Connect(sourcePort);
-            }
+            ConnectModel(conn.SourcePort, conn.TargetPort);
 
             // UIレベルの接続を復元
             var editorConnection = new EditorConnection(
@@ -76,6 +64,32 @@ public class DisconnectAllAction : IUndoableAction
                 conn.TargetPort);
 
             _graph.Connections.Add(editorConnection);
+        }
+    }
+
+    private static void ConnectModel(EditorPort sourcePort, EditorPort targetPort)
+    {
+        if (sourcePort.Port is Model.OutputPort outputPort && targetPort.Port is Model.InputPort inputPort)
+        {
+            inputPort.Connect(outputPort);
+        }
+        else if (sourcePort.Port is Model.ExecOutPort execOutPort && targetPort.Port is Model.ExecInPort execInPort)
+        {
+            execOutPort.Connect(execInPort);
+        }
+    }
+
+    private static void DisconnectModel(EditorPort sourcePort, EditorPort targetPort)
+    {
+        if (sourcePort.Port is Model.OutputPort outputPort && targetPort.Port is Model.InputPort inputPort)
+        {
+            inputPort.Disconnect(outputPort);
+            outputPort.Disconnect(inputPort);
+        }
+        else if (sourcePort.Port is Model.ExecOutPort execOutPort && targetPort.Port is Model.ExecInPort execInPort)
+        {
+            execOutPort.Disconnect(execInPort);
+            execInPort.Disconnect(execOutPort);
         }
     }
 }

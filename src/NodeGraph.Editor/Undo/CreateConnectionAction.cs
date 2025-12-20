@@ -31,12 +31,15 @@ public class CreateConnectionAction : IUndoableAction
     public void Execute()
     {
         // モデルレベルの接続を作成
-        var sourcePort = _sourcePort.Port as Model.OutputPort;
-        var targetPort = _targetPort.Port as Model.InputPort;
-
-        if (sourcePort != null && targetPort != null)
+        if (_sourcePort.Port is Model.OutputPort outputPort && _targetPort.Port is Model.InputPort inputPort)
         {
-            targetPort.Connect(sourcePort);
+            // データポートの接続
+            inputPort.Connect(outputPort);
+        }
+        else if (_sourcePort.Port is Model.ExecOutPort execOutPort && _targetPort.Port is Model.ExecInPort execInPort)
+        {
+            // Execポートの接続
+            execOutPort.Connect(execInPort);
         }
 
         // UIレベルの接続を作成
@@ -49,12 +52,17 @@ public class CreateConnectionAction : IUndoableAction
         if (_connection == null) return;
 
         // モデルレベルの接続を削除
-        var sourcePort = _sourcePort.Port as Model.OutputPort;
-        var targetPort = _targetPort.Port as Model.InputPort;
-
-        if (sourcePort != null && targetPort != null)
+        if (_sourcePort.Port is Model.OutputPort outputPort && _targetPort.Port is Model.InputPort inputPort)
         {
-            targetPort.Disconnect(sourcePort);
+            // データポートの接続解除（双方向）
+            inputPort.Disconnect(outputPort);
+            outputPort.Disconnect(inputPort);
+        }
+        else if (_sourcePort.Port is Model.ExecOutPort execOutPort && _targetPort.Port is Model.ExecInPort execInPort)
+        {
+            // Execポートの接続解除（双方向）
+            execOutPort.Disconnect(execInPort);
+            execInPort.Disconnect(execOutPort);
         }
 
         // UIレベルの接続を削除

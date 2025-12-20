@@ -1,6 +1,6 @@
 namespace NodeGraph.Model;
 
-[Node(HasExecIn = false, HasExecOut = false)]
+[Node]
 public partial class FloatSubtractNode
 {
     [Input] private float _a = 0f;
@@ -9,9 +9,9 @@ public partial class FloatSubtractNode
     [Output] private float _result;
     public float Result => _result;
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a - _b;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

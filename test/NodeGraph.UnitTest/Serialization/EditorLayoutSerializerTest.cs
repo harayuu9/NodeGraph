@@ -495,6 +495,8 @@ nodes: {}
     {
         // Arrange
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
+
         var a = graph.CreateNode<FloatConstantNode>();
         a.SetPropertyValue("Value", 7.0f);
 
@@ -508,18 +510,24 @@ nodes: {}
         var result = graph.CreateNode<FloatResultNode>();
         result.ConnectInput(0, multiply, 0);
 
+        // Exec接続: Start → Multiply → Result
+        start.ExecOutPorts[0].Connect(multiply.ExecInPorts[0]);
+        multiply.ExecOutPorts[0].Connect(result.ExecInPorts[0]);
+
         var selectionManager = new SelectionManager();
         var editorGraph = new EditorGraph(graph, selectionManager);
 
-        // ノード位置を設定
-        editorGraph.Nodes[0].X = 50.0;
-        editorGraph.Nodes[0].Y = 100.0;
-        editorGraph.Nodes[1].X = 50.0;
-        editorGraph.Nodes[1].Y = 200.0;
-        editorGraph.Nodes[2].X = 300.0;
-        editorGraph.Nodes[2].Y = 150.0;
-        editorGraph.Nodes[3].X = 550.0;
+        // ノード位置を設定 (StartNode追加のためインデックスが1つずれる)
+        editorGraph.Nodes[0].X = 0.0;   // Start
+        editorGraph.Nodes[0].Y = 150.0;
+        editorGraph.Nodes[1].X = 50.0;  // a
+        editorGraph.Nodes[1].Y = 100.0;
+        editorGraph.Nodes[2].X = 50.0;  // b
+        editorGraph.Nodes[2].Y = 200.0;
+        editorGraph.Nodes[3].X = 300.0; // multiply
         editorGraph.Nodes[3].Y = 150.0;
+        editorGraph.Nodes[4].X = 550.0; // result
+        editorGraph.Nodes[4].Y = 150.0;
 
         // 元のグラフを実行
         var executor1 = graph.CreateExecutor();

@@ -271,27 +271,15 @@ public class NodeControl : ContentControl
         if (graphControl?.Graph == null)
             return;
 
-        // 選択されているノードを削除（このノードを含む）
-        var selectedNodes = Node.SelectionManager.SelectedItems
-            .OfType<EditorNode>()
-            .ToList();
-
-        if (!selectedNodes.Contains(Node))
-            selectedNodes.Add(Node);
-        
-        // Undo/Redo対応で削除
-        foreach (var editorNode in selectedNodes)
+        // 右クリックされたノードが選択に含まれていない場合は、それだけを選択状態にしてから削除
+        if (!Node.SelectionManager.SelectedItems.Contains(Node))
         {
-            var action = new DeleteNodeAction(graphControl.Graph, editorNode);
-            graphControl.UndoRedoManager!.ExecuteAction(action);
+            Node.SelectionManager.ClearSelection();
+            Node.SelectionManager.AddToSelection(Node);
         }
 
-        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
-
-        Node.SelectionManager.ClearSelection();
+        // 共通の削除ロジックを呼び出す
+        graphControl.DeleteSelectedItems();
     }
 
     // 複製コマンド

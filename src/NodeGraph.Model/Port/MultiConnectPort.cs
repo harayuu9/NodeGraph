@@ -10,6 +10,10 @@ public abstract class MultiConnectPort : Port
     
     protected override void ConnectPort(Port other)
     {
+        if (_connectedPorts.Contains(other))
+        {
+            return;
+        }
         _connectedPorts.Add(other);
     }
 

@@ -176,7 +176,7 @@ public partial class GraphControl
         
         if (e.Key == Key.Delete)
         {
-            DeleteSelectedConnections();
+            DeleteSelectedItems();
             e.Handled = true;
         }
         if (e.Key == Key.R)

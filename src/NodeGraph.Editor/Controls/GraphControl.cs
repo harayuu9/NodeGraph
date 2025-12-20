@@ -457,27 +457,49 @@ public partial class GraphControl : TemplatedControl
     
     #region Connection Management
 
-    private void DeleteSelectedConnections()
+    /// <summary>
+    /// 選択されているすべてのアイテム（ノードおよび接続）を削除します
+    /// </summary>
+    public void DeleteSelectedItems()
     {
         if (Graph == null || UndoRedoManager == null)
             return;
 
-        // 選択されている接続を取得
-        var selectedConnections = Graph.SelectionManager.SelectedItems
-            .OfType<EditorConnection>()
-            .ToList();
-
-        if (selectedConnections.Count == 0)
+        var selectedItems = Graph.SelectionManager.SelectedItems.ToList();
+        if (selectedItems.Count == 0)
             return;
 
-        // 選択を解除
-        Graph.SelectionManager.ClearSelection();
+        UndoRedoManager.BeginTransaction();
+        try
+        {
+            // 1. 接続を削除
+            var selectedConnections = selectedItems.OfType<EditorConnection>().ToList();
+            if (selectedConnections.Count > 0)
+            {
+                var connectionService = GetConnectionService();
+                connectionService.DeleteConnections(Graph, selectedConnections, UndoRedoManager);
+            }
 
-        // ConnectionServiceを使用して削除
-        var connectionService = GetConnectionService();
-        connectionService.DeleteConnections(Graph, selectedConnections, UndoRedoManager);
+            // 2. ノードを削除
+            var selectedNodes = selectedItems.OfType<EditorNode>().ToList();
+            foreach (var node in selectedNodes)
+            {
+                var action = new DeleteNodeAction(Graph, node);
+                UndoRedoManager.ExecuteAction(action);
+            }
 
-        NotifyCanExecuteChanged();
+            Graph.SelectionManager.ClearSelection();
+            NotifyCanExecuteChanged();
+        }
+        finally
+        {
+            UndoRedoManager.EndTransaction();
+        }
+
+        if (DataContext is ViewModels.MainWindowViewModel viewModel)
+        {
+            viewModel.NotifyUndoRedoCanExecuteChanged();
+        }
     }
 
     #endregion

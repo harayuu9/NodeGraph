@@ -59,12 +59,20 @@ public class ConnectionService : IConnectionService
             return false;
 
         // SingleConnectPortの場合は既存接続を削除
-        DisconnectIfSingleConnect(graph, inputPort, undoRedoManager);
-        DisconnectIfSingleConnect(graph, outputPort, undoRedoManager);
+        undoRedoManager.BeginTransaction();
+        try
+        {
+            DisconnectIfSingleConnect(graph, inputPort, undoRedoManager);
+            DisconnectIfSingleConnect(graph, outputPort, undoRedoManager);
 
-        // Undo/Redo対応で接続を作成
-        var action = new CreateConnectionAction(graph, outputNode, outputPort, inputNode, inputPort);
-        undoRedoManager.ExecuteAction(action);
+            // Undo/Redo対応で接続を作成
+            var action = new CreateConnectionAction(graph, outputNode, outputPort, inputNode, inputPort);
+            undoRedoManager.ExecuteAction(action);
+        }
+        finally
+        {
+            undoRedoManager.EndTransaction();
+        }
 
         return true;
     }
@@ -86,10 +94,18 @@ public class ConnectionService : IConnectionService
         System.Collections.Generic.IEnumerable<EditorConnection> connections,
         UndoRedoManager undoRedoManager)
     {
-        foreach (var connection in connections)
+        undoRedoManager.BeginTransaction();
+        try
         {
-            var action = new DeleteConnectionAction(graph, connection);
-            undoRedoManager.ExecuteAction(action);
+            foreach (var connection in connections)
+            {
+                var action = new DeleteConnectionAction(graph, connection);
+                undoRedoManager.ExecuteAction(action);
+            }
+        }
+        finally
+        {
+            undoRedoManager.EndTransaction();
         }
     }
 

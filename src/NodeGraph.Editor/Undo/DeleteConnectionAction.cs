@@ -19,12 +19,17 @@ public class DeleteConnectionAction : IUndoableAction
     public void Execute()
     {
         // モデルレベルの接続を削除
-        var sourcePort = _connection.SourcePort.Port as Model.OutputPort;
-        var targetPort = _connection.TargetPort.Port as Model.InputPort;
-
-        if (sourcePort != null && targetPort != null)
+        if (_connection.SourcePort.Port is Model.OutputPort outputPort && _connection.TargetPort.Port is Model.InputPort inputPort)
         {
-            targetPort.Disconnect(sourcePort);
+            // データポートの接続解除（双方向）
+            inputPort.Disconnect(outputPort);
+            outputPort.Disconnect(inputPort);
+        }
+        else if (_connection.SourcePort.Port is Model.ExecOutPort execOutPort && _connection.TargetPort.Port is Model.ExecInPort execInPort)
+        {
+            // Execポートの接続解除（双方向）
+            execOutPort.Disconnect(execInPort);
+            execInPort.Disconnect(execOutPort);
         }
 
         // UIレベルの接続を削除
@@ -34,12 +39,15 @@ public class DeleteConnectionAction : IUndoableAction
     public void Undo()
     {
         // モデルレベルの接続を復元
-        var sourcePort = _connection.SourcePort.Port as Model.OutputPort;
-        var targetPort = _connection.TargetPort.Port as Model.InputPort;
-
-        if (sourcePort != null && targetPort != null)
+        if (_connection.SourcePort.Port is Model.OutputPort outputPort && _connection.TargetPort.Port is Model.InputPort inputPort)
         {
-            targetPort.Connect(sourcePort);
+            // データポートの接続
+            inputPort.Connect(outputPort);
+        }
+        else if (_connection.SourcePort.Port is Model.ExecOutPort execOutPort && _connection.TargetPort.Port is Model.ExecInPort execInPort)
+        {
+            // Execポートの接続
+            execOutPort.Connect(execInPort);
         }
 
         // UIレベルの接続を復元

@@ -1,6 +1,6 @@
 namespace NodeGraph.Model;
 
-[Node(HasExecIn = false, HasExecOut = false)]
+[Node(HasExecIn = true, HasExecOut = true)]
 public partial class FloatAddNode
 {
     [Input] private float _a = 0f;
@@ -8,9 +8,10 @@ public partial class FloatAddNode
 
     [Output] private float _result;
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a + _b;
-        return Task.CompletedTask;
+        await Task.Delay(500);
+        await context.ExecuteOutAsync(0);
     }
 }

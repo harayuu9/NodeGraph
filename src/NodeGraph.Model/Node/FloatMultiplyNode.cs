@@ -1,6 +1,6 @@
 namespace NodeGraph.Model;
 
-[Node(HasExecIn = false, HasExecOut = false)]
+[Node]
 public partial class FloatMultiplyNode
 {
     [Input] private float _a = 1f;
@@ -9,9 +9,9 @@ public partial class FloatMultiplyNode
     [Output] private float _result;
     public float Result => _result;
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _result = _a * _b;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

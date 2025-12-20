@@ -128,11 +128,15 @@ public class GraphCloneTest
         Assert.Equal(42.5f, value);
 
         // 実行して値が正しく使われることを確認
+        var start = graph.CreateNode<StartNode>();
         var result = graph.CreateNode<FloatResultNode>();
         result.ConnectInput(0, constant, 0);
+        start.ExecOutPorts[0].Connect(result.ExecInPorts[0]);
 
+        var clonedStart = clonedGraph.CreateNode<StartNode>();
         var clonedResult = clonedGraph.CreateNode<FloatResultNode>();
         clonedResult.ConnectInput(0, clonedConstant, 0);
+        clonedStart.ExecOutPorts[0].Connect(clonedResult.ExecInPorts[0]);
 
         await graph.CreateExecutor().ExecuteAsync();
         await clonedGraph.CreateExecutor().ExecuteAsync();
