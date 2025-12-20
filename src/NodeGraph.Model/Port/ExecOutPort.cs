@@ -1,7 +1,7 @@
 namespace NodeGraph.Model;
 
 /// <summary>
-/// 実行フロー出力ポート。単一接続のみ可能です（1つの出力から1つの入力へ）。
+/// 実行フロー出力ポート。単一接続のみ（1つの出力から1つの入力へ）。
 /// </summary>
 public class ExecOutPort : SingleConnectPort
 {
@@ -18,13 +18,14 @@ public class ExecOutPort : SingleConnectPort
     }
 
     /// <summary>
-    /// 接続されているExecInPortのノードに実行フローを送信します。
+    /// 接続先のノードを返します。接続がない場合はnullを返します。
     /// </summary>
-    internal IEnumerable<Node> GetExecutionTargets()
+    internal Node? GetExecutionTarget()
     {
         if (ConnectedPort is ExecInPort execInPort)
         {
-            yield return execInPort.Parent;
+            return execInPort.Parent;
         }
+        return null;
     }
 }

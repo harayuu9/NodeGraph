@@ -6,6 +6,7 @@ namespace NodeGraph.UnitTest;
 /// <summary>
 /// 実行フロー制御のテスト
 /// </summary>
+[Collection("Sequential")]
 public class ExecutionFlowTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
@@ -62,22 +63,25 @@ public class ExecutionFlowTest
 
         var executor = graph.CreateExecutor();
 
-        // 実行されたノードを追跡
-        var executedNodes = new List<string>();
+        // 実行されたノードを追跡（実行フローノードのみカウント）
+        var execFlowNodes = new List<string>();
         await executor.ExecuteAsync(
             onExecute: node =>
             {
-                executedNodes.Add(node.GetType().Name);
+                if (node.HasExec)
+                {
+                    execFlowNodes.Add(node.GetType().Name);
+                }
             }
         );
 
         // StartNodeとIFNodeとprintTrueが実行されることを確認
-        Assert.Contains("StartNode", executedNodes);
-        Assert.Contains("IFNode", executedNodes);
-        Assert.Contains("PrintNode", executedNodes);
+        Assert.Contains("StartNode", execFlowNodes);
+        Assert.Contains("IFNode", execFlowNodes);
+        Assert.Contains("PrintNode", execFlowNodes);
 
         // printTrueが1回だけ実行されることを確認（printFalseは実行されない）
-        var printNodeCount = executedNodes.Count(n => n == "PrintNode");
+        var printNodeCount = execFlowNodes.Count(n => n == "PrintNode");
         Assert.Equal(1, printNodeCount);
     }
 
@@ -110,16 +114,20 @@ public class ExecutionFlowTest
 
         var executor = graph.CreateExecutor();
 
-        var executedNodes = new List<string>();
+        // 実行フローノードのみカウント
+        var execFlowNodes = new List<string>();
         await executor.ExecuteAsync(
             onExecute: node =>
             {
-                executedNodes.Add(node.GetType().Name);
+                if (node.HasExec)
+                {
+                    execFlowNodes.Add(node.GetType().Name);
+                }
             }
         );
 
         // FalseブランチのPrintNodeだけが実行されることを確認
-        var printNodeCount = executedNodes.Count(n => n == "PrintNode");
+        var printNodeCount = execFlowNodes.Count(n => n == "PrintNode");
         Assert.Equal(1, printNodeCount);
     }
 
@@ -141,9 +149,6 @@ public class ExecutionFlowTest
         printBody.ConnectInput(0, bodyMessage, 0);
         loopNode.ExecOutPorts[0].Connect(printBody.ExecInPorts[0]);
 
-        // PrintNodeからLoopNodeへのループバック
-        printBody.ExecOutPorts[0].Connect(loopNode.ExecInPorts[0]);
-
         // ループ完了後のノード
         var printCompleted = graph.CreateNode<PrintNode>();
         var messageNode = graph.CreateNode<StringConstantNode>();
@@ -153,30 +158,37 @@ public class ExecutionFlowTest
 
         var executor = graph.CreateExecutor();
 
-        var executedNodes = new List<string>();
+        // 実行フローノードのみカウント
+        var execFlowNodes = new List<string>();
         await executor.ExecuteAsync(
             onExecute: node =>
             {
-                var nodeName = node.GetType().Name;
-                executedNodes.Add(nodeName);
-                _testOutputHelper.WriteLine($"Executing: {nodeName}");
+                if (node.HasExec)
+                {
+                    var nodeName = node.GetType().Name;
+                    execFlowNodes.Add(nodeName);
+                    _testOutputHelper.WriteLine($"Executing: {nodeName}");
+                }
             },
             onExecuted: node =>
             {
-                _testOutputHelper.WriteLine($"Completed: {node.GetType().Name}");
+                if (node.HasExec)
+                {
+                    _testOutputHelper.WriteLine($"Completed: {node.GetType().Name}");
+                }
             }
         );
 
-        _testOutputHelper.WriteLine($"Total executions: {executedNodes.Count}");
-        _testOutputHelper.WriteLine($"LoopNode executions: {executedNodes.Count(n => n == "LoopNode")}");
-        _testOutputHelper.WriteLine($"PrintNode executions: {executedNodes.Count(n => n == "PrintNode")}");
+        _testOutputHelper.WriteLine($"Total executions: {execFlowNodes.Count}");
+        _testOutputHelper.WriteLine($"LoopNode executions: {execFlowNodes.Count(n => n == "LoopNode")}");
+        _testOutputHelper.WriteLine($"PrintNode executions: {execFlowNodes.Count(n => n == "PrintNode")}");
 
-        // LoopNodeが4回実行されることを確認（初回 + 3回ループ）
-        var loopNodeCount = executedNodes.Count(n => n == "LoopNode");
-        Assert.Equal(4, loopNodeCount);
+        // LoopNodeは1回だけ実行される（内部でforループを回す）
+        var loopNodeCount = execFlowNodes.Count(n => n == "LoopNode");
+        Assert.Equal(1, loopNodeCount);
 
         // PrintNodeが4回実行されることを確認（ループ本体3回 + 完了後1回）
-        var printNodeCount = executedNodes.Count(n => n == "PrintNode");
+        var printNodeCount = execFlowNodes.Count(n => n == "PrintNode");
         Assert.Equal(4, printNodeCount);
     }
 }
@@ -184,7 +196,7 @@ public class ExecutionFlowTest
 /// <summary>
 /// テスト用のBool定数ノード
 /// </summary>
-[Node("Bool Constant", "Test")]
+[Node("Bool Constant", "Test", HasExecIn = false, HasExecOut = false)]
 public partial class BoolConstantNode
 {
     [Property]

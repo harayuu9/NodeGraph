@@ -46,6 +46,10 @@ public class ConnectionService : IConnectionService
         if (outputNode == null || inputNode == null)
             return false;
 
+        // ポート間の接続可否をチェック
+        if (!CanConnect(outputPort, inputPort))
+            return false;
+
         // 既存の接続があればスキップ
         var existingConnection = graph.Connections.FirstOrDefault(c =>
             c.SourceNode == outputNode && c.SourcePort == outputPort &&
@@ -70,7 +74,8 @@ public class ConnectionService : IConnectionService
     /// </summary>
     public bool CanConnect(EditorPort sourcePort, EditorPort targetPort)
     {
-        return sourcePort.Port.CanConnect(targetPort.Port);
+        // 双方向チェック（Model層のPort.Connect()と同じロジック）
+        return sourcePort.Port.CanConnect(targetPort.Port) && targetPort.Port.CanConnect(sourcePort.Port);
     }
 
     /// <summary>

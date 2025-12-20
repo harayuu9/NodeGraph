@@ -46,7 +46,7 @@ public static class GraphSerializer
         ValidateVersion(graphData.Version);
         return DeserializeGraph(graphData);
     }
-    
+
     /// <summary>
     /// グラフをGraphDataに変換します
     /// </summary>
@@ -67,6 +67,7 @@ public static class GraphSerializer
         // 接続をシリアライズ（入力ポートから出力ポートへの接続を記録）
         foreach (var node in graph.Nodes)
         {
+            // データポートの接続
             for (var i = 0; i < node.InputPorts.Length; i++)
             {
                 var inputPort = node.InputPorts[i];
@@ -85,6 +86,31 @@ public static class GraphSerializer
                             PortId = inputPort.Id.Value
                         }
                     });
+                }
+            }
+
+            // ExecInポートの接続（ExecOutからExecInへ）
+            for (var i = 0; i < node.ExecInPorts.Length; i++)
+            {
+                var execInPort = node.ExecInPorts[i];
+                foreach (var connectedPort in execInPort.ConnectedPorts)
+                {
+                    if (connectedPort is ExecOutPort execOutPort)
+                    {
+                        graphData.Connections.Add(new ConnectionData
+                        {
+                            Source = new ConnectionEndpoint
+                            {
+                                NodeId = execOutPort.Parent.Id.Value,
+                                PortId = execOutPort.Id.Value
+                            },
+                            Target = new ConnectionEndpoint
+                            {
+                                NodeId = node.Id.Value,
+                                PortId = execInPort.Id.Value
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -111,7 +137,7 @@ public static class GraphSerializer
             nodeData.Properties[prop.Name] = value;
         }
 
-        // ポート情報を保存（IDと型情報）
+        // データポート情報を保存
         for (var i = 0; i < node.InputPorts.Length; i++)
         {
             var port = node.InputPorts[i];
@@ -132,6 +158,31 @@ public static class GraphSerializer
                 Id = port.Id.Value,
                 Direction = "output",
                 TypeName = port.PortType.FullName ?? port.PortType.Name,
+                Index = i
+            });
+        }
+
+        // Execポート情報を保存
+        for (var i = 0; i < node.ExecInPorts.Length; i++)
+        {
+            var port = node.ExecInPorts[i];
+            nodeData.Ports.Add(new PortData
+            {
+                Id = port.Id.Value,
+                Direction = "execIn",
+                TypeName = "ExecutionPort",
+                Index = i
+            });
+        }
+
+        for (var i = 0; i < node.ExecOutPorts.Length; i++)
+        {
+            var port = node.ExecOutPorts[i];
+            nodeData.Ports.Add(new PortData
+            {
+                Id = port.Id.Value,
+                Direction = "execOut",
+                TypeName = "ExecutionPort",
                 Index = i
             });
         }
@@ -171,8 +222,10 @@ public static class GraphSerializer
             }
 
             // ポートIDから実際のポートを検索
-            var sourcePort = FindPort(sourceNode.OutputPorts, connection.Source.PortId);
-            var targetPort = FindPort(targetNode.InputPorts, connection.Target.PortId);
+            var sourcePort = FindPort(sourceNode.OutputPorts, connection.Source.PortId)
+                          ?? FindPort(sourceNode.ExecOutPorts, connection.Source.PortId);
+            var targetPort = FindPort(targetNode.InputPorts, connection.Target.PortId)
+                          ?? FindPort(targetNode.ExecInPorts, connection.Target.PortId);
 
             if (sourcePort == null)
             {
@@ -236,7 +289,7 @@ public static class GraphSerializer
     /// </summary>
     private static Node CreateNodeWithPorts(Type nodeType, NodeData nodeData)
     {
-        // ポートIDを入力と出力に分ける
+        // ポートIDを入力、出力、ExecIn、ExecOutに分ける
         var inputPortIds = nodeData.Ports
             .Where(p => p.Direction == "input")
             .OrderBy(p => p.Index)
@@ -249,9 +302,21 @@ public static class GraphSerializer
             .Select(p => new PortId(p.Id))
             .ToArray();
 
+        var execInPortIds = nodeData.Ports
+            .Where(p => p.Direction == "execIn")
+            .OrderBy(p => p.Index)
+            .Select(p => new PortId(p.Id))
+            .ToArray();
+
+        var execOutPortIds = nodeData.Ports
+            .Where(p => p.Direction == "execOut")
+            .OrderBy(p => p.Index)
+            .Select(p => new PortId(p.Id))
+            .ToArray();
+
         // デシリアライズ用コンストラクタでノードを作成
         var nodeId = new NodeId(nodeData.Id);
-        if (Activator.CreateInstance(nodeType, nodeId, inputPortIds, outputPortIds) is not Node node)
+        if (Activator.CreateInstance(nodeType, nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds) is not Node node)
         {
             throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
         }

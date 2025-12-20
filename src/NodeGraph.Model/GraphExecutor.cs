@@ -1,84 +1,75 @@
-﻿namespace NodeGraph.Model;
+using NodeGraph.Model.Pool;
+
+namespace NodeGraph.Model;
 
 public class GraphExecutor : IDisposable
 {
     private readonly Graph _graph;
+    private readonly List<Node> _canParallelNodes;
+    private readonly StartNode? _startNode;
 
     internal GraphExecutor(Graph graph)
     {
         _graph = graph;
-    }
+        _canParallelNodes = new List<Node>();
 
-    public async Task ExecuteAsync(
-    Action<Node>? onExecute = null,
-    Action<Node>? onExecuted = null,
-    Action<Node, Exception>? onExcepted = null,
-    CancellationToken cancellationToken = default)
-    {
-        // Step 1: ExecInを持たないノードを全て並列実行
-        var noExecInNodes = new List<Node>();
-        var contexts = new Dictionary<Node, NodeExecutionContext>();
-
-        foreach (var node in _graph.Nodes)
+        foreach (var node in graph.Nodes)
         {
-            if (!node.HasExecIn)
+            if (!node.HasExec)
             {
-                noExecInNodes.Add(node);
+                _canParallelNodes.Add(node);
             }
         }
 
-        var tasks = new List<Task>(noExecInNodes.Count);
-        foreach (var node in noExecInNodes)
+        _startNode = graph.Nodes.OfType<StartNode>().FirstOrDefault();
+    }
+
+    public async Task ExecuteAsync(
+        Action<Node>? onExecute = null,
+        Action<Node>? onExecuted = null,
+        Action<Node, Exception>? onExcepted = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var tasksRental = ListPool<Task>.Shared.Rent(_canParallelNodes.Count, out var tasks);
+        var context = new NodeExecutionContext(cancellationToken);
+
+        // デリゲートを設定: 指定されたExecOutの接続先を実行
+        context.ExecuteOutDelegate = async (node, index) =>
         {
-            var context = new NodeExecutionContext(cancellationToken);
-            contexts[node] = context;
+            if (index < 0 || index >= node.ExecOutPorts.Length) return;
+
+            var execOutPort = node.ExecOutPorts[index];
+            var target = execOutPort.GetExecutionTarget();
+            if (target != null)
+            {
+                await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExcepted);
+            }
+        };
+
+        // Phase 1: 並列実行（HasExec = false のノード）
+        foreach (var node in _canParallelNodes)
+        {
             tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExcepted));
         }
 
         await Task.WhenAll(tasks);
 
-        // Step 2: StartNodeからExec flowを順次実行
-        foreach (var node in noExecInNodes)
+        // Phase 2: StartNode から実行フロー開始
+        if (_startNode != null)
         {
-            if (node is StartNode)
-            {
-                await ExecuteExecFlowAsync(node, contexts[node], onExecute, onExecuted, onExcepted, cancellationToken);
-            }
-        }
-    }
-
-    private async Task ExecuteExecFlowAsync(
-    Node currentNode,
-    NodeExecutionContext context,
-    Action<Node>? onExecute,
-    Action<Node>? onExecuted,
-    Action<Node, Exception>? onExcepted,
-    CancellationToken cancellationToken)
-    {
-        var execOutPorts = currentNode.ExecOutPorts;
-
-        for (int i = 0; i < execOutPorts.Length; i++)
-        {
-            if (!context.IsTriggered(i)) continue;
-
-            foreach (var target in execOutPorts[i].GetExecutionTargets())
-            {
-                var targetContext = new NodeExecutionContext(cancellationToken);
-                await ExecuteNodeAsync(target, targetContext, onExecute, onExecuted, onExcepted);
-
-                // 再帰的にExec flowを辿る（LoopNode対応）
-                await ExecuteExecFlowAsync(target, targetContext, onExecute, onExecuted, onExcepted, cancellationToken);
-            }
+            await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExcepted);
         }
     }
 
     private async Task ExecuteNodeAsync(
-    Node node,
-    NodeExecutionContext context,
-    Action<Node>? onExecute,
-    Action<Node>? onExecuted,
-    Action<Node, Exception>? onExcepted)
+        Node node,
+        NodeExecutionContext context,
+        Action<Node>? onExecute,
+        Action<Node>? onExecuted,
+        Action<Node, Exception>? onExcepted)
     {
+        var previousNode = context.CurrentNode;
+        context.CurrentNode = node;
         onExecute?.Invoke(node);
         try
         {
@@ -89,6 +80,10 @@ public class GraphExecutor : IDisposable
         {
             onExcepted?.Invoke(node, ex);
             throw;
+        }
+        finally
+        {
+            context.CurrentNode = previousNode;
         }
     }
 

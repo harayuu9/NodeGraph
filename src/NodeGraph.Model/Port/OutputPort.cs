@@ -2,20 +2,24 @@ namespace NodeGraph.Model;
 
 public class OutputPort<T> : OutputPort
 {
+    private T _value;
+
     public OutputPort(Node parent, T value) : base(parent)
     {
-        Value = value;
+        _value = value;
     }
 
     public OutputPort(Node parent, PortId id, T value) : base(parent, id)
     {
-        Value = value;
+        _value = value;
     }
 
     public T Value
     {
+        get => _value;
         set
         {
+            _value = value;
             foreach (var port in ConnectedPorts)
             {
                 if (port is not InputPort inputPort)
