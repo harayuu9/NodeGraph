@@ -1,6 +1,6 @@
 namespace NodeGraph.Model;
 
-[Node("Float", "Constant")]
+[Node("Float", "Constant", HasExecIn = false, HasExecOut = false)]
 public partial class FloatConstantNode
 {
     [Property(DisplayName = "Value", Tooltip = "定数値")]
@@ -12,9 +12,14 @@ public partial class FloatConstantNode
     {
         _value = value;
     }
+
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    {
+        return Task.CompletedTask;
+    }
 }
 
-[Node("Int", "Constant")]
+[Node("Int", "Constant", HasExecIn = false, HasExecOut = false)]
 public partial class IntConstantNode
 {
     [Property(DisplayName = "Value", Tooltip = "定数値")]
@@ -25,5 +30,10 @@ public partial class IntConstantNode
     public void SetValue(int value)
     {
         _value = value;
+    }
+
+    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    {
+        return Task.CompletedTask;
     }
 }

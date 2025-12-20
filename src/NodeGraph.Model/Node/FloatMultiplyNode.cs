@@ -1,6 +1,6 @@
 namespace NodeGraph.Model;
 
-[Node]
+[Node(HasExecIn = false, HasExecOut = false)]
 public partial class FloatMultiplyNode
 {
     [Input] private float _a = 1f;

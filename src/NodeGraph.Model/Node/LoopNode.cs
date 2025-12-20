@@ -2,43 +2,30 @@ namespace NodeGraph.Model;
 
 /// <summary>
 /// 指定回数ループするノード。
+/// ノード内でループを完結し、外部ループバック接続は不要です。
 /// </summary>
-[ExecutionNode("Loop", "Control Flow", "LoopBody", "Completed")]
+[Node("Loop", "Control Flow", "LoopBody", "Completed")]
 public partial class LoopNode
 {
     [Property(DisplayName = "Count", Tooltip = "ループ回数")]
     [Range(0, 100)]
-    [Input]
-    private int _count = 3; // ループ回数（プロパティとして設定）
+    private int _count = 3;
 
     [Output]
-    private int _index; // 現在のループインデックス
-
-    private int _currentIndex = 0;
+    private int _index;
 
     public void SetCount(int count)
     {
         _count = count;
     }
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
-        Console.WriteLine($"LoopNode: _currentIndex={_currentIndex}, _count={_count}");
-        if (_currentIndex < _count)
+        for (int i = 0; i < _count; i++)
         {
-            _index = _currentIndex;
-            _currentIndex++;
-            Console.WriteLine($"LoopNode: Triggering LoopBody (ExecOut[0]), next index will be {_currentIndex}");
-            context.TriggerExecOut(0); // LoopBodyを実行
+            _index = i;
+            await context.ExecuteOutAsync(0); // LoopBody
         }
-        
-        else
-        {
-            Console.WriteLine($"LoopNode: Triggering Completed (ExecOut[1])");
-            _currentIndex = 0; // リセット
-            context.TriggerExecOut(1); // Completedを実行
-        }
-
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(1); // Completed
     }
 }

@@ -67,12 +67,11 @@ public partial class EditorGraph : ObservableObject
                 }
             }
 
-            // Execポートの接続をロード
+            // Execポートの接続をロード（ExecOutPortは単一接続のみ）
             foreach (var editorPort in editorNode.ExecOutPorts)
             {
                 var execOutPort = (ExecOutPort)editorPort.Port;
-                var connectedPort = execOutPort.ConnectedPort;
-                if (connectedPort is ExecInPort execInPort)
+                if (execOutPort.ConnectedPort is ExecInPort execInPort)
                 {
                     // 接続先のEditorNodeとEditorPortを検索
                     var targetNode = nodes.FirstOrDefault(n => n.ExecInPorts.Any(p => p.Port == execInPort));

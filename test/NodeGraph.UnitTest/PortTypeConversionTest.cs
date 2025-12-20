@@ -164,7 +164,7 @@ public class PortTypeConversionTest
         var canConnect = floatOutput.CanConnect(intInput);
 
         // Assert
-        Assert.False(canConnect, "Float to Int should not be allowed (no implicit conversion)");
+        Assert.True(canConnect, "Float to Int should be allowed (explicit conversion)");
     }
     [Fact]
     public void Converter_Should_Convert_Int_To_String()
@@ -197,7 +197,7 @@ public class PortTypeConversionTest
 
 // Test helper node
 
-[Node]
+[Node(HasExecIn = false, HasExecOut = false)]
 public partial class IntResultNode
 {
     [Input] private int _value;

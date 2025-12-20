@@ -1,8 +1,8 @@
-﻿using NodeGraph.Model;
+using NodeGraph.Model;
 
 namespace NodeGraph.UnitTest;
 
-[Node]
+[Node(HasExecIn = false, HasExecOut = false)]
 public partial class ConstantNode
 {
     [Property]
@@ -20,23 +20,24 @@ public partial class ConstantNode
     }
 }
 
-[Node]
+[Node(HasExecIn = false, HasExecOut = false)]
 public partial class ResultNode
 {
     [Input] private int _value;
     public int Value => _value;
+
     protected override Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         return Task.CompletedTask;
     }
 }
 
-[Node]
+[Node(HasExecIn = false, HasExecOut = false)]
 public partial class AddNode
 {
     [Input] private int _a = 50;
     [Input] private int _b = 100;
-    
+
     [Output] private int _result;
     public int Result => _result;
 

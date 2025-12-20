@@ -1,64 +1,42 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace NodeGraph.Model;
 
-public class NodeExecutionContext
+/// <summary>
+/// ノード実行時のコンテキスト。下流ノードの実行を制御します。
+/// </summary>
+public class NodeExecutionContext(CancellationToken cancellationToken)
 {
-    public Node Node { get; }
-    public CancellationToken CancellationToken { get; }
-
-    private readonly HashSet<int> _triggeredExecOutIndices = [];
-
-    public NodeExecutionContext(Node node, CancellationToken cancellationToken)
-    {
-        Node = node;
-        CancellationToken = cancellationToken;
-    }
+    public readonly CancellationToken CancellationToken = cancellationToken;
 
     /// <summary>
-    /// 指定されたExecOutポートをトリガーします。
+    /// 下流実行デリゲート（GraphExecutorが設定）
     /// </summary>
-    public void TriggerExecOut(int index)
-    {
-        if (Node is not ExecutionNode execNode)
-        {
-            throw new InvalidOperationException("This node is not an ExecutionNode.");
-        }
-
-        if (index < 0 || index >= execNode.ExecOutPorts.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(index));
-        }
-        _triggeredExecOutIndices.Add(index);
-    }
+    internal Func<Node, int, Task>? ExecuteOutDelegate { get; set; }
 
     /// <summary>
-    /// トリガーされたExecOutポートのインデックスを取得します。
-    /// TriggerExecOutが呼ばれていない場合は、全てのExecOutがトリガーされたとみなします。
+    /// 現在実行中のノード
     /// </summary>
-    internal IEnumerable<int> GetTriggeredExecOutIndices()
-    {
-        if (Node is not ExecutionNode execNode)
-        {
-            yield break;
-        }
+    internal Node? CurrentNode { get; set; }
 
-        if (_triggeredExecOutIndices.Count == 0)
+    /// <summary>
+    /// 指定されたExecOutポートの接続先ノードを実行し、完了を待機します。
+    /// 呼び出し時に自動的にFlushOutputs()が呼ばれ、出力値が下流に伝播されます。
+    /// </summary>
+    /// <param name="index">ExecOutポートのインデックス</param>
+    public async Task ExecuteOutAsync(int index)
+    {
+        if (CurrentNode == null) return;
+
+        // 自動フラッシュ: フィールド値をOutputPortへコピー
+        CurrentNode.FlushOutputs();
+
+        // 下流を実行
+        if (ExecuteOutDelegate != null)
         {
-            // デフォルトでは全てのExecOutをトリガー
-            for (int i = 0; i < execNode.ExecOutPorts.Length; i++)
-            {
-                yield return i;
-            }
-        }
-        else
-        {
-            foreach (var index in _triggeredExecOutIndices)
-            {
-                yield return index;
-            }
+            await ExecuteOutDelegate(CurrentNode, index);
         }
     }
 }

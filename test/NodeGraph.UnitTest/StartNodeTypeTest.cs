@@ -13,23 +13,24 @@ public class StartNodeTypeTest
     }
 
     [Fact]
-    public void StartNode_IsExecutionNode()
+    public void StartNode_IsNode()
     {
         var graph = new Graph();
         var start = graph.CreateNode<StartNode>();
 
         _output.WriteLine($"StartNode type: {start.GetType().FullName}");
-        _output.WriteLine($"Is ExecutionNode: {start is ExecutionNode}");
         _output.WriteLine($"Is Node: {start is Node}");
         _output.WriteLine($"Base type: {start.GetType().BaseType?.FullName}");
         _output.WriteLine($"ExecOutPorts count: {start.ExecOutPorts.Length}");
+        _output.WriteLine($"HasExecIn: {start.HasExecIn}");
 
-        Assert.True(start is ExecutionNode);
+        Assert.True(start is Node);
+        Assert.False(start.HasExecIn); // StartNodeはエントリーポイント
         Assert.Single(start.ExecOutPorts);
     }
 
     [Fact]
-    public void StartNode_ExecOut_ConnectsAndReturnsTargets()
+    public void StartNode_ExecOut_ConnectsAndReturnsTarget()
     {
         var graph = new Graph();
         var start = graph.CreateNode<StartNode>();
@@ -41,17 +42,30 @@ public class StartNodeTypeTest
         _output.WriteLine($"Connect result: {connected}");
         _output.WriteLine($"After connect - start.ExecOutPorts[0].ConnectedPort: {start.ExecOutPorts[0].ConnectedPort}");
 
-        var targets = start.ExecOutPorts[0].GetExecutionTargets().ToArray();
-        _output.WriteLine($"Execution targets count: {targets.Length}");
-        if (targets.Length > 0)
-        {
-            _output.WriteLine($"Target[0] type: {targets[0].GetType().Name}");
-        }
+        var target = start.ExecOutPorts[0].GetExecutionTarget();
+        _output.WriteLine($"Execution target: {target?.GetType().Name}");
 
         Assert.True(connected);
         Assert.NotNull(start.ExecOutPorts[0].ConnectedPort);
-        Assert.Single(targets);
-        Assert.Equal(loop, targets[0]);
+        Assert.Equal(loop, target);
+    }
+
+    [Fact]
+    public void ExecOutPort_IsSingleConnection()
+    {
+        var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
+        var loop1 = graph.CreateNode<LoopNode>();
+        var loop2 = graph.CreateNode<LoopNode>();
+
+        // 同じExecOutPortから2回接続すると、最後の接続のみが有効
+        start.ExecOutPorts[0].Connect(loop1.ExecInPorts[0]);
+        start.ExecOutPorts[0].Connect(loop2.ExecInPorts[0]);
+
+        var target = start.ExecOutPorts[0].GetExecutionTarget();
+        _output.WriteLine($"Execution target: {target?.GetType().Name}");
+
+        // 単一接続なのでloop2のみが接続される
+        Assert.Equal(loop2, target);
     }
 }
-
