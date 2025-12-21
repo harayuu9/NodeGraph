@@ -1,18 +1,25 @@
-﻿using Avalonia;
-using System;
+using Avalonia;
 
 namespace NodeGraph.Editor;
 
-sealed class Program
+/// <summary>
+/// NodeGraph.Editorのエントリポイントを提供するクラス
+/// </summary>
+public static class EditorEntryPoint
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
-    [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    /// <summary>
+    /// NodeGraph.Editorアプリケーションを起動します
+    /// </summary>
+    /// <param name="args">コマンドライン引数</param>
+    public static void Run(string[] args)
+    {
+        BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
+    }
 
-    // Avalonia configuration, don't remove; also used by visual designer.
+    /// <summary>
+    /// Avaloniaアプリケーションの構成を行います
+    /// </summary>
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
