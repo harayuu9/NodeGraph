@@ -1,0 +1,9 @@
+{
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": true
+  },
+  "env": {
+    "EDITOR": "code --wait",
+    "VISUAL": "code --wait"
+  }
+}

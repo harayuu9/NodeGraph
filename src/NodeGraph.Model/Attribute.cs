@@ -28,3 +28,47 @@ public class InputAttribute : Attribute;
 
 [AttributeUsage(AttributeTargets.Field)]
 public class OutputAttribute : Attribute;
+
+/// <summary>
+/// クラスに対してJSON関連ノード（Deserialize, Serialize, Schema）を自動生成します。
+/// </summary>
+[AttributeUsage(AttributeTargets.Class)]
+public class JsonNodeAttribute : Attribute
+{
+    /// <summary>
+    /// 生成されるノードの表示名プレフィックス。指定しない場合はクラス名を使用。
+    /// </summary>
+    public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// ノードブラウザでのカテゴリ/ディレクトリ。デフォルトは"Json"。
+    /// </summary>
+    public string Directory { get; set; } = "Json";
+
+    /// <summary>
+    /// スキーマで"additionalProperties": falseを設定するか。デフォルトはtrue。
+    /// </summary>
+    public bool StrictSchema { get; set; } = true;
+}
+
+/// <summary>
+/// JSONプロパティのシリアライズ動作をカスタマイズします。
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public class JsonPropertyAttribute : Attribute
+{
+    /// <summary>
+    /// JSONプロパティ名。指定しない場合はプロパティ名をcamelCaseに変換。
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// JSONスキーマのdescriptionフィールド。
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// プロパティが必須かどうか。デフォルトはtrue（non-nullable型の場合）。
+    /// </summary>
+    public bool Required { get; set; } = true;
+}

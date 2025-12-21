@@ -9,5 +9,5 @@
     "deny": [],
     "ask": []
   },
-  "disableAllHooks": true
+  "disableAllHooks": false
 }
