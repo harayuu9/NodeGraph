@@ -8,17 +8,15 @@ namespace NodeGraph.Editor.Primitives;
 /// </summary>
 public readonly record struct ConnectorLine(Point Start, Point End)
 {
-    public double StartX => Start.X;
-    public double StartY => Start.Y;
-    public double EndX => End.X;
-    public double EndY => End.Y;
-
     public ConnectorLine(double startX, double startY, double endX, double endY)
         : this(new Point(startX, startY), new Point(endX, endY))
     {
     }
 
-    public static ConnectorLine FromPoints(Point start, Point end) => new(start, end);
+    public double StartX => Start.X;
+    public double StartY => Start.Y;
+    public double EndX => End.X;
+    public double EndY => End.Y;
 
     public static ConnectorLine Zero => new(0, 0, 0, 0);
 
@@ -33,5 +31,10 @@ public readonly record struct ConnectorLine(Point Start, Point End)
             var length = Length;
             return length > 0 ? new Vector(dx / length, dy / length) : default;
         }
+    }
+
+    public static ConnectorLine FromPoints(Point start, Point end)
+    {
+        return new ConnectorLine(start, end);
     }
 }

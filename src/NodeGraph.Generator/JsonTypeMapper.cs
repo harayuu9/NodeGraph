@@ -18,10 +18,7 @@ public static class JsonTypeMapper
         {
             var innerType = namedType.TypeArguments[0];
             var innerResult = MapType(innerType, compilation);
-            if (innerResult != null)
-            {
-                return innerResult with { IsNullable = true };
-            }
+            if (innerResult != null) return innerResult with { IsNullable = true };
             return null;
         }
 
@@ -30,10 +27,7 @@ public static class JsonTypeMapper
         {
             var nonNullableType = typeSymbol.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
             var innerResult = MapType(nonNullableType, compilation);
-            if (innerResult != null)
-            {
-                return innerResult with { IsNullable = true };
-            }
+            if (innerResult != null) return innerResult with { IsNullable = true };
             return null;
         }
 
@@ -45,10 +39,7 @@ public static class JsonTypeMapper
         if (typeSymbol is IArrayTypeSymbol arrayType)
         {
             var elementResult = MapType(arrayType.ElementType, compilation);
-            if (elementResult != null)
-            {
-                return new JsonSchemaType("array", Items: elementResult);
-            }
+            if (elementResult != null) return new JsonSchemaType("array", Items: elementResult);
             return null;
         }
 
@@ -62,10 +53,7 @@ public static class JsonTypeMapper
             {
                 var elementType = genericType.TypeArguments[0];
                 var elementResult = MapType(elementType, compilation);
-                if (elementResult != null)
-                {
-                    return new JsonSchemaType("array", Items: elementResult);
-                }
+                if (elementResult != null) return new JsonSchemaType("array", Items: elementResult);
                 return null;
             }
 
@@ -77,11 +65,9 @@ public static class JsonTypeMapper
                 {
                     var valueType = genericType.TypeArguments[1];
                     var valueResult = MapType(valueType, compilation);
-                    if (valueResult != null)
-                    {
-                        return new JsonSchemaType("object", AdditionalProperties: valueResult);
-                    }
+                    if (valueResult != null) return new JsonSchemaType("object", AdditionalProperties: valueResult);
                 }
+
                 return null;
             }
         }
@@ -101,10 +87,8 @@ public static class JsonTypeMapper
         // [JsonNode]属性を持つクラス
         var jsonNodeAttr = compilation.GetTypeByMetadataName("NodeGraph.Model.JsonNodeAttribute");
         if (jsonNodeAttr != null && typeSymbol.GetAttributes().Any(a =>
-            SymbolEqualityComparer.Default.Equals(a.AttributeClass, jsonNodeAttr)))
-        {
+                SymbolEqualityComparer.Default.Equals(a.AttributeClass, jsonNodeAttr)))
             return new JsonSchemaType("object", ObjectTypeSymbol: typeSymbol);
-        }
 
         // publicプロパティを持つクラス/構造体（[JsonNode]なしでも対応）
         if (typeSymbol.TypeKind is TypeKind.Class or TypeKind.Struct &&
@@ -115,10 +99,7 @@ public static class JsonTypeMapper
                 .Any(p => p.DeclaredAccessibility == Accessibility.Public &&
                           p.GetMethod != null && p.SetMethod != null);
 
-            if (hasPublicProperties)
-            {
-                return new JsonSchemaType("object", ObjectTypeSymbol: typeSymbol);
-            }
+            if (hasPublicProperties) return new JsonSchemaType("object", ObjectTypeSymbol: typeSymbol);
         }
 
         // サポートされていない型
@@ -151,13 +132,13 @@ public static class JsonTypeMapper
         var fullName = typeSymbol.ToDisplayString();
         return fullName switch
         {
-            "System.DateTime" => new JsonSchemaType("string", Format: "date-time"),
-            "System.DateTimeOffset" => new JsonSchemaType("string", Format: "date-time"),
-            "System.DateOnly" => new JsonSchemaType("string", Format: "date"),
-            "System.TimeOnly" => new JsonSchemaType("string", Format: "time"),
-            "System.TimeSpan" => new JsonSchemaType("string", Format: "duration"),
-            "System.Guid" => new JsonSchemaType("string", Format: "uuid"),
-            "System.Uri" => new JsonSchemaType("string", Format: "uri"),
+            "System.DateTime" => new JsonSchemaType("string", "date-time"),
+            "System.DateTimeOffset" => new JsonSchemaType("string", "date-time"),
+            "System.DateOnly" => new JsonSchemaType("string", "date"),
+            "System.TimeOnly" => new JsonSchemaType("string", "time"),
+            "System.TimeSpan" => new JsonSchemaType("string", "duration"),
+            "System.Guid" => new JsonSchemaType("string", "uuid"),
+            "System.Uri" => new JsonSchemaType("string", "uri"),
             _ => null
         };
     }

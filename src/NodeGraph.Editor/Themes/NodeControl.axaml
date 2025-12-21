@@ -167,7 +167,7 @@
     <Style Selector="^:selected">
       <Setter Property="BorderBrush" Value="{DynamicResource NodeBorderSelectedBrush}" />
     </Style>
-    
+
     <Style Selector="^[ExecutionStatus=Executing] /template/ Border#Node">
       <Setter Property="BoxShadow" Value="{DynamicResource NodeExecutingBoxShadow}" />
     </Style>

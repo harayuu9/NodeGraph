@@ -10,60 +10,59 @@ namespace NodeGraph.Editor.ViewModels;
 public partial class PropertyViewModel : ObservableObject
 {
     private readonly Node _node;
-    private readonly PropertyDescriptor _descriptor;
-
-    [ObservableProperty] public partial object? Value { get; set; }
 
     public PropertyViewModel(Node node, PropertyDescriptor descriptor)
     {
         _node = node;
-        _descriptor = descriptor;
+        Descriptor = descriptor;
         Value = descriptor.Getter(node);
     }
+
+    [ObservableProperty] public partial object? Value { get; set; }
 
     /// <summary>
     /// プロパティの表示名を取得します。
     /// </summary>
-    public string DisplayName => _descriptor.DisplayName;
+    public string DisplayName => Descriptor.DisplayName;
 
     /// <summary>
     /// プロパティの型を取得します。
     /// </summary>
-    public Type PropertyType => _descriptor.Type;
+    public Type PropertyType => Descriptor.Type;
 
     /// <summary>
     /// プロパティ記述子を取得します。
     /// </summary>
-    public PropertyDescriptor Descriptor => _descriptor;
+    public PropertyDescriptor Descriptor { get; }
 
     /// <summary>
     /// ツールチップテキストを取得します。
     /// </summary>
-    public string? Tooltip => _descriptor.Tooltip;
+    public string? Tooltip => Descriptor.Tooltip;
 
     /// <summary>
     /// 読み取り専用かどうかを取得します。
     /// </summary>
-    public bool IsReadOnly => _descriptor.HasAttribute<ReadOnlyAttribute>();
+    public bool IsReadOnly => Descriptor.HasAttribute<ReadOnlyAttribute>();
 
     partial void OnValueChanged(object? value)
     {
         if (value == null)
         {
-            _descriptor.Setter(_node, null);
+            Descriptor.Setter(_node, null);
             return;
         }
 
         // 型変換を行う
         try
         {
-            var convertedValue = Convert.ChangeType(value, _descriptor.Type);
-            _descriptor.Setter(_node, convertedValue);
+            var convertedValue = Convert.ChangeType(value, Descriptor.Type);
+            Descriptor.Setter(_node, convertedValue);
         }
         catch (Exception)
         {
             // 変換失敗時はそのまま渡す（元のSetterでエラーが出る可能性がある）
-            _descriptor.Setter(_node, value);
+            Descriptor.Setter(_node, value);
         }
     }
 
@@ -72,6 +71,6 @@ public partial class PropertyViewModel : ObservableObject
     /// </summary>
     public void RefreshValue()
     {
-        Value = _descriptor.Getter(_node);
+        Value = Descriptor.Getter(_node);
     }
 }

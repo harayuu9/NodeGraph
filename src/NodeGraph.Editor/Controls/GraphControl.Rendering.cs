@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using NodeGraph.Editor.Models;
 
 namespace NodeGraph.Editor.Controls;
 

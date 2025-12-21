@@ -22,7 +22,10 @@ public static class GraphSerializer
     /// <summary>
     /// グラフをYAMLファイルに保存します
     /// </summary>
-    public static void SaveToYaml(Graph graph, string filePath) => File.WriteAllText(filePath, Serialize(graph));
+    public static void SaveToYaml(Graph graph, string filePath)
+    {
+        File.WriteAllText(filePath, Serialize(graph));
+    }
 
     public static string Serialize(Graph graph)
     {
@@ -72,7 +75,6 @@ public static class GraphSerializer
             {
                 var inputPort = node.InputPorts[i];
                 if (inputPort is SingleConnectPort { ConnectedPort: not null } singlePort)
-                {
                     graphData.Connections.Add(new ConnectionData
                     {
                         Source = new ConnectionEndpoint
@@ -86,7 +88,6 @@ public static class GraphSerializer
                             PortId = inputPort.Id.Value
                         }
                     });
-                }
             }
 
             // ExecInポートの接続（ExecOutからExecInへ）
@@ -94,9 +95,7 @@ public static class GraphSerializer
             {
                 var execInPort = node.ExecInPorts[i];
                 foreach (var connectedPort in execInPort.ConnectedPorts)
-                {
                     if (connectedPort is ExecOutPort execOutPort)
-                    {
                         graphData.Connections.Add(new ConnectionData
                         {
                             Source = new ConnectionEndpoint
@@ -110,8 +109,6 @@ public static class GraphSerializer
                                 PortId = execInPort.Id.Value
                             }
                         });
-                    }
-                }
             }
         }
 
@@ -210,34 +207,26 @@ public static class GraphSerializer
         foreach (var connection in graphData.Connections)
         {
             if (!nodeMap.TryGetValue(connection.Source.NodeId, out var sourceNode))
-            {
                 throw new InvalidOperationException(
                     $"Source node {connection.Source.NodeId} not found");
-            }
 
             if (!nodeMap.TryGetValue(connection.Target.NodeId, out var targetNode))
-            {
                 throw new InvalidOperationException(
                     $"Target node {connection.Target.NodeId} not found");
-            }
 
             // ポートIDから実際のポートを検索
             var sourcePort = FindPort(sourceNode.OutputPorts, connection.Source.PortId)
-                          ?? FindPort(sourceNode.ExecOutPorts, connection.Source.PortId);
+                             ?? FindPort(sourceNode.ExecOutPorts, connection.Source.PortId);
             var targetPort = FindPort(targetNode.InputPorts, connection.Target.PortId)
-                          ?? FindPort(targetNode.ExecInPorts, connection.Target.PortId);
+                             ?? FindPort(targetNode.ExecInPorts, connection.Target.PortId);
 
             if (sourcePort == null)
-            {
                 throw new InvalidOperationException(
                     $"Source port {connection.Source.PortId} not found in node {sourceNode.GetType().Name}");
-            }
 
             if (targetPort == null)
-            {
                 throw new InvalidOperationException(
                     $"Target port {connection.Target.PortId} not found in node {targetNode.GetType().Name}");
-            }
 
             // 接続を確立
             targetPort.Connect(sourcePort);
@@ -254,11 +243,9 @@ public static class GraphSerializer
         // ノードタイプを検索
         var nodeType = FindNodeType(nodeData.Type);
         if (nodeType == null)
-        {
             throw new InvalidOperationException(
                 $"Node type '{nodeData.Type}' not found. " +
                 $"Make sure the assembly containing this type is loaded.");
-        }
 
         // ノードインスタンスを作成
         var node = CreateNodeWithPorts(nodeType, nodeData);
@@ -316,10 +303,7 @@ public static class GraphSerializer
 
         // デシリアライズ用コンストラクタでノードを作成
         var nodeId = new NodeId(nodeData.Id);
-        if (Activator.CreateInstance(nodeType, nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds) is not Node node)
-        {
-            throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
-        }
+        if (Activator.CreateInstance(nodeType, nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds) is not Node node) throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
 
         return node;
     }
@@ -331,12 +315,9 @@ public static class GraphSerializer
         where T : Port
     {
         foreach (var port in ports)
-        {
             if (port.Id.Value == portId)
-            {
                 return port;
-            }
-        }
+
         return null;
     }
 
@@ -347,19 +328,13 @@ public static class GraphSerializer
     {
         // まず現在のアセンブリから検索
         var type = Type.GetType(typeName);
-        if (type != null)
-        {
-            return type;
-        }
+        if (type != null) return type;
 
         // すべてのロード済みアセンブリから検索
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             type = assembly.GetType(typeName);
-            if (type != null)
-            {
-                return type;
-            }
+            if (type != null) return type;
         }
 
         return null;
@@ -370,16 +345,10 @@ public static class GraphSerializer
     /// </summary>
     private static object? ConvertValue(object? value, Type targetType)
     {
-        if (value == null)
-        {
-            return null;
-        }
+        if (value == null) return null;
 
         // 既に正しい型の場合はそのまま返す
-        if (targetType.IsInstanceOfType(value))
-        {
-            return value;
-        }
+        if (targetType.IsInstanceOfType(value)) return value;
 
         // 型変換を試みる
         try
@@ -400,18 +369,14 @@ public static class GraphSerializer
     {
         if (!Version.TryParse(version, out var fileVersion) ||
             !Version.TryParse(CurrentVersion, out var currentVersion))
-        {
             throw new InvalidOperationException($"Invalid version format: {version}");
-        }
 
         // メジャーバージョンが異なる場合はエラー
         if (fileVersion.Major != currentVersion.Major)
-        {
             throw new InvalidOperationException(
                 $"Incompatible file version: {version}. " +
                 $"Current version: {CurrentVersion}. " +
                 $"Major version mismatch detected. Please use a compatible version or migrate the file.");
-        }
 
         // マイナーバージョンが新しい場合は警告（将来的にはログに出力）
         if (fileVersion.Minor > currentVersion.Minor)

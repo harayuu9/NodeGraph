@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace NodeGraph.Model;
@@ -32,17 +31,11 @@ public static class PortTypeConverterProvider
 
     private static object? GetConverter(Type fromType, Type toType)
     {
-        if (Converters.TryGetValue((fromType, toType), out var converter))
-        {
-            return converter;
-        }
+        if (Converters.TryGetValue((fromType, toType), out var converter)) return converter;
 
         // Try to create converter dynamically
         converter = TryCreateConverter(fromType, toType);
-        if (converter != null)
-        {
-            Converters[(fromType, toType)] = converter;
-        }
+        if (converter != null) Converters[(fromType, toType)] = converter;
 
         return converter;
     }

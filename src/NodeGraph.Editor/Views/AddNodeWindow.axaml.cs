@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,12 +11,12 @@ namespace NodeGraph.Editor.Views;
 
 public partial class AddNodeWindow : Window
 {
-    private AddNodeWindowViewModel? ViewModel => DataContext as AddNodeWindowViewModel;
-
     public AddNodeWindow()
     {
         InitializeComponent();
     }
+
+    private AddNodeWindowViewModel? ViewModel => DataContext as AddNodeWindowViewModel;
 
     /// <summary>
     /// 指定された位置にウィンドウを表示してノードタイプを取得
@@ -33,10 +34,7 @@ public partial class AddNodeWindow : Window
         window.Show();
 
         // ウィンドウが閉じられるまで待機
-        while (window.ViewModel?.SelectedNodeType == null)
-        {
-            await Task.Delay(100);
-        }
+        while (window.ViewModel?.SelectedNodeType == null) await Task.Delay(100);
 
         return window.ViewModel.SelectedNodeType;
     }
@@ -51,10 +49,7 @@ public partial class AddNodeWindow : Window
 
         // TreeViewでのダブルクリックを処理
         var treeView = this.FindControl<TreeView>("NodeTreeView");
-        if (treeView != null)
-        {
-            treeView.DoubleTapped += OnTreeViewDoubleTapped;
-        }
+        if (treeView != null) treeView.DoubleTapped += OnTreeViewDoubleTapped;
 
         // Enterキーでの確定を処理
         KeyDown += OnWindowKeyDown;
@@ -63,7 +58,7 @@ public partial class AddNodeWindow : Window
         Deactivated += OnDeactivated;
     }
 
-    private void OnDeactivated(object? sender, System.EventArgs e)
+    private void OnDeactivated(object? sender, EventArgs e)
     {
         Close();
     }
@@ -73,10 +68,7 @@ public partial class AddNodeWindow : Window
         if (ViewModel?.SelectedItem?.NodeTypeInfo != null)
         {
             ViewModel.ConfirmCommand.Execute(null);
-            if (ViewModel.SelectedNodeType != null)
-            {
-                Close();
-            }
+            if (ViewModel.SelectedNodeType != null) Close();
         }
     }
 
@@ -88,10 +80,7 @@ public partial class AddNodeWindow : Window
             if (ViewModel?.SelectedItem?.NodeTypeInfo != null)
             {
                 ViewModel.ConfirmCommand.Execute(null);
-                if (ViewModel.SelectedNodeType != null)
-                {
-                    Close();
-                }
+                if (ViewModel.SelectedNodeType != null) Close();
             }
 
             e.Handled = true;

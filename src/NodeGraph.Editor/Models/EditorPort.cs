@@ -5,51 +5,46 @@ namespace NodeGraph.Editor.Models;
 
 public partial class EditorPort : ObservableObject
 {
-    private readonly Port _port;
-
     public EditorPort(string name, Port port)
     {
-        _port = port;
+        Port = port;
         Name = name;
-        IsInput = _port is InputPort or ExecInPort;
-        IsExecPort = _port is ExecInPort or ExecOutPort;
-        Value = _port.ValueString;
+        IsInput = Port is InputPort or ExecInPort;
+        IsExecPort = Port is ExecInPort or ExecOutPort;
+        Value = Port.ValueString;
     }
 
     public bool IsInput { get; }
     public bool IsOutput => !IsInput;
     public bool IsExecPort { get; }
 
-    public PortId Id => _port.Id;
-    public Port Port => _port;
+    public PortId Id => Port.Id;
+    public Port Port { get; }
 
     public string Name { get; }
 
-    [ObservableProperty]
-    public partial string Value { get; set; } = string.Empty;
+    [ObservableProperty] public partial string Value { get; set; } = string.Empty;
 
     public string TypeName
     {
         get
         {
             // ExecPortの場合は"Exec"を返す
-            if (_port is ExecInPort or ExecOutPort)
-            {
-                return "Exec";
-            }
+            if (Port is ExecInPort or ExecOutPort) return "Exec";
 
-            var type = _port.GetType();
+            var type = Port.GetType();
             if (type.IsGenericType)
             {
                 var genericArg = type.GetGenericArguments()[0];
                 return genericArg.Name;
             }
+
             return "Unknown";
         }
     }
 
     public void UpdateValue()
     {
-        Value = _port.ValueString;
+        Value = Port.ValueString;
     }
 }

@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace NodeGraph.Model;
 
 /// <summary>
@@ -34,9 +30,6 @@ public class NodeExecutionContext(CancellationToken cancellationToken)
         CurrentNode.FlushOutputs();
 
         // 下流を実行
-        if (ExecuteOutDelegate != null)
-        {
-            await ExecuteOutDelegate(CurrentNode, index);
-        }
+        if (ExecuteOutDelegate != null) await ExecuteOutDelegate(CurrentNode, index);
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Undo;
 
@@ -36,6 +37,6 @@ public interface IConnectionService
     /// <param name="undoRedoManager">Undo/Redoマネージャー</param>
     void DeleteConnections(
         EditorGraph graph,
-        System.Collections.Generic.IEnumerable<EditorConnection> connections,
+        IEnumerable<EditorConnection> connections,
         UndoRedoManager undoRedoManager);
 }

@@ -12,31 +12,31 @@
         CanResize="False"
         SystemDecorations="BorderOnly">
 
-    <Grid RowDefinitions="Auto,*">
-        <!-- 検索ボックス -->
-        <TextBox Grid.Row="0"
-                 Text="{Binding SearchText}"
-                 Watermark="Search nodes..."
-                 BorderThickness="0"
-                 CornerRadius="0"
-                 Margin="0"
-                 Name="SearchBox"/>
+  <Grid RowDefinitions="Auto,*">
+    <!-- 検索ボックス -->
+    <TextBox Grid.Row="0"
+             Text="{Binding SearchText}"
+             Watermark="Search nodes..."
+             BorderThickness="0"
+             CornerRadius="0"
+             Margin="0"
+             Name="SearchBox" />
 
-        <!-- ノードツリー -->
-        <Border Grid.Row="1"
-                BorderThickness="0"
-                CornerRadius="0"
-                Margin="0">
-            <TreeView ItemsSource="{Binding TreeItems}"
-                      SelectedItem="{Binding SelectedItem}"
-                      Name="NodeTreeView">
-                <TreeView.ItemTemplate>
-                    <TreeDataTemplate ItemsSource="{Binding Children}">
-                        <TextBlock Text="{Binding Name}"
-                                   FontWeight="{Binding FontWeight}"/>
-                    </TreeDataTemplate>
-                </TreeView.ItemTemplate>
-            </TreeView>
-        </Border>
-    </Grid>
+    <!-- ノードツリー -->
+    <Border Grid.Row="1"
+            BorderThickness="0"
+            CornerRadius="0"
+            Margin="0">
+      <TreeView ItemsSource="{Binding TreeItems}"
+                SelectedItem="{Binding SelectedItem}"
+                Name="NodeTreeView">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Name}"
+                       FontWeight="{Binding FontWeight}" />
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </Border>
+  </Grid>
 </Window>

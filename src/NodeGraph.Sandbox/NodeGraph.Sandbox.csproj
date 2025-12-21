@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NodeGraph.Editor\NodeGraph.Editor.csproj" />
+        <ProjectReference Include="..\NodeGraph.Editor\NodeGraph.Editor.csproj"/>
         <ProjectReference Include="..\NodeGraph.Generator\NodeGraph.Generator.csproj">
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

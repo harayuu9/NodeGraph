@@ -16,15 +16,13 @@ public struct DisposableBag(int capacity) : IDisposable
         }
         else
         {
-            if (_disposables == null)
-            {
-                _disposables = ArrayPool<IDisposable>.Shared.Rent(capacity);   
-            }
+            if (_disposables == null) _disposables = ArrayPool<IDisposable>.Shared.Rent(capacity);
             if (_count >= _disposables.Length)
             {
                 ArrayPool<IDisposable>.Shared.Return(_disposables);
                 _disposables = ArrayPool<IDisposable>.Shared.Rent(_count * 2);
             }
+
             _disposables[_count++] = item;
         }
     }
@@ -33,16 +31,13 @@ public struct DisposableBag(int capacity) : IDisposable
     {
         if (_disposables == null)
             return;
-        
-        for (var i = 0; i < _count; i++)
-        {
-            _disposables[i].Dispose();
-        }
+
+        for (var i = 0; i < _count; i++) _disposables[i].Dispose();
         ArrayPool<IDisposable>.Shared.Return(_disposables);
         _disposables = null;
         _count = 0;
     }
-    
+
     public void Dispose()
     {
         Clear();
@@ -52,5 +47,8 @@ public struct DisposableBag(int capacity) : IDisposable
 
 public static class DisposableBagExtensions
 {
-    public static void AddTo<T>(this T item, ref DisposableBag bag) where T : IDisposable => bag.Add(item);
+    public static void AddTo<T>(this T item, ref DisposableBag bag) where T : IDisposable
+    {
+        bag.Add(item);
+    }
 }

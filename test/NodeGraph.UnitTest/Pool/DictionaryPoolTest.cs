@@ -95,10 +95,7 @@ public class DictionaryPoolTest
     {
         using var rental = DictionaryPool<string, int>.Shared.Rent(10000, out var dict);
 
-        for (var i = 0; i < 5000; i++)
-        {
-            dict[$"key{i}"] = i;
-        }
+        for (var i = 0; i < 5000; i++) dict[$"key{i}"] = i;
 
         Assert.Equal(5000, dict.Count);
     }
@@ -132,7 +129,6 @@ public class DictionaryPoolTest
         var tasks = new List<Task>();
 
         for (var i = 0; i < 10; i++)
-        {
             tasks.Add(Task.Run(() =>
             {
                 for (var j = 0; j < 100; j++)
@@ -142,7 +138,6 @@ public class DictionaryPoolTest
                     Assert.Single(dict);
                 }
             }));
-        }
 
         await Task.WhenAll(tasks);
     }

@@ -12,9 +12,41 @@ public partial class EditorConnection : ObservableObject, ISelectable
     private readonly Guid _id = Guid.NewGuid();
 
     /// <summary>
-    /// この EditorConnection の一意な識別子
+    /// 接続の終了点X座標
     /// </summary>
-    public object SelectionId => _id;
+    [ObservableProperty] private double _endX;
+
+    /// <summary>
+    /// 接続の終了点Y座標
+    /// </summary>
+    [ObservableProperty] private double _endY;
+
+    /// <summary>
+    /// 接続の開始点X座標
+    /// </summary>
+    [ObservableProperty] private double _startX;
+
+    /// <summary>
+    /// 接続の開始点Y座標
+    /// </summary>
+    [ObservableProperty] private double _startY;
+
+    public EditorConnection(
+        EditorNode sourceNode,
+        EditorPort sourcePort,
+        EditorNode targetNode,
+        EditorPort targetPort)
+    {
+        if (!sourcePort.IsOutput)
+            throw new ArgumentException("Source port must be an output port", nameof(sourcePort));
+        if (!targetPort.IsInput)
+            throw new ArgumentException("Target port must be an input port", nameof(targetPort));
+
+        SourceNode = sourceNode;
+        SourcePort = sourcePort;
+        TargetNode = targetNode;
+        TargetPort = targetPort;
+    }
 
     /// <summary>
     /// 接続元のノード
@@ -37,39 +69,7 @@ public partial class EditorConnection : ObservableObject, ISelectable
     public EditorPort TargetPort { get; }
 
     /// <summary>
-    /// 接続の開始点X座標
+    /// この EditorConnection の一意な識別子
     /// </summary>
-    [ObservableProperty] private double _startX;
-
-    /// <summary>
-    /// 接続の開始点Y座標
-    /// </summary>
-    [ObservableProperty] private double _startY;
-
-    /// <summary>
-    /// 接続の終了点X座標
-    /// </summary>
-    [ObservableProperty] private double _endX;
-
-    /// <summary>
-    /// 接続の終了点Y座標
-    /// </summary>
-    [ObservableProperty] private double _endY;
-
-    public EditorConnection(
-        EditorNode sourceNode,
-        EditorPort sourcePort,
-        EditorNode targetNode,
-        EditorPort targetPort)
-    {
-        if (!sourcePort.IsOutput)
-            throw new ArgumentException("Source port must be an output port", nameof(sourcePort));
-        if (!targetPort.IsInput)
-            throw new ArgumentException("Target port must be an input port", nameof(targetPort));
-
-        SourceNode = sourceNode;
-        SourcePort = sourcePort;
-        TargetNode = targetNode;
-        TargetPort = targetPort;
-    }
+    public object SelectionId => _id;
 }

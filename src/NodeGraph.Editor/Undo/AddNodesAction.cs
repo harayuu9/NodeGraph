@@ -24,9 +24,6 @@ public class AddNodesAction : IUndoableAction
     public void Undo()
     {
         // ノードを削除（接続も削除される）
-        foreach (var node in _nodes)
-        {
-            _graph.RemoveNode(node);
-        }
+        foreach (var node in _nodes) _graph.RemoveNode(node);
     }
 }

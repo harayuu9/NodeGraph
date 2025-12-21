@@ -59,8 +59,13 @@ public class InputPort<T> : InputPort
 
 public abstract class InputPort : SingleConnectPort
 {
-    protected InputPort(Node parent) : base(parent) { }
-    protected InputPort(Node parent, PortId id) : base(parent, id) {}
+    protected InputPort(Node parent) : base(parent)
+    {
+    }
+
+    protected InputPort(Node parent, PortId id) : base(parent, id)
+    {
+    }
 
     internal abstract void SetValueFrom<TSource>(TSource value);
 }

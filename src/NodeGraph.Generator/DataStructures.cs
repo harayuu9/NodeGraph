@@ -16,13 +16,9 @@ public readonly struct PortData
     {
         Type = fieldSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (isInput)
-        {
             PortType = $"global::NodeGraph.Model.InputPort<{Type}>";
-        }
         else
-        {
             PortType = $"global::NodeGraph.Model.OutputPort<{Type}>";
-        }
         RawName = fieldSymbol.Name;
         Name = StringCaseConverter.ToUpperCamelCase(fieldSymbol.Name);
     }

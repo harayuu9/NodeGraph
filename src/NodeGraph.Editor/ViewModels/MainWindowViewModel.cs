@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -17,32 +16,28 @@ namespace NodeGraph.Editor.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly SelectionManager _selectionManager;
-    private readonly UndoRedoManager _undoRedoManager;
+
+    [ObservableProperty] private string _currentTheme = "Default";
+
+    [ObservableProperty] private bool _isDarkTheme;
+
+    [ObservableProperty] private bool _isDefaultTheme = true;
+
+    [ObservableProperty] private bool _isLightTheme;
     private Window? _mainWindow;
 
     [ObservableProperty] private EditorGraph _testGraph;
 
-    [ObservableProperty] private string _currentTheme = "Default";
-
-    [ObservableProperty] private bool _isDefaultTheme = true;
-
-    [ObservableProperty] private bool _isLightTheme = false;
-
-    [ObservableProperty] private bool _isDarkTheme = false;
-
-    public bool CanUndo => _undoRedoManager.CanUndo();
-    public bool CanRedo => _undoRedoManager.CanRedo();
-
-    public UndoRedoManager UndoRedoManager => _undoRedoManager;
-
 #if DEBUG
-    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager()) { }
+    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager())
+    {
+    }
 #endif
 
     public MainWindowViewModel(SelectionManager selectionManager, UndoRedoManager undoRedoManager)
     {
         _selectionManager = selectionManager;
-        _undoRedoManager = undoRedoManager;
+        UndoRedoManager = undoRedoManager;
 
         // テスト用のグラフを作成
         var graph = new Graph();
@@ -115,27 +110,32 @@ public partial class MainWindowViewModel : ViewModelBase
         TestGraph.Nodes[5].Y = 400;
 
         // 実行フローノードの位置を設定
-        TestGraph.Nodes[6].X = 100;   // start
+        TestGraph.Nodes[6].X = 100; // start
         TestGraph.Nodes[6].Y = 500;
 
-        TestGraph.Nodes[7].X = 350;   // loopNode
+        TestGraph.Nodes[7].X = 350; // loopNode
         TestGraph.Nodes[7].Y = 500;
 
-        TestGraph.Nodes[8].X = 600;   // printLoop
+        TestGraph.Nodes[8].X = 600; // printLoop
         TestGraph.Nodes[8].Y = 550;
 
-        TestGraph.Nodes[9].X = 350;   // loopMessage
+        TestGraph.Nodes[9].X = 350; // loopMessage
         TestGraph.Nodes[9].Y = 650;
 
-        TestGraph.Nodes[10].X = 600;  // printCompleted
+        TestGraph.Nodes[10].X = 600; // printCompleted
         TestGraph.Nodes[10].Y = 750;
 
-        TestGraph.Nodes[11].X = 350;  // completedMessage
+        TestGraph.Nodes[11].X = 350; // completedMessage
         TestGraph.Nodes[11].Y = 800;
 
         // 現在のテーマを取得
         UpdateCurrentTheme();
     }
+
+    public bool CanUndo => UndoRedoManager.CanUndo();
+    public bool CanRedo => UndoRedoManager.CanRedo();
+
+    public UndoRedoManager UndoRedoManager { get; }
 
     [RelayCommand]
     private void SwitchTheme(string themeName)
@@ -191,7 +191,7 @@ public partial class MainWindowViewModel : ViewModelBase
         TestGraph = new EditorGraph(graph, _selectionManager);
 
         // Undo履歴をクリア
-        _undoRedoManager.Clear();
+        UndoRedoManager.Clear();
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
     }
@@ -223,7 +223,7 @@ public partial class MainWindowViewModel : ViewModelBase
             TestGraph = EditorGraph.Load(basePath, _selectionManager);
 
             // Undo履歴をクリア
-            _undoRedoManager.Clear();
+            UndoRedoManager.Clear();
             OnPropertyChanged(nameof(CanUndo));
             OnPropertyChanged(nameof(CanRedo));
         }
@@ -233,13 +233,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task SaveAsync()
     {
         if (string.IsNullOrEmpty(TestGraph.CurrentFilePath))
-        {
             await SaveAsAsync();
-        }
         else
-        {
             TestGraph.Save();
-        }
     }
 
     [RelayCommand]
@@ -274,16 +270,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void Exit()
     {
-        if (_mainWindow != null)
-        {
-            _mainWindow.Close();
-        }
+        if (_mainWindow != null) _mainWindow.Close();
     }
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
     {
-        _undoRedoManager.Undo();
+        UndoRedoManager.Undo();
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
     }
@@ -291,7 +284,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRedo))]
     private void Redo()
     {
-        _undoRedoManager.Redo();
+        UndoRedoManager.Redo();
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
     }
@@ -303,10 +296,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var mermaidGraph = TestGraph.Graph.ToMermaid();
         var clipboard = _mainWindow.Clipboard;
-        if (clipboard != null)
-        {
-            await clipboard.SetTextAsync(mermaidGraph);
-        }
+        if (clipboard != null) await clipboard.SetTextAsync(mermaidGraph);
     }
 
     /// <summary>

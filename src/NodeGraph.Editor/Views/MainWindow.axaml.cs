@@ -10,12 +10,9 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         // ViewModelにWindowを設定
-        this.Opened += (sender, args) =>
+        Opened += (sender, args) =>
         {
-            if (DataContext is MainWindowViewModel viewModel)
-            {
-                viewModel.SetMainWindow(this);
-            }
+            if (DataContext is MainWindowViewModel viewModel) viewModel.SetMainWindow(this);
         };
     }
 }

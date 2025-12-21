@@ -5,8 +5,13 @@ namespace NodeGraph.Model;
 /// </summary>
 public class ExecInPort : MultiConnectPort
 {
-    public ExecInPort(Node parent) : base(parent) { }
-    public ExecInPort(Node parent, PortId id) : base(parent, id) { }
+    public ExecInPort(Node parent) : base(parent)
+    {
+    }
+
+    public ExecInPort(Node parent, PortId id) : base(parent, id)
+    {
+    }
 
     public override Type PortType => typeof(ExecutionPort);
     public override string ValueString => "Exec";

@@ -29,136 +29,144 @@ public static class JsonNodeEmitter
         codeGen.WriteLine($"partial class {typeSymbol.Name}");
         using (codeGen.Scope())
         {
-        codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
+            codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
-        using (codeGen.Scope())
-        {
-            // JsonSerializerOptions
-            codeGen.WriteLine("private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new global::System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
-            codeGen.WriteLine();
-
-            // フィールド宣言
-            codeGen.WriteLine("private string _json = \"\";");
-            foreach (var prop in properties)
-            {
-                var defaultValue = GetDefaultValue(prop.TypeSymbol);
-                codeGen.WriteLine($"private {prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} _{ToCamelCase(prop.Name)}{defaultValue};");
-            }
-            codeGen.WriteLine("private bool _success;");
-            codeGen.WriteLine("private string _error = \"\";");
-            codeGen.WriteLine();
-
-            // デフォルトコンストラクタ
-            codeGen.WriteLine($"public {className}() : base({inputCount}, {outputCount}, {execInCount}, {execOutCount})");
             using (codeGen.Scope())
             {
-                codeGen.WriteLine("InputPorts[0] = new global::NodeGraph.Model.InputPort<string>(this, _json);");
+                // JsonSerializerOptions
+                codeGen.WriteLine("private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new global::System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };");
+                codeGen.WriteLine();
 
-                var outputIndex = 0;
+                // フィールド宣言
+                codeGen.WriteLine("private string _json = \"\";");
                 foreach (var prop in properties)
                 {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<{propType}>(this, _{ToCamelCase(prop.Name)});");
-                    outputIndex++;
+                    var defaultValue = GetDefaultValue(prop.TypeSymbol);
+                    codeGen.WriteLine($"private {prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} _{ToCamelCase(prop.Name)}{defaultValue};");
                 }
-                codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<bool>(this, _success);");
-                codeGen.WriteLine($"OutputPorts[{outputIndex + 1}] = new global::NodeGraph.Model.OutputPort<string>(this, _error);");
 
-                codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this);");
-                codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this);");
-            }
-            codeGen.WriteLine();
+                codeGen.WriteLine("private bool _success;");
+                codeGen.WriteLine("private string _error = \"\";");
+                codeGen.WriteLine();
 
-            // デシリアライズ用コンストラクタ
-            codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("InputPorts[0] = new global::NodeGraph.Model.InputPort<string>(this, inputPortIds[0], _json);");
-
-                var outputIndex = 0;
-                foreach (var prop in properties)
-                {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<{propType}>(this, outputPortIds[{outputIndex}], _{ToCamelCase(prop.Name)});");
-                    outputIndex++;
-                }
-                codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<bool>(this, outputPortIds[{outputIndex}], _success);");
-                codeGen.WriteLine($"OutputPorts[{outputIndex + 1}] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[{outputIndex + 1}], _error);");
-
-                codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[0]);");
-                codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[0]);");
-            }
-            codeGen.WriteLine();
-
-            // BeforeExecute
-            codeGen.WriteLine("protected override void BeforeExecute()");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("_json = ((global::NodeGraph.Model.InputPort<string>)InputPorts[0]).Value;");
-            }
-            codeGen.WriteLine();
-
-            // AfterExecute
-            codeGen.WriteLine("protected override void AfterExecute()");
-            using (codeGen.Scope())
-            {
-                var outputIndex = 0;
-                foreach (var prop in properties)
-                {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<{propType}>)OutputPorts[{outputIndex}]).Value = _{ToCamelCase(prop.Name)};");
-                    outputIndex++;
-                }
-                codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<bool>)OutputPorts[{outputIndex}]).Value = _success;");
-                codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<string>)OutputPorts[{outputIndex + 1}]).Value = _error;");
-            }
-            codeGen.WriteLine();
-
-            // ExecuteCoreAsync
-            codeGen.WriteLine("protected override async global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("try");
+                // デフォルトコンストラクタ
+                codeGen.WriteLine($"public {className}() : base({inputCount}, {outputCount}, {execInCount}, {execOutCount})");
                 using (codeGen.Scope())
                 {
-                    codeGen.WriteLine($"var obj = global::System.Text.Json.JsonSerializer.Deserialize<{fullTypeName}>(_json, JsonOptions);");
-                    codeGen.WriteLine("if (obj != null)");
+                    codeGen.WriteLine("InputPorts[0] = new global::NodeGraph.Model.InputPort<string>(this, _json);");
+
+                    var outputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<{propType}>(this, _{ToCamelCase(prop.Name)});");
+                        outputIndex++;
+                    }
+
+                    codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<bool>(this, _success);");
+                    codeGen.WriteLine($"OutputPorts[{outputIndex + 1}] = new global::NodeGraph.Model.OutputPort<string>(this, _error);");
+
+                    codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this);");
+                    codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this);");
+                }
+
+                codeGen.WriteLine();
+
+                // デシリアライズ用コンストラクタ
+                codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("InputPorts[0] = new global::NodeGraph.Model.InputPort<string>(this, inputPortIds[0], _json);");
+
+                    var outputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<{propType}>(this, outputPortIds[{outputIndex}], _{ToCamelCase(prop.Name)});");
+                        outputIndex++;
+                    }
+
+                    codeGen.WriteLine($"OutputPorts[{outputIndex}] = new global::NodeGraph.Model.OutputPort<bool>(this, outputPortIds[{outputIndex}], _success);");
+                    codeGen.WriteLine($"OutputPorts[{outputIndex + 1}] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[{outputIndex + 1}], _error);");
+
+                    codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[0]);");
+                    codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[0]);");
+                }
+
+                codeGen.WriteLine();
+
+                // BeforeExecute
+                codeGen.WriteLine("protected override void BeforeExecute()");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("_json = ((global::NodeGraph.Model.InputPort<string>)InputPorts[0]).Value;");
+                }
+
+                codeGen.WriteLine();
+
+                // AfterExecute
+                codeGen.WriteLine("protected override void AfterExecute()");
+                using (codeGen.Scope())
+                {
+                    var outputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<{propType}>)OutputPorts[{outputIndex}]).Value = _{ToCamelCase(prop.Name)};");
+                        outputIndex++;
+                    }
+
+                    codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<bool>)OutputPorts[{outputIndex}]).Value = _success;");
+                    codeGen.WriteLine($"((global::NodeGraph.Model.OutputPort<string>)OutputPorts[{outputIndex + 1}]).Value = _error;");
+                }
+
+                codeGen.WriteLine();
+
+                // ExecuteCoreAsync
+                codeGen.WriteLine("protected override async global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("try");
                     using (codeGen.Scope())
                     {
-                        foreach (var prop in properties)
+                        codeGen.WriteLine($"var obj = global::System.Text.Json.JsonSerializer.Deserialize<{fullTypeName}>(_json, JsonOptions);");
+                        codeGen.WriteLine("if (obj != null)");
+                        using (codeGen.Scope())
                         {
-                            codeGen.WriteLine($"_{ToCamelCase(prop.Name)} = obj.{prop.Name};");
+                            foreach (var prop in properties) codeGen.WriteLine($"_{ToCamelCase(prop.Name)} = obj.{prop.Name};");
+                            codeGen.WriteLine("_success = true;");
+                            codeGen.WriteLine("_error = \"\";");
                         }
-                        codeGen.WriteLine("_success = true;");
-                        codeGen.WriteLine("_error = \"\";");
+
+                        codeGen.WriteLine("else");
+                        using (codeGen.Scope())
+                        {
+                            codeGen.WriteLine("_success = false;");
+                            codeGen.WriteLine("_error = \"Deserialization returned null\";");
+                        }
                     }
-                    codeGen.WriteLine("else");
+
+                    codeGen.WriteLine("catch (global::System.Text.Json.JsonException ex)");
                     using (codeGen.Scope())
                     {
                         codeGen.WriteLine("_success = false;");
-                        codeGen.WriteLine("_error = \"Deserialization returned null\";");
+                        codeGen.WriteLine("_error = ex.Message;");
                     }
+
+                    codeGen.WriteLine("await context.ExecuteOutAsync(0);");
                 }
-                codeGen.WriteLine("catch (global::System.Text.Json.JsonException ex)");
-                using (codeGen.Scope())
-                {
-                    codeGen.WriteLine("_success = false;");
-                    codeGen.WriteLine("_error = ex.Message;");
-                }
-                codeGen.WriteLine("await context.ExecuteOutAsync(0);");
+
+                codeGen.WriteLine();
+
+                // ポート名取得メソッド
+                EmitPortNameMethods(codeGen, properties, true);
+
+                // GetDisplayName
+                codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Deserialize\";");
+
+                // GetDirectory
+                codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
             }
-            codeGen.WriteLine();
-
-            // ポート名取得メソッド
-            EmitPortNameMethods(codeGen, properties, true);
-
-            // GetDisplayName
-            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Deserialize\";");
-
-            // GetDirectory
-            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
-        }
-
         }
 
         var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
@@ -187,105 +195,107 @@ public static class JsonNodeEmitter
         codeGen.WriteLine($"partial class {typeSymbol.Name}");
         using (codeGen.Scope())
         {
-        codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
+            codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
-        using (codeGen.Scope())
-        {
-            // JsonSerializerOptions
-            codeGen.WriteLine("private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new global::System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = global::System.Text.Json.JsonNamingPolicy.CamelCase };");
-            codeGen.WriteLine();
-
-            // フィールド宣言
-            foreach (var prop in properties)
-            {
-                var defaultValue = GetDefaultValue(prop.TypeSymbol);
-                codeGen.WriteLine($"private {prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} _{ToCamelCase(prop.Name)}{defaultValue};");
-            }
-            codeGen.WriteLine("private string _json = \"\";");
-            codeGen.WriteLine();
-
-            // デフォルトコンストラクタ
-            codeGen.WriteLine($"public {className}() : base({inputCount}, {outputCount}, {execInCount}, {execOutCount})");
             using (codeGen.Scope())
             {
-                var inputIndex = 0;
+                // JsonSerializerOptions
+                codeGen.WriteLine("private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new global::System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = global::System.Text.Json.JsonNamingPolicy.CamelCase };");
+                codeGen.WriteLine();
+
+                // フィールド宣言
                 foreach (var prop in properties)
                 {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"InputPorts[{inputIndex}] = new global::NodeGraph.Model.InputPort<{propType}>(this, _{ToCamelCase(prop.Name)});");
-                    inputIndex++;
+                    var defaultValue = GetDefaultValue(prop.TypeSymbol);
+                    codeGen.WriteLine($"private {prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} _{ToCamelCase(prop.Name)}{defaultValue};");
                 }
 
-                codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, _json);");
-                codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this);");
-                codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this);");
-            }
-            codeGen.WriteLine();
+                codeGen.WriteLine("private string _json = \"\";");
+                codeGen.WriteLine();
 
-            // デシリアライズ用コンストラクタ
-            codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
-            using (codeGen.Scope())
-            {
-                var inputIndex = 0;
-                foreach (var prop in properties)
+                // デフォルトコンストラクタ
+                codeGen.WriteLine($"public {className}() : base({inputCount}, {outputCount}, {execInCount}, {execOutCount})");
+                using (codeGen.Scope())
                 {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"InputPorts[{inputIndex}] = new global::NodeGraph.Model.InputPort<{propType}>(this, inputPortIds[{inputIndex}], _{ToCamelCase(prop.Name)});");
-                    inputIndex++;
+                    var inputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"InputPorts[{inputIndex}] = new global::NodeGraph.Model.InputPort<{propType}>(this, _{ToCamelCase(prop.Name)});");
+                        inputIndex++;
+                    }
+
+                    codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, _json);");
+                    codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this);");
+                    codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this);");
                 }
 
-                codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[0], _json);");
-                codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[0]);");
-                codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[0]);");
-            }
-            codeGen.WriteLine();
+                codeGen.WriteLine();
 
-            // BeforeExecute
-            codeGen.WriteLine("protected override void BeforeExecute()");
-            using (codeGen.Scope())
-            {
-                var inputIndex = 0;
-                foreach (var prop in properties)
+                // デシリアライズ用コンストラクタ
+                codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
+                using (codeGen.Scope())
                 {
-                    var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    codeGen.WriteLine($"_{ToCamelCase(prop.Name)} = ((global::NodeGraph.Model.InputPort<{propType}>)InputPorts[{inputIndex}]).Value;");
-                    inputIndex++;
+                    var inputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"InputPorts[{inputIndex}] = new global::NodeGraph.Model.InputPort<{propType}>(this, inputPortIds[{inputIndex}], _{ToCamelCase(prop.Name)});");
+                        inputIndex++;
+                    }
+
+                    codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[0], _json);");
+                    codeGen.WriteLine("ExecInPorts[0] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[0]);");
+                    codeGen.WriteLine("ExecOutPorts[0] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[0]);");
                 }
-            }
-            codeGen.WriteLine();
 
-            // AfterExecute
-            codeGen.WriteLine("protected override void AfterExecute()");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("((global::NodeGraph.Model.OutputPort<string>)OutputPorts[0]).Value = _json;");
-            }
-            codeGen.WriteLine();
+                codeGen.WriteLine();
 
-            // ExecuteCoreAsync
-            codeGen.WriteLine("protected override async global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine($"var obj = new {fullTypeName}();");
-                foreach (var prop in properties)
+                // BeforeExecute
+                codeGen.WriteLine("protected override void BeforeExecute()");
+                using (codeGen.Scope())
                 {
-                    codeGen.WriteLine($"obj.{prop.Name} = _{ToCamelCase(prop.Name)};");
+                    var inputIndex = 0;
+                    foreach (var prop in properties)
+                    {
+                        var propType = prop.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        codeGen.WriteLine($"_{ToCamelCase(prop.Name)} = ((global::NodeGraph.Model.InputPort<{propType}>)InputPorts[{inputIndex}]).Value;");
+                        inputIndex++;
+                    }
                 }
-                codeGen.WriteLine("_json = global::System.Text.Json.JsonSerializer.Serialize(obj, JsonOptions);");
-                codeGen.WriteLine("await context.ExecuteOutAsync(0);");
+
+                codeGen.WriteLine();
+
+                // AfterExecute
+                codeGen.WriteLine("protected override void AfterExecute()");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("((global::NodeGraph.Model.OutputPort<string>)OutputPorts[0]).Value = _json;");
+                }
+
+                codeGen.WriteLine();
+
+                // ExecuteCoreAsync
+                codeGen.WriteLine("protected override async global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine($"var obj = new {fullTypeName}();");
+                    foreach (var prop in properties) codeGen.WriteLine($"obj.{prop.Name} = _{ToCamelCase(prop.Name)};");
+                    codeGen.WriteLine("_json = global::System.Text.Json.JsonSerializer.Serialize(obj, JsonOptions);");
+                    codeGen.WriteLine("await context.ExecuteOutAsync(0);");
+                }
+
+                codeGen.WriteLine();
+
+                // ポート名取得メソッド
+                EmitPortNameMethods(codeGen, properties, false);
+
+                // GetDisplayName
+                codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Serialize\";");
+
+                // GetDirectory
+                codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
             }
-            codeGen.WriteLine();
-
-            // ポート名取得メソッド
-            EmitPortNameMethods(codeGen, properties, false);
-
-            // GetDisplayName
-            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Serialize\";");
-
-            // GetDirectory
-            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
-        }
-
         }
 
         var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
@@ -309,83 +319,86 @@ public static class JsonNodeEmitter
         codeGen.WriteLine($"partial class {typeSymbol.Name}");
         using (codeGen.Scope())
         {
-        codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
+            codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
-        using (codeGen.Scope())
-        {
-            // スキーマ定数
-            var escapedSchema = schemaJson.Replace("\"", "\"\"");
-            codeGen.WriteLine($"private const string SchemaJson = @\"{escapedSchema}\";");
-            codeGen.WriteLine();
-
-            // デフォルトコンストラクタ
-            codeGen.WriteLine($"public {className}() : base(0, 1, 0, 0)");
             using (codeGen.Scope())
             {
-                codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, SchemaJson);");
+                // スキーマ定数
+                var escapedSchema = schemaJson.Replace("\"", "\"\"");
+                codeGen.WriteLine($"private const string SchemaJson = @\"{escapedSchema}\";");
+                codeGen.WriteLine();
+
+                // デフォルトコンストラクタ
+                codeGen.WriteLine($"public {className}() : base(0, 1, 0, 0)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, SchemaJson);");
+                }
+
+                codeGen.WriteLine();
+
+                // デシリアライズ用コンストラクタ
+                codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[0], SchemaJson);");
+                }
+
+                codeGen.WriteLine();
+
+                // BeforeExecute
+                codeGen.WriteLine("protected override void BeforeExecute() { }");
+                codeGen.WriteLine();
+
+                // AfterExecute
+                codeGen.WriteLine("protected override void AfterExecute()");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("((global::NodeGraph.Model.OutputPort<string>)OutputPorts[0]).Value = SchemaJson;");
+                }
+
+                codeGen.WriteLine();
+
+                // ExecuteCoreAsync
+                codeGen.WriteLine("protected override global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("return global::System.Threading.Tasks.Task.CompletedTask;");
+                }
+
+                codeGen.WriteLine();
+
+                // ポート名取得メソッド
+                codeGen.WriteLine("public override string GetInputPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid input port index\");");
+                }
+
+                codeGen.WriteLine("public override string GetOutputPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("return index == 0 ? \"Schema\" : throw new global::System.InvalidOperationException(\"Invalid output port index\");");
+                }
+
+                codeGen.WriteLine("public override string GetExecInPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid exec in port index\");");
+                }
+
+                codeGen.WriteLine("public override string GetExecOutPortName(int index)");
+                using (codeGen.Scope())
+                {
+                    codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid exec out port index\");");
+                }
+
+                // GetDisplayName
+                codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Schema\";");
+
+                // GetDirectory
+                codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
             }
-            codeGen.WriteLine();
-
-            // デシリアライズ用コンストラクタ
-            codeGen.WriteLine($"public {className}(global::NodeGraph.Model.NodeId nodeId, global::NodeGraph.Model.PortId[] inputPortIds, global::NodeGraph.Model.PortId[] outputPortIds, global::NodeGraph.Model.PortId[] execInPortIds, global::NodeGraph.Model.PortId[] execOutPortIds) : base(nodeId, inputPortIds, outputPortIds, execInPortIds, execOutPortIds)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("OutputPorts[0] = new global::NodeGraph.Model.OutputPort<string>(this, outputPortIds[0], SchemaJson);");
-            }
-            codeGen.WriteLine();
-
-            // BeforeExecute
-            codeGen.WriteLine("protected override void BeforeExecute() { }");
-            codeGen.WriteLine();
-
-            // AfterExecute
-            codeGen.WriteLine("protected override void AfterExecute()");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("((global::NodeGraph.Model.OutputPort<string>)OutputPorts[0]).Value = SchemaJson;");
-            }
-            codeGen.WriteLine();
-
-            // ExecuteCoreAsync
-            codeGen.WriteLine("protected override global::System.Threading.Tasks.Task ExecuteCoreAsync(global::NodeGraph.Model.NodeExecutionContext context)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("return global::System.Threading.Tasks.Task.CompletedTask;");
-            }
-            codeGen.WriteLine();
-
-            // ポート名取得メソッド
-            codeGen.WriteLine("public override string GetInputPortName(int index)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid input port index\");");
-            }
-
-            codeGen.WriteLine("public override string GetOutputPortName(int index)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("return index == 0 ? \"Schema\" : throw new global::System.InvalidOperationException(\"Invalid output port index\");");
-            }
-
-            codeGen.WriteLine("public override string GetExecInPortName(int index)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid exec in port index\");");
-            }
-
-            codeGen.WriteLine("public override string GetExecOutPortName(int index)");
-            using (codeGen.Scope())
-            {
-                codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid exec out port index\");");
-            }
-
-            // GetDisplayName
-            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Schema\";");
-
-            // GetDirectory
-            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
-        }
-
         }
 
         var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
@@ -407,10 +420,7 @@ public static class JsonNodeEmitter
                 codeGen.WriteLine("switch(index)");
                 using (codeGen.Scope())
                 {
-                    for (var i = 0; i < properties.Count; i++)
-                    {
-                        codeGen.WriteLine($"case {i}: return \"{properties[i].Name}\";");
-                    }
+                    for (var i = 0; i < properties.Count; i++) codeGen.WriteLine($"case {i}: return \"{properties[i].Name}\";");
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid input port index\");");
                 }
             }
@@ -425,10 +435,7 @@ public static class JsonNodeEmitter
                 codeGen.WriteLine("switch(index)");
                 using (codeGen.Scope())
                 {
-                    for (var i = 0; i < properties.Count; i++)
-                    {
-                        codeGen.WriteLine($"case {i}: return \"{properties[i].Name}\";");
-                    }
+                    for (var i = 0; i < properties.Count; i++) codeGen.WriteLine($"case {i}: return \"{properties[i].Name}\";");
                     codeGen.WriteLine($"case {properties.Count}: return \"Success\";");
                     codeGen.WriteLine($"case {properties.Count + 1}: return \"Error\";");
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid output port index\");");
@@ -465,22 +472,13 @@ public static class JsonNodeEmitter
     private static string GetDefaultValue(ITypeSymbol typeSymbol)
     {
         // 値型はデフォルト値が必要な場合
-        if (typeSymbol.IsValueType)
-        {
-            return ""; // デフォルト値で初期化される
-        }
+        if (typeSymbol.IsValueType) return ""; // デフォルト値で初期化される
 
         // 参照型はnull または空文字列
-        if (typeSymbol.SpecialType == SpecialType.System_String)
-        {
-            return " = \"\"";
-        }
+        if (typeSymbol.SpecialType == SpecialType.System_String) return " = \"\"";
 
         // nullable参照型
-        if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
-        {
-            return "";
-        }
+        if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated) return "";
 
         // その他の参照型
         return " = default!";

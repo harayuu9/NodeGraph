@@ -9,13 +9,13 @@ namespace NodeGraph.Model.Pool;
 /// <typeparam name="T">リスト要素の型</typeparam>
 internal class ListPool<T>
 {
-    private readonly ConcurrentBag<List<T>> _pool = [];
-    private readonly int _maxCapacity;
-
     /// <summary>
     /// 共有インスタンスを取得します。
     /// </summary>
     public static readonly ListPool<T> Shared = new();
+
+    private readonly int _maxCapacity;
+    private readonly ConcurrentBag<List<T>> _pool = [];
 
     /// <summary>
     /// 新しいListPoolインスタンスを作成します。
@@ -60,10 +60,7 @@ internal class ListPool<T>
     {
         if (_pool.TryTake(out var list))
         {
-            if (list.Capacity < capacity)
-            {
-                list.Capacity = capacity;
-            }
+            if (list.Capacity < capacity) list.Capacity = capacity;
             return list;
         }
 
@@ -73,10 +70,7 @@ internal class ListPool<T>
     internal void Return(List<T> list)
     {
         // 容量が大きすぎる場合はプールに返却しない（メモリリークを防ぐ）
-        if (list.Capacity > _maxCapacity)
-        {
-            return;
-        }
+        if (list.Capacity > _maxCapacity) return;
 
         list.Clear();
         _pool.Add(list);
@@ -91,29 +85,25 @@ internal class ListPool<T>
 public struct ListPoolRental<T> : IDisposable
 {
     private ListPool<T>? _pool;
-    private List<T>? _list;
 
     internal ListPoolRental(ListPool<T> pool, List<T> list)
     {
         _pool = pool;
-        _list = list;
+        Value = list;
     }
 
     /// <summary>
     /// レンタルしたリストを取得します。
     /// </summary>
-    public List<T>? Value => _list;
+    public List<T>? Value { get; private set; }
 
     /// <summary>
     /// レンタルしたリストをプールに返却します。
     /// </summary>
     public void Dispose()
     {
-        if (_pool != null && _list != null)
-        {
-            _pool.Return(_list);
-        }
+        if (_pool != null && Value != null) _pool.Return(Value);
         _pool = null;
-        _list = null;
+        Value = null;
     }
 }

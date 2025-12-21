@@ -47,10 +47,7 @@ public class GraphSerializerTest
         finally
         {
             // Cleanup
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -71,7 +68,7 @@ public class GraphSerializerTest
 
         var multiply = graph.CreateNode<FloatMultiplyNode>();
         multiply.ConnectInput(0, add, 0); // _a <- add.Result
-        multiply.ConnectInput(1, b, 0);   // _b <- b.Output
+        multiply.ConnectInput(1, b, 0); // _b <- b.Output
 
         var result = graph.CreateNode<FloatResultNode>();
         result.ConnectInput(0, multiply, 0); // _value <- multiply.Result
@@ -110,10 +107,7 @@ public class GraphSerializerTest
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -165,10 +159,7 @@ public class GraphSerializerTest
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -224,10 +215,7 @@ public class GraphSerializerTest
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -259,10 +247,7 @@ public class GraphSerializerTest
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -290,10 +275,7 @@ connections: []
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -319,10 +301,7 @@ connections: []
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 
@@ -350,10 +329,7 @@ connections: []
         }
         finally
         {
-            if (File.Exists(tempFile))
-            {
-                File.Delete(tempFile);
-            }
+            if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
 }

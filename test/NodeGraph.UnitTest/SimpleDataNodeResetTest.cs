@@ -43,8 +43,7 @@ public class SimpleDataNodeResetTest
 
         var executor = graph.CreateExecutor();
         var executedNodes = new List<string>();
-        await executor.ExecuteAsync(
-            onExecute: node =>
+        await executor.ExecuteAsync(node =>
             {
                 executedNodes.Add(node.GetType().Name);
                 _testOutputHelper.WriteLine($"Executing: {node.GetType().Name}");

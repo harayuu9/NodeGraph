@@ -7,7 +7,7 @@ public class UndoRedoManager
     private readonly List<IUndoableAction> _history = [];
     private int _currentIndex = -1;
     private CompositeUndoableAction? _currentTransaction;
-    private int _transactionLevel = 0;
+    private int _transactionLevel;
 
     /// <summary>
     /// トランザクションを開始します。
@@ -15,10 +15,7 @@ public class UndoRedoManager
     /// </summary>
     public void BeginTransaction()
     {
-        if (_transactionLevel == 0)
-        {
-            _currentTransaction = new CompositeUndoableAction();
-        }
+        if (_transactionLevel == 0) _currentTransaction = new CompositeUndoableAction();
         _transactionLevel++;
     }
 
@@ -28,17 +25,14 @@ public class UndoRedoManager
     public void EndTransaction()
     {
         if (_transactionLevel == 0) return;
-        
+
         _transactionLevel--;
         if (_transactionLevel == 0 && _currentTransaction != null)
         {
             var transaction = _currentTransaction;
             _currentTransaction = null;
 
-            if (transaction.HasActions)
-            {
-                AddHistory(transaction);
-            }
+            if (transaction.HasActions) AddHistory(transaction);
         }
     }
 
@@ -58,17 +52,21 @@ public class UndoRedoManager
     private void AddHistory(IUndoableAction action)
     {
         // _currentIndex以降を削除
-        if (_currentIndex + 1 != _history.Count)
-        {
-            _history.RemoveRange(_currentIndex + 1, _history.Count - _currentIndex - 1);
-        }
+        if (_currentIndex + 1 != _history.Count) _history.RemoveRange(_currentIndex + 1, _history.Count - _currentIndex - 1);
 
         _history.Add(action);
         _currentIndex = _history.Count - 1;
     }
 
-    public bool CanUndo() => _currentIndex >= 0 && _transactionLevel == 0;
-    public bool CanRedo() => _currentIndex < _history.Count - 1 && _transactionLevel == 0;
+    public bool CanUndo()
+    {
+        return _currentIndex >= 0 && _transactionLevel == 0;
+    }
+
+    public bool CanRedo()
+    {
+        return _currentIndex < _history.Count - 1 && _transactionLevel == 0;
+    }
 
     public void Undo()
     {
@@ -78,7 +76,7 @@ public class UndoRedoManager
             _currentIndex--;
         }
     }
-    
+
     public void Redo()
     {
         if (CanRedo())

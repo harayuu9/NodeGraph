@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 using Avalonia;
@@ -11,16 +12,21 @@ using CommunityToolkit.Mvvm.Input;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Undo;
+using NodeGraph.Editor.ViewModels;
 using NodeGraph.Model;
+using SelectionChangedEventArgs = NodeGraph.Editor.Selection.SelectionChangedEventArgs;
 
 namespace NodeGraph.Editor.Controls;
 
 [PseudoClasses(":selected")]
 public class NodeControl : ContentControl
 {
-    private bool _isDragging;
-    private Point _dragStartPoint;
+    public static readonly StyledProperty<EditorNode?> NodeProperty = AvaloniaProperty.Register<NodeControl, EditorNode?>(nameof(Node));
+
+    public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus));
     private readonly Dictionary<IPositionable, Point> _selectedNodesStartPositions = [];
+    private Point _dragStartPoint;
+    private bool _isDragging;
 
     public NodeControl()
     {
@@ -47,30 +53,31 @@ public class NodeControl : ContentControl
         DataContext = this;
     }
 
-    public static readonly StyledProperty<EditorNode?> NodeProperty = AvaloniaProperty.Register<NodeControl, EditorNode?>(nameof(Node));
-
     public EditorNode? Node
     {
         get => GetValue(NodeProperty);
         set => SetValue(NodeProperty, value);
     }
-    
-    public static readonly StyledProperty<ExecutionStatus> ExecutionStatusProperty = AvaloniaProperty.Register<NodeControl, ExecutionStatus>(nameof(ExecutionStatus));
 
     public ExecutionStatus ExecutionStatus
     {
         get => GetValue(ExecutionStatusProperty);
         set => SetValue(ExecutionStatusProperty, value);
     }
-    
+
+    // コマンド
+    public ICommand DeleteCommand { get; }
+    public ICommand DuplicateCommand { get; }
+    public ICommand CopyCommand { get; }
+    public ICommand CutCommand { get; }
+    public ICommand DisconnectAllCommand { get; }
+    public ICommand ShowPropertiesCommand { get; }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == NodeProperty)
-        {
-            OnNodeChanged(change.GetOldValue<EditorNode?>(), change.GetNewValue<EditorNode?>());
-        }
+        if (change.Property == NodeProperty) OnNodeChanged(change.GetOldValue<EditorNode?>(), change.GetNewValue<EditorNode?>());
     }
 
     private void OnNodeChanged(EditorNode? oldNode, EditorNode? newNode)
@@ -85,29 +92,24 @@ public class NodeControl : ContentControl
         {
             newNode.PropertyChanged += OnNodePropertyChanged;
             newNode.SelectionManager.SelectionChanged += OnSelectionChanged;
-            
+
             ExecutionStatus = newNode.ExecutionStatus;
             UpdatePseudoClassesFromSelectionManager();
             UpdatePosition(newNode);
         }
     }
 
-    private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (sender is not EditorNode node)
             return;
 
         if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y))
-        {
             UpdatePosition(node);
-        }
-        else if (e.PropertyName == nameof(EditorNode.ExecutionStatus))
-        {
-            ExecutionStatus = node.ExecutionStatus;
-        }
+        else if (e.PropertyName == nameof(EditorNode.ExecutionStatus)) ExecutionStatus = node.ExecutionStatus;
     }
 
-    private void OnSelectionChanged(object? sender, Selection.SelectionChangedEventArgs e)
+    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         UpdatePseudoClassesFromSelectionManager();
     }
@@ -152,21 +154,14 @@ public class NodeControl : ContentControl
             else
             {
                 // 既に選択されていない場合のみ選択し直す（複数選択を維持するため）
-                if (!Node.SelectionManager.IsSelected(Node))
-                {
-                    Node.SelectionManager.Select(Node);
-                }
+                if (!Node.SelectionManager.IsSelected(Node)) Node.SelectionManager.Select(Node);
             }
 
             // 選択されている全ノードの開始位置を記録
             _selectedNodesStartPositions.Clear();
             foreach (var selectedItem in Node.SelectionManager.SelectedItems)
-            {
                 if (selectedItem is IPositionable pos)
-                {
                     _selectedNodesStartPositions[pos] = pos.Point();
-                }
-            }
 
             e.Pointer.Capture(this);
             e.Handled = true;
@@ -181,10 +176,7 @@ public class NodeControl : ContentControl
             var delta = currentPoint - _dragStartPoint;
 
             // GraphControlの変換を考慮
-            if (parent.GetVisualParent() is GraphControl graphControl)
-            {
-                delta /= graphControl.Zoom;
-            }
+            if (parent.GetVisualParent() is GraphControl graphControl) delta /= graphControl.Zoom;
 
             // 選択されている全ノードを同時に移動
             foreach (var (editorNode, startPosition) in _selectedNodesStartPositions)
@@ -204,7 +196,7 @@ public class NodeControl : ContentControl
             var graphControl = FindGraphControl();
             if (graphControl == null)
                 return;
-            
+
             // 移動があった場合のみアクションを登録
             if (_selectedNodesStartPositions.Count > 0)
             {
@@ -237,10 +229,7 @@ public class NodeControl : ContentControl
                     var action = new MoveNodesAction(nodes, newPositions);
                     graphControl.UndoRedoManager!.ExecuteAction(action);
 
-                    if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
-                    {
-                        viewModel.NotifyUndoRedoCanExecuteChanged();
-                    }
+                    if (graphControl.DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
                 }
             }
 
@@ -251,16 +240,11 @@ public class NodeControl : ContentControl
         }
     }
 
-    // コマンド
-    public ICommand DeleteCommand { get; }
-    public ICommand DuplicateCommand { get; }
-    public ICommand CopyCommand { get; }
-    public ICommand CutCommand { get; }
-    public ICommand DisconnectAllCommand { get; }
-    public ICommand ShowPropertiesCommand { get; }
-
     // 削除コマンド
-    private bool CanExecuteDelete() => Node != null;
+    private bool CanExecuteDelete()
+    {
+        return Node != null;
+    }
 
     private void ExecuteDelete()
     {
@@ -283,7 +267,10 @@ public class NodeControl : ContentControl
     }
 
     // 複製コマンド
-    private bool CanExecuteDuplicate() => Node != null;
+    private bool CanExecuteDuplicate()
+    {
+        return Node != null;
+    }
 
     private void ExecuteDuplicate()
     {
@@ -306,14 +293,14 @@ public class NodeControl : ContentControl
         var duplicatedNodes = graphControl.DuplicateSelectedNodes(selectedNodes);
 
         // 成功時はUIを更新
-        if (duplicatedNodes != null && graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
+        if (duplicatedNodes != null && graphControl.DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
     }
 
     // コピーコマンド
-    private bool CanExecuteCopy() => Node != null;
+    private bool CanExecuteCopy()
+    {
+        return Node != null;
+    }
 
     private void ExecuteCopy()
     {
@@ -334,7 +321,10 @@ public class NodeControl : ContentControl
     }
 
     // カットコマンド
-    private bool CanExecuteCut() => Node != null;
+    private bool CanExecuteCut()
+    {
+        return Node != null;
+    }
 
     private void ExecuteCut()
     {
@@ -355,7 +345,10 @@ public class NodeControl : ContentControl
     }
 
     // すべての接続を解除コマンド
-    private bool CanExecuteDisconnectAll() => Node != null;
+    private bool CanExecuteDisconnectAll()
+    {
+        return Node != null;
+    }
 
     private void ExecuteDisconnectAll()
     {
@@ -370,14 +363,14 @@ public class NodeControl : ContentControl
         var action = new DisconnectAllAction(graphControl.Graph, Node);
         graphControl.UndoRedoManager!.ExecuteAction(action);
 
-        if (graphControl.DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
+        if (graphControl.DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
     }
 
     // プロパティ表示コマンド（将来的にプロパティウィンドウを開く）
-    private bool CanExecuteShowProperties() => Node != null;
+    private bool CanExecuteShowProperties()
+    {
+        return Node != null;
+    }
 
     private void ExecuteShowProperties()
     {
@@ -385,5 +378,8 @@ public class NodeControl : ContentControl
         // 将来的にはプロパティウィンドウを開く処理を実装
     }
 
-    private GraphControl? FindGraphControl() => this.FindAncestorOfType<GraphControl>();
+    private GraphControl? FindGraphControl()
+    {
+        return this.FindAncestorOfType<GraphControl>();
+    }
 }

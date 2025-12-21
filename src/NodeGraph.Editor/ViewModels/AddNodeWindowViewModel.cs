@@ -1,4 +1,3 @@
-using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Media;
@@ -13,14 +12,12 @@ namespace NodeGraph.Editor.ViewModels;
 /// </summary>
 public partial class NodeTreeItem : ObservableObject
 {
-    [ObservableProperty]
-    public partial string Name { get; set; } = string.Empty;
+    [ObservableProperty] public partial string Name { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial bool IsExpanded { get; set; } = true;
+    [ObservableProperty] public partial bool IsExpanded { get; set; } = true;
 
-    [ObservableProperty]
-    public partial bool IsSelected { get; set; }
+    [ObservableProperty] public partial bool IsSelected { get; set; }
+
     public ObservableCollection<NodeTreeItem> Children { get; } = [];
 
     /// <summary>
@@ -46,6 +43,12 @@ public partial class AddNodeWindowViewModel : ViewModelBase
 {
     private readonly NodeTypeService _nodeTypeService;
 
+    public AddNodeWindowViewModel(NodeTypeService nodeTypeService)
+    {
+        _nodeTypeService = nodeTypeService;
+        UpdateTree();
+    }
+
     [ObservableProperty] public partial string SearchText { get; set; } = string.Empty;
     [ObservableProperty] public partial NodeTreeItem? SelectedItem { get; set; }
     public ObservableCollection<NodeTreeItem> TreeItems { get; } = [];
@@ -54,12 +57,6 @@ public partial class AddNodeWindowViewModel : ViewModelBase
     /// 選択されたノードタイプ（ウィンドウを閉じる時に設定される）
     /// </summary>
     public NodeTypeInfo? SelectedNodeType { get; private set; }
-
-    public AddNodeWindowViewModel(NodeTypeService nodeTypeService)
-    {
-        _nodeTypeService = nodeTypeService;
-        UpdateTree();
-    }
 
     partial void OnSearchTextChanged(string value)
     {
@@ -77,19 +74,14 @@ public partial class AddNodeWindowViewModel : ViewModelBase
         {
             // フラット表示：全ノードを並列に表示
             foreach (var nodeType in filteredNodes)
-            {
                 TreeItems.Add(new NodeTreeItem
                 {
                     Name = $"{nodeType.Directory}/{nodeType.DisplayName}",
                     NodeTypeInfo = nodeType
                 });
-            }
 
             // 検索結果が1つだけの場合は自動選択
-            if (filteredNodes.Count == 1)
-            {
-                SelectedItem = TreeItems[0];
-            }
+            if (filteredNodes.Count == 1) SelectedItem = TreeItems[0];
         }
         else
         {
@@ -109,13 +101,11 @@ public partial class AddNodeWindowViewModel : ViewModelBase
 
                 // 子ノードを追加
                 foreach (var nodeType in group)
-                {
                     directoryItem.Children.Add(new NodeTreeItem
                     {
                         Name = nodeType.DisplayName,
                         NodeTypeInfo = nodeType
                     });
-                }
 
                 TreeItems.Add(directoryItem);
             }
@@ -125,10 +115,7 @@ public partial class AddNodeWindowViewModel : ViewModelBase
     [RelayCommand]
     private void Confirm()
     {
-        if (SelectedItem?.NodeTypeInfo != null)
-        {
-            SelectedNodeType = SelectedItem.NodeTypeInfo;
-        }
+        if (SelectedItem?.NodeTypeInfo != null) SelectedNodeType = SelectedItem.NodeTypeInfo;
     }
 
     /// <summary>

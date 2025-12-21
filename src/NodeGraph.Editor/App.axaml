@@ -4,20 +4,20 @@
              xmlns:local="using:NodeGraph.Editor"
              xmlns:converters="using:NodeGraph.Editor.Converters"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+  <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
+  <Application.DataTemplates>
+    <local:ViewLocator />
+  </Application.DataTemplates>
 
-    <Application.Resources>
-        <converters:TypeToColorConverter x:Key="TypeToColorConverter"/>
-    </Application.Resources>
+  <Application.Resources>
+    <converters:TypeToColorConverter x:Key="TypeToColorConverter" />
+  </Application.Resources>
 
-    <Application.Styles>
-        <FluentTheme />
-        
-        <StyleInclude Source="avares://NodeGraph.Editor/Themes/NodeGraphEditorTheme.axaml" />
-        <StyleInclude Source="avares://NodeGraph.Editor/Themes/SvgPath.axaml" />
-    </Application.Styles>
+  <Application.Styles>
+    <FluentTheme />
+
+    <StyleInclude Source="avares://NodeGraph.Editor/Themes/NodeGraphEditorTheme.axaml" />
+    <StyleInclude Source="avares://NodeGraph.Editor/Themes/SvgPath.axaml" />
+  </Application.Styles>
 </Application>

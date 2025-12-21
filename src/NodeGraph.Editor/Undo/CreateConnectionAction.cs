@@ -1,4 +1,5 @@
 using NodeGraph.Editor.Models;
+using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Undo;
 
@@ -31,16 +32,12 @@ public class CreateConnectionAction : IUndoableAction
     public void Execute()
     {
         // モデルレベルの接続を作成
-        if (_sourcePort.Port is Model.OutputPort outputPort && _targetPort.Port is Model.InputPort inputPort)
-        {
+        if (_sourcePort.Port is OutputPort outputPort && _targetPort.Port is InputPort inputPort)
             // データポートの接続
             inputPort.Connect(outputPort);
-        }
-        else if (_sourcePort.Port is Model.ExecOutPort execOutPort && _targetPort.Port is Model.ExecInPort execInPort)
-        {
+        else if (_sourcePort.Port is ExecOutPort execOutPort && _targetPort.Port is ExecInPort execInPort)
             // Execポートの接続
             execOutPort.Connect(execInPort);
-        }
 
         // UIレベルの接続を作成
         _connection = new EditorConnection(_sourceNode, _sourcePort, _targetNode, _targetPort);
@@ -52,13 +49,13 @@ public class CreateConnectionAction : IUndoableAction
         if (_connection == null) return;
 
         // モデルレベルの接続を削除
-        if (_sourcePort.Port is Model.OutputPort outputPort && _targetPort.Port is Model.InputPort inputPort)
+        if (_sourcePort.Port is OutputPort outputPort && _targetPort.Port is InputPort inputPort)
         {
             // データポートの接続解除（双方向）
             inputPort.Disconnect(outputPort);
             outputPort.Disconnect(inputPort);
         }
-        else if (_sourcePort.Port is Model.ExecOutPort execOutPort && _targetPort.Port is Model.ExecInPort execInPort)
+        else if (_sourcePort.Port is ExecOutPort execOutPort && _targetPort.Port is ExecInPort execInPort)
         {
             // Execポートの接続解除（双方向）
             execOutPort.Disconnect(execInPort);

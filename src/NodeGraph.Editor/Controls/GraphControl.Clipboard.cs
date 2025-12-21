@@ -2,9 +2,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
-using Avalonia.VisualTree;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Services;
+using NodeGraph.Editor.Undo;
+using NodeGraph.Editor.ViewModels;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -58,36 +59,24 @@ public partial class GraphControl
         if (VisualRoot is Window { Clipboard: not null } window)
         {
             var clipBoard = await window.Clipboard.TryGetTextAsync();
-            if (string.IsNullOrEmpty(clipBoard))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(clipBoard)) return;
 
             var clipboardService = GetClipboardService();
             var editorNodes = clipboardService.DeserializeNodes(clipBoard, Graph);
 
-            if (editorNodes == null || editorNodes.Length == 0)
-            {
-                return;
-            }
+            if (editorNodes == null || editorNodes.Length == 0) return;
 
             // Undo/Redo対応でノードを追加
-            var action = new Undo.AddNodesAction(Graph, editorNodes);
+            var action = new AddNodesAction(Graph, editorNodes);
             UndoRedoManager!.ExecuteAction(action);
 
             // 選択をクリアして、ペーストしたノードを選択
             Graph.SelectionManager.ClearSelection();
-            foreach (var editorNode in editorNodes)
-            {
-                Graph.SelectionManager.AddToSelection(editorNode);
-            }
+            foreach (var editorNode in editorNodes) Graph.SelectionManager.AddToSelection(editorNode);
 
             OnGraphChanged();
 
-            if (DataContext is ViewModels.MainWindowViewModel viewModel)
-            {
-                viewModel.NotifyUndoRedoCanExecuteChanged();
-            }
+            if (DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
         }
     }
 }

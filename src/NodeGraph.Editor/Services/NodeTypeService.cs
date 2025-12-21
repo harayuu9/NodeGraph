@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Services;
@@ -28,12 +27,12 @@ public class NodeTypeService
 {
     private readonly List<NodeTypeInfo> _nodeTypes = [];
 
-    public IReadOnlyList<NodeTypeInfo> NodeTypes => _nodeTypes;
-
     public NodeTypeService()
     {
         LoadNodeTypes();
     }
+
+    public IReadOnlyList<NodeTypeInfo> NodeTypes => _nodeTypes;
 
     private void LoadNodeTypes()
     {
@@ -57,7 +56,6 @@ public class NodeTypeService
             .ToList();
 
         foreach (var type in nodeTypes)
-        {
             // GetDisplayName/GetDirectoryを呼ぶためにインスタンスを作成
             try
             {
@@ -76,7 +74,6 @@ public class NodeTypeService
             {
                 // インスタンス化に失敗した場合はスキップ
             }
-        }
 
         // ディレクトリ、表示名でソート
         _nodeTypes.Sort((a, b) =>

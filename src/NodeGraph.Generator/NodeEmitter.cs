@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -80,15 +77,9 @@ public static class NodeEmitter
                     codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, {outputField.RawName});");
                 }
 
-                for (var i = 0; i < execInCount; i++)
-                {
-                    codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this);");
-                }
+                for (var i = 0; i < execInCount; i++) codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this);");
 
-                for (var i = 0; i < execOutCount; i++)
-                {
-                    codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this);");
-                }
+                for (var i = 0; i < execOutCount; i++) codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this);");
             }
 
             codeGen.WriteLine();
@@ -109,15 +100,9 @@ public static class NodeEmitter
                     codeGen.WriteLine($"OutputPorts[{i}] = new {outputField.PortType}(this, outputPortIds[{i}], {outputField.RawName});");
                 }
 
-                for (var i = 0; i < execInCount; i++)
-                {
-                    codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[{i}]);");
-                }
+                for (var i = 0; i < execInCount; i++) codeGen.WriteLine($"ExecInPorts[{i}] = new global::NodeGraph.Model.ExecInPort(this, execInPortIds[{i}]);");
 
-                for (var i = 0; i < execOutCount; i++)
-                {
-                    codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[{i}]);");
-                }
+                for (var i = 0; i < execOutCount; i++) codeGen.WriteLine($"ExecOutPorts[{i}] = new global::NodeGraph.Model.ExecOutPort(this, execOutPortIds[{i}]);");
             }
 
             // BeforeExecute
@@ -154,6 +139,7 @@ public static class NodeEmitter
                         var inputField = inputFields[i];
                         codeGen.WriteLine($"case {i}: return \"{inputField.Name}\";");
                     }
+
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid input port index\");");
                 }
             }
@@ -170,6 +156,7 @@ public static class NodeEmitter
                         var outputField = outputFields[i];
                         codeGen.WriteLine($"case {i}: return \"{outputField.Name}\";");
                     }
+
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid output port index\");");
                 }
             }
@@ -181,10 +168,7 @@ public static class NodeEmitter
                 codeGen.WriteLine("switch(index)");
                 using (codeGen.Scope())
                 {
-                    if (execInCount > 0)
-                    {
-                        codeGen.WriteLine($"case 0: return \"ExecIn\";");
-                    }
+                    if (execInCount > 0) codeGen.WriteLine("case 0: return \"ExecIn\";");
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid exec in port index\");");
                 }
             }
@@ -201,6 +185,7 @@ public static class NodeEmitter
                         var execOutField = execOutFields[i];
                         codeGen.WriteLine($"case {i}: return \"{execOutField.Name}\";");
                     }
+
                     codeGen.WriteLine("default: throw new global::System.InvalidOperationException(\"Invalid exec out port index\");");
                 }
             }
@@ -212,7 +197,7 @@ public static class NodeEmitter
                 using (codeGen.Scope())
                 {
                     codeGen.WriteLine("return new global::NodeGraph.Model.PropertyDescriptor[]");
-                    using (codeGen.Scope(isFinishSemicolon: true))
+                    using (codeGen.Scope(true))
                     {
                         for (var i = 0; i < propertyFields.Length; i++)
                         {
@@ -220,7 +205,7 @@ public static class NodeEmitter
                             var comma = i < propertyFields.Length - 1 ? "," : "";
 
                             codeGen.WriteLine("new global::NodeGraph.Model.PropertyDescriptor");
-                            using (codeGen.Scope(isFinishSemicolon: false))
+                            using (codeGen.Scope())
                             {
                                 codeGen.WriteLine($"Name = \"{prop.Name}\",");
                                 codeGen.WriteLine($"Type = typeof({prop.Type}),");
@@ -230,6 +215,7 @@ public static class NodeEmitter
                                 var attributes = GenerateAttributeInstances(prop.FieldSymbol, reference);
                                 codeGen.WriteLine($"Attributes = new global::System.Attribute[] {{ {string.Join(", ", attributes)} }}");
                             }
+
                             codeGen.WriteLine(comma);
                         }
                     }
@@ -253,7 +239,6 @@ public static class NodeEmitter
         var attributes = new List<string>();
 
         foreach (var attr in fieldSymbol.GetAttributes())
-        {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, reference.PropertyAttribute))
             {
                 var displayName = GetNamedArgument(attr, "DisplayName");
@@ -288,7 +273,6 @@ public static class NodeEmitter
             {
                 attributes.Add("new global::NodeGraph.Model.ReadOnlyAttribute()");
             }
-        }
 
         return attributes.ToArray();
     }
@@ -296,15 +280,13 @@ public static class NodeEmitter
     private static string? GetNamedArgument(AttributeData attr, string name)
     {
         foreach (var pair in attr.NamedArguments)
-        {
             if (pair.Key == name && pair.Value.Value != null)
             {
                 if (pair.Value.Value is string s)
                     return $"\"{s}\"";
-                else
-                    return pair.Value.Value.ToString();
+                return pair.Value.Value.ToString();
             }
-        }
+
         return null;
     }
 

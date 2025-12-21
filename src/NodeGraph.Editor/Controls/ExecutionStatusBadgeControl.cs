@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls.Primitives;
-using NodeGraph.Editor.Controls;
 using NodeGraph.Editor.Models;
 
 namespace NodeGraph.Editor.Controls;

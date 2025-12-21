@@ -45,6 +45,7 @@ public partial class GraphControl
                 var height = nodeControl.Bounds.Height > 0 ? nodeControl.Bounds.Height : 100.0;
                 return (width, height);
             }
+
             return (200.0, 100.0);
         }
 

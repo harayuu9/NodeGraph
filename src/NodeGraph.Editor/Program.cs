@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 
 namespace NodeGraph.Editor;
 
@@ -21,8 +21,10 @@ public static class EditorEntryPoint
     /// Avaloniaアプリケーションの構成を行います
     /// </summary>
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        return AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
+    }
 }

@@ -1,19 +1,9 @@
-﻿using Xunit;
-using NodeGraph.Editor.Undo;
+﻿using NodeGraph.Editor.Undo;
 
 namespace NodeGraph.UnitTest;
 
 public class UndoRedoManagerTest
 {
-    private class MockAction : IUndoableAction
-    {
-        public int ExecuteCount { get; private set; }
-        public int UndoCount { get; private set; }
-
-        public void Execute() => ExecuteCount++;
-        public void Undo() => UndoCount++;
-    }
-
     [Fact]
     public void Transaction_GroupsActions()
     {
@@ -42,7 +32,7 @@ public class UndoRedoManagerTest
         Assert.Equal(2, action1.ExecuteCount);
         Assert.Equal(2, action2.ExecuteCount);
     }
-    
+
     [Fact]
     public void NestedTransaction_Works()
     {
@@ -52,16 +42,16 @@ public class UndoRedoManagerTest
 
         manager.BeginTransaction();
         manager.ExecuteAction(action1);
-        
+
         manager.BeginTransaction();
         manager.ExecuteAction(action2);
         manager.EndTransaction();
-        
+
         manager.EndTransaction();
 
         Assert.True(manager.CanUndo());
         manager.Undo();
-        
+
         Assert.Equal(1, action1.UndoCount);
         Assert.Equal(1, action2.UndoCount);
         Assert.False(manager.CanUndo());
@@ -71,7 +61,7 @@ public class UndoRedoManagerTest
     public void EmptyTransaction_DoesNotAddHistory()
     {
         var manager = new UndoRedoManager();
-        
+
         manager.BeginTransaction();
         manager.EndTransaction();
 
@@ -83,14 +73,14 @@ public class UndoRedoManagerTest
     {
         var manager = new UndoRedoManager();
         var actions = new List<MockAction>();
-        
+
         // DeleteSelectedItems の簡易再現
         void DeleteSelectedItemsMock(int nodeCount)
         {
             manager.BeginTransaction();
             try
             {
-                for (int i = 0; i < nodeCount; i++)
+                for (var i = 0; i < nodeCount; i++)
                 {
                     var action = new MockAction();
                     actions.Add(action);
@@ -111,10 +101,26 @@ public class UndoRedoManagerTest
         Assert.Equal(1, actions[2].ExecuteCount);
 
         manager.Undo();
-        
+
         Assert.Equal(1, actions[0].UndoCount);
         Assert.Equal(1, actions[1].UndoCount);
         Assert.Equal(1, actions[2].UndoCount);
         Assert.False(manager.CanUndo()); // 3つのアクションが1つにまとまっているはず
+    }
+
+    private class MockAction : IUndoableAction
+    {
+        public int ExecuteCount { get; private set; }
+        public int UndoCount { get; private set; }
+
+        public void Execute()
+        {
+            ExecuteCount++;
+        }
+
+        public void Undo()
+        {
+            UndoCount++;
+        }
     }
 }

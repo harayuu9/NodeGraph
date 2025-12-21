@@ -7,18 +7,20 @@ public abstract class Port : IWithId<PortId>
         Parent = parent;
         Id = new PortId(Guid.NewGuid());
     }
+
     protected Port(Node parent, PortId id)
     {
         Parent = parent;
         Id = id;
     }
 
-    public PortId Id { get; }
     public Node Parent { get; }
     public abstract Type PortType { get; }
     public abstract string ValueString { get; }
+
+    public PortId Id { get; }
     protected abstract void ConnectPort(Port other);
-    
+
     public abstract bool CanConnect(Port port);
     public abstract void Disconnect(Port port);
     public abstract void DisconnectAll();

@@ -21,21 +21,16 @@ public class Graph
             Nodes.Add(node);
             return true;
         }
+
         return false;
     }
 
     public void RemoveNode(Node node)
     {
         // ノードの接続を全て解除
-        foreach (var port in node.InputPorts)
-        {
-            port.DisconnectAll();
-        }
+        foreach (var port in node.InputPorts) port.DisconnectAll();
 
-        foreach (var port in node.OutputPorts)
-        {
-            port.DisconnectAll();
-        }
+        foreach (var port in node.OutputPorts) port.DisconnectAll();
 
         Nodes.Remove(node);
     }
@@ -44,12 +39,8 @@ public class Graph
     {
         using var resultRental = ListPool<T>.Shared.Rent(out var result);
         for (var i = 0; i < Nodes.Count; i++)
-        {
             if (Nodes[i] is T node)
-            {
                 result.Add(node);
-            }
-        }
 
         return result.ToArray();
     }
@@ -62,7 +53,10 @@ public class Graph
     /// <summary>
     /// 完全なクローンの作成
     /// </summary>
-    public Graph Clone() => Clone(Nodes.ToArray());
+    public Graph Clone()
+    {
+        return Clone(Nodes.ToArray());
+    }
 
     /// <summary>
     /// 特定のNodeのみ含めてクローン
@@ -77,10 +71,7 @@ public class Graph
         foreach (var node in nodes)
         {
             var nodeType = node.GetType();
-            if (Activator.CreateInstance(nodeType) is not Node clonedNode)
-            {
-                throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
-            }
+            if (Activator.CreateInstance(nodeType) is not Node clonedNode) throw new InvalidOperationException($"Failed to create instance of {nodeType.Name}");
 
             // プロパティ値をコピー
             var properties = node.GetProperties();
@@ -161,7 +152,6 @@ public class Graph
                 var outputPortName = node.GetOutputPortName(outputIndex);
 
                 foreach (var connectedPort in outputPort.ConnectedPorts)
-                {
                     if (connectedPort is InputPort inputPort)
                     {
                         var targetNode = inputPort.Parent;
@@ -173,7 +163,6 @@ public class Graph
                             sb.AppendLine($"    {sourceId} -->|\"{EscapeMermaidString(outputPortName)} → {EscapeMermaidString(inputPortName)}\"| {targetId}");
                         }
                     }
-                }
             }
         }
 

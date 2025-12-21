@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NodeGraph.Editor.Models;
+using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Undo;
 
@@ -12,12 +13,6 @@ public class DisconnectAllAction : IUndoableAction
     private readonly EditorGraph _graph;
     private readonly EditorNode _node;
     private readonly List<ConnectionInfo> _removedConnections;
-
-    private record ConnectionInfo(
-        EditorNode SourceNode,
-        EditorPort SourcePort,
-        EditorNode TargetNode,
-        EditorPort TargetPort);
 
     public DisconnectAllAction(EditorGraph graph, EditorNode node)
     {
@@ -69,27 +64,28 @@ public class DisconnectAllAction : IUndoableAction
 
     private static void ConnectModel(EditorPort sourcePort, EditorPort targetPort)
     {
-        if (sourcePort.Port is Model.OutputPort outputPort && targetPort.Port is Model.InputPort inputPort)
-        {
+        if (sourcePort.Port is OutputPort outputPort && targetPort.Port is InputPort inputPort)
             inputPort.Connect(outputPort);
-        }
-        else if (sourcePort.Port is Model.ExecOutPort execOutPort && targetPort.Port is Model.ExecInPort execInPort)
-        {
-            execOutPort.Connect(execInPort);
-        }
+        else if (sourcePort.Port is ExecOutPort execOutPort && targetPort.Port is ExecInPort execInPort) execOutPort.Connect(execInPort);
     }
 
     private static void DisconnectModel(EditorPort sourcePort, EditorPort targetPort)
     {
-        if (sourcePort.Port is Model.OutputPort outputPort && targetPort.Port is Model.InputPort inputPort)
+        if (sourcePort.Port is OutputPort outputPort && targetPort.Port is InputPort inputPort)
         {
             inputPort.Disconnect(outputPort);
             outputPort.Disconnect(inputPort);
         }
-        else if (sourcePort.Port is Model.ExecOutPort execOutPort && targetPort.Port is Model.ExecInPort execInPort)
+        else if (sourcePort.Port is ExecOutPort execOutPort && targetPort.Port is ExecInPort execInPort)
         {
             execOutPort.Disconnect(execInPort);
             execInPort.Disconnect(execOutPort);
         }
     }
+
+    private record ConnectionInfo(
+        EditorNode SourceNode,
+        EditorPort SourcePort,
+        EditorNode TargetNode,
+        EditorPort TargetPort);
 }

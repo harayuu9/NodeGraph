@@ -24,7 +24,10 @@ public static class EditorLayoutSerializer
     /// <summary>
     /// レイアウトをYAMLファイルに保存します
     /// </summary>
-    public static void SaveLayoutToFile(EditorGraph editorGraph, string filePath) => File.WriteAllText(filePath, SaveLayout(editorGraph));
+    public static void SaveLayoutToFile(EditorGraph editorGraph, string filePath)
+    {
+        File.WriteAllText(filePath, SaveLayout(editorGraph));
+    }
 
     public static string SaveLayout(EditorGraph editorGraph)
     {
@@ -38,10 +41,8 @@ public static class EditorLayoutSerializer
     public static void LoadLayoutFromFile(string filePath, EditorGraph editorGraph)
     {
         if (!File.Exists(filePath))
-        {
             // レイアウトファイルが存在しない場合はデフォルト配置
             return;
-        }
 
         var yaml = File.ReadAllText(filePath);
         LoadLayout(yaml, editorGraph);
@@ -57,7 +58,7 @@ public static class EditorLayoutSerializer
         // レイアウトを適用
         ApplyLayout(layoutData, editorGraph);
     }
-    
+
     /// <summary>
     /// EditorGraphからLayoutDataに変換します
     /// </summary>
@@ -70,13 +71,11 @@ public static class EditorLayoutSerializer
 
         // 各ノードの位置を保存
         foreach (var editorNode in editorGraph.Nodes)
-        {
             layoutData.Nodes[editorNode.Node.Id.Value] = new NodePosition
             {
                 X = editorNode.X,
                 Y = editorNode.Y
             };
-        }
 
         return layoutData;
     }
@@ -88,13 +87,11 @@ public static class EditorLayoutSerializer
     {
         // 各ノードの位置を復元
         foreach (var editorNode in editorGraph.Nodes)
-        {
             if (layoutData.Nodes.TryGetValue(editorNode.Node.Id.Value, out var position))
             {
                 editorNode.X = position.X;
                 editorNode.Y = position.Y;
             }
-        }
     }
 
     /// <summary>
@@ -104,18 +101,14 @@ public static class EditorLayoutSerializer
     {
         if (!Version.TryParse(version, out var fileVersion) ||
             !Version.TryParse(CurrentVersion, out var currentVersion))
-        {
             throw new InvalidOperationException($"Invalid version format: {version}");
-        }
 
         // メジャーバージョンが異なる場合はエラー
         if (fileVersion.Major != currentVersion.Major)
-        {
             throw new InvalidOperationException(
                 $"Incompatible layout version: {version}. " +
                 $"Current version: {CurrentVersion}. " +
                 $"Major version mismatch detected.");
-        }
 
         // マイナーバージョンが新しい場合は警告（将来的にはログに出力）
         if (fileVersion.Minor > currentVersion.Minor)

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -18,16 +17,11 @@ namespace NodeGraph.Editor.Models;
 
 public partial class EditorGraph : ObservableObject
 {
-    private readonly Graph _graph;
-
     public EditorGraph(Graph graph, SelectionManager selectionManager)
     {
-        _graph = graph;
+        Graph = graph;
         SelectionManager = selectionManager;
-        foreach (var graphNode in _graph.Nodes)
-        {
-            Nodes.Add(new EditorNode(selectionManager, graphNode));
-        }
+        foreach (var graphNode in Graph.Nodes) Nodes.Add(new EditorNode(selectionManager, graphNode));
 
         // 既存の接続を読み込む
         LoadConnections(Nodes);
@@ -41,7 +35,7 @@ public partial class EditorGraph : ObservableObject
     public ObservableCollection<EditorNode> Nodes { get; } = [];
     public ObservableCollection<EditorConnection> Connections { get; } = [];
 
-    public Graph Graph => _graph;
+    public Graph Graph { get; }
 
     private void LoadConnections<T>(T nodes)
         where T : IEnumerable<EditorNode>
@@ -96,12 +90,9 @@ public partial class EditorGraph : ObservableObject
             // 既存の選択を全てクリア
             SelectionManager.ClearSelection();
 
-            foreach (var editorNode in Nodes)
-            {
-                editorNode.ExecutionStatus = ExecutionStatus.Waiting;
-            }
-        
-            var executor = _graph.CreateExecutor();
+            foreach (var editorNode in Nodes) editorNode.ExecutionStatus = ExecutionStatus.Waiting;
+
+            var executor = Graph.CreateExecutor();
             try
             {
                 await executor.ExecuteAsync(
@@ -144,10 +135,7 @@ public partial class EditorGraph : ObservableObject
         }
         finally
         {
-            foreach (var editorNode in Nodes)
-            {
-                editorNode.ExecutionStatus = ExecutionStatus.None;
-            }
+            foreach (var editorNode in Nodes) editorNode.ExecutionStatus = ExecutionStatus.None;
             IsExecuting = false;
         }
     }
@@ -161,7 +149,7 @@ public partial class EditorGraph : ObservableObject
         var graphPath = Path.ChangeExtension(filePath, ".graph.yml");
         var layoutPath = Path.ChangeExtension(filePath, ".layout.yml");
 
-        GraphSerializer.SaveToYaml(_graph, graphPath);
+        GraphSerializer.SaveToYaml(Graph, graphPath);
         EditorLayoutSerializer.SaveLayoutToFile(this, layoutPath);
 
         CurrentFilePath = filePath;
@@ -172,10 +160,7 @@ public partial class EditorGraph : ObservableObject
     /// </summary>
     public void Save()
     {
-        if (string.IsNullOrEmpty(CurrentFilePath))
-        {
-            throw new InvalidOperationException("CurrentFilePath is not set. Use Save(string filePath) instead.");
-        }
+        if (string.IsNullOrEmpty(CurrentFilePath)) throw new InvalidOperationException("CurrentFilePath is not set. Use Save(string filePath) instead.");
 
         Save(CurrentFilePath);
     }
@@ -193,10 +178,7 @@ public partial class EditorGraph : ObservableObject
         var editorGraph = new EditorGraph(graph, selectionManager);
 
         // レイアウトファイルが存在する場合は読み込む
-        if (File.Exists(layoutPath))
-        {
-            EditorLayoutSerializer.LoadLayoutFromFile(layoutPath, editorGraph);
-        }
+        if (File.Exists(layoutPath)) EditorLayoutSerializer.LoadLayoutFromFile(layoutPath, editorGraph);
 
         editorGraph.CurrentFilePath = filePath;
         return editorGraph;
@@ -206,17 +188,15 @@ public partial class EditorGraph : ObservableObject
     {
         using var _ = ListPool<EditorNode>.Shared.Rent(out var list);
         foreach (var node in editorNode)
-        {
-            if (_graph.AddNode(node.Node))
+            if (Graph.AddNode(node.Node))
             {
                 Nodes.Add(node);
                 list.Add(node);
             }
-        }
-        
+
         LoadConnections(list);
     }
-    
+
     /// <summary>
     /// ノードを削除します
     /// </summary>
@@ -227,14 +207,11 @@ public partial class EditorGraph : ObservableObject
             .Where(c => c.SourceNode == editorNode || c.TargetNode == editorNode)
             .ToList();
 
-        foreach (var connection in connectionsToRemove)
-        {
-            Connections.Remove(connection);
-        }
+        foreach (var connection in connectionsToRemove) Connections.Remove(connection);
 
         // ノードを削除
         Nodes.Remove(editorNode);
-        _graph.Nodes.Remove(editorNode.Node);
+        Graph.Nodes.Remove(editorNode.Node);
     }
 
     /// <summary>

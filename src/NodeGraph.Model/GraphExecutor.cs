@@ -4,8 +4,8 @@ namespace NodeGraph.Model;
 
 public class GraphExecutor : IDisposable
 {
-    private readonly Graph _graph;
     private readonly List<Node> _canParallelNodes;
+    private readonly Graph _graph;
     private readonly StartNode? _startNode;
 
     internal GraphExecutor(Graph graph)
@@ -14,14 +14,15 @@ public class GraphExecutor : IDisposable
         _canParallelNodes = new List<Node>();
 
         foreach (var node in graph.Nodes)
-        {
             if (!node.HasExec)
-            {
                 _canParallelNodes.Add(node);
-            }
-        }
 
         _startNode = graph.Nodes.OfType<StartNode>().FirstOrDefault();
+    }
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
     }
 
     public async Task ExecuteAsync(
@@ -40,25 +41,16 @@ public class GraphExecutor : IDisposable
 
             var execOutPort = node.ExecOutPorts[index];
             var target = execOutPort.GetExecutionTarget();
-            if (target != null)
-            {
-                await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExcepted);
-            }
+            if (target != null) await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExcepted);
         };
 
         // Phase 1: 並列実行（HasExec = false のノード）
-        foreach (var node in _canParallelNodes)
-        {
-            tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExcepted));
-        }
+        foreach (var node in _canParallelNodes) tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExcepted));
 
         await Task.WhenAll(tasks);
 
         // Phase 2: StartNode から実行フロー開始
-        if (_startNode != null)
-        {
-            await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExcepted);
-        }
+        if (_startNode != null) await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExcepted);
     }
 
     private async Task ExecuteNodeAsync(
@@ -85,10 +77,5 @@ public class GraphExecutor : IDisposable
         {
             context.CurrentNode = previousNode;
         }
-    }
-
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
     }
 }

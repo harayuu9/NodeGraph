@@ -1,9 +1,9 @@
 using System;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Layout;
+using Avalonia.Media;
 using NodeGraph.Editor.ViewModels;
 using NodeGraph.Model;
 
@@ -26,36 +26,22 @@ public static class PropertyControlFactory
 
         // Range属性がある数値型の場合はSliderを使用
         var rangeAttr = descriptor.GetAttribute<RangeAttribute>();
-        if (rangeAttr != null && IsNumericType(type))
-        {
-            return CreateSlider(propertyViewModel, rangeAttr);
-        }
+        if (rangeAttr != null && IsNumericType(type)) return CreateSlider(propertyViewModel, rangeAttr);
 
         // Multiline属性がある文字列型の場合はTextBoxを複数行モードで使用
         var multilineAttr = descriptor.GetAttribute<MultilineAttribute>();
-        if (multilineAttr != null && type == typeof(string))
-        {
-            return CreateMultilineTextBox(propertyViewModel, multilineAttr);
-        }
+        if (multilineAttr != null && type == typeof(string)) return CreateMultilineTextBox(propertyViewModel, multilineAttr);
 
         // 型に基づいてコントロールを生成
         if (type == typeof(float) || type == typeof(double) || type == typeof(int) || type == typeof(long) ||
             type == typeof(short) || type == typeof(byte) || type == typeof(decimal))
-        {
             return CreateNumericUpDown(propertyViewModel);
-        }
-        else if (type == typeof(string))
-        {
-            return CreateTextBox(propertyViewModel);
-        }
-        else if (type == typeof(bool))
-        {
-            return CreateCheckBox(propertyViewModel);
-        }
-        else if (type.IsEnum)
-        {
-            return CreateComboBox(propertyViewModel);
-        }
+
+        if (type == typeof(string)) return CreateTextBox(propertyViewModel);
+
+        if (type == typeof(bool)) return CreateCheckBox(propertyViewModel);
+
+        if (type.IsEnum) return CreateComboBox(propertyViewModel);
 
         // デフォルトはTextBox
         return CreateTextBox(propertyViewModel);
@@ -83,7 +69,7 @@ public static class PropertyControlFactory
         slider.Bind(RangeBase.ValueProperty, new Binding("Value")
         {
             Source = propertyViewModel,
-            Mode = BindingMode.TwoWay,
+            Mode = BindingMode.TwoWay
         });
         panel.Children.Add(slider);
 
@@ -149,10 +135,7 @@ public static class PropertyControlFactory
             Mode = BindingMode.TwoWay
         });
 
-        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip))
-        {
-            ToolTip.SetTip(textBox, propertyViewModel.Tooltip);
-        }
+        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip)) ToolTip.SetTip(textBox, propertyViewModel.Tooltip);
 
         return textBox;
     }
@@ -164,7 +147,7 @@ public static class PropertyControlFactory
             Width = 150,
             Height = multilineAttr.Lines * 20,
             AcceptsReturn = true,
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            TextWrapping = TextWrapping.Wrap,
             IsReadOnly = propertyViewModel.IsReadOnly
         };
 
@@ -174,10 +157,7 @@ public static class PropertyControlFactory
             Mode = BindingMode.TwoWay
         });
 
-        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip))
-        {
-            ToolTip.SetTip(textBox, propertyViewModel.Tooltip);
-        }
+        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip)) ToolTip.SetTip(textBox, propertyViewModel.Tooltip);
 
         return textBox;
     }
@@ -196,10 +176,7 @@ public static class PropertyControlFactory
             Mode = BindingMode.TwoWay
         });
 
-        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip))
-        {
-            ToolTip.SetTip(checkBox, propertyViewModel.Tooltip);
-        }
+        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip)) ToolTip.SetTip(checkBox, propertyViewModel.Tooltip);
 
         return checkBox;
     }
@@ -222,10 +199,7 @@ public static class PropertyControlFactory
             Mode = BindingMode.TwoWay
         });
 
-        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip))
-        {
-            ToolTip.SetTip(comboBox, propertyViewModel.Tooltip);
-        }
+        if (!string.IsNullOrEmpty(propertyViewModel.Tooltip)) ToolTip.SetTip(comboBox, propertyViewModel.Tooltip);
 
         return comboBox;
     }

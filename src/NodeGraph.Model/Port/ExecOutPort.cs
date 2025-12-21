@@ -5,8 +5,13 @@ namespace NodeGraph.Model;
 /// </summary>
 public class ExecOutPort : SingleConnectPort
 {
-    public ExecOutPort(Node parent) : base(parent) { }
-    public ExecOutPort(Node parent, PortId id) : base(parent, id) { }
+    public ExecOutPort(Node parent) : base(parent)
+    {
+    }
+
+    public ExecOutPort(Node parent, PortId id) : base(parent, id)
+    {
+    }
 
     public override Type PortType => typeof(ExecutionPort);
     public override string ValueString => "Exec";
@@ -22,10 +27,7 @@ public class ExecOutPort : SingleConnectPort
     /// </summary>
     internal Node? GetExecutionTarget()
     {
-        if (ConnectedPort is ExecInPort execInPort)
-        {
-            return execInPort.Parent;
-        }
+        if (ConnectedPort is ExecInPort execInPort) return execInPort.Parent;
         return null;
     }
 }

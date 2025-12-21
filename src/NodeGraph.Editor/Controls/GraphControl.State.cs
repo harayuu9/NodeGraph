@@ -9,28 +9,29 @@ namespace NodeGraph.Editor.Controls;
 /// </summary>
 public partial class GraphControl
 {
-    // ドラッグ状態
-    private Point _lastDragPoint;
-    private bool _isDragging;
-    private bool _isRightButtonDown;
-    private Point _rightButtonDownPoint;
-
-    // コネクタ管理
-    private bool _connectorUpdateScheduled;
-
-    // 矩形選択用
-    private bool _isSelecting;
-    private Point _selectionStartPoint;
-
-    // ポートドラッグ用
-    private bool _isDraggingPort;
-    private PortControl? _dragSourcePort;
-    private PortControl? _currentHoverPort;
+    private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
+    private readonly TransformGroup _transformGroup;
 
     // トランスフォーム
     private readonly TranslateTransform _translateTransform = new();
-    private readonly ScaleTransform _scaleTransform = new() { ScaleX = 1.0, ScaleY = 1.0 };
-    private readonly TransformGroup _transformGroup;
+
+    // コネクタ管理
+    private bool _connectorUpdateScheduled;
+    private PortControl? _currentHoverPort;
+    private PortControl? _dragSourcePort;
+    private bool _isDragging;
+
+    // ポートドラッグ用
+    private bool _isDraggingPort;
+    private bool _isRightButtonDown;
+
+    // 矩形選択用
+    private bool _isSelecting;
+
+    // ドラッグ状態
+    private Point _lastDragPoint;
+    private Point _rightButtonDownPoint;
+    private Point _selectionStartPoint;
 
     /// <summary>
     /// ズームを更新します

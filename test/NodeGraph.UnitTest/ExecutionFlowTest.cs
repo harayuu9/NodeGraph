@@ -65,13 +65,9 @@ public class ExecutionFlowTest
 
         // 実行されたノードを追跡（実行フローノードのみカウント）
         var execFlowNodes = new List<string>();
-        await executor.ExecuteAsync(
-            onExecute: node =>
+        await executor.ExecuteAsync(node =>
             {
-                if (node.HasExec)
-                {
-                    execFlowNodes.Add(node.GetType().Name);
-                }
+                if (node.HasExec) execFlowNodes.Add(node.GetType().Name);
             }
         );
 
@@ -116,13 +112,9 @@ public class ExecutionFlowTest
 
         // 実行フローノードのみカウント
         var execFlowNodes = new List<string>();
-        await executor.ExecuteAsync(
-            onExecute: node =>
+        await executor.ExecuteAsync(node =>
             {
-                if (node.HasExec)
-                {
-                    execFlowNodes.Add(node.GetType().Name);
-                }
+                if (node.HasExec) execFlowNodes.Add(node.GetType().Name);
             }
         );
 
@@ -161,7 +153,7 @@ public class ExecutionFlowTest
         // 実行フローノードのみカウント
         var execFlowNodes = new List<string>();
         await executor.ExecuteAsync(
-            onExecute: node =>
+            node =>
             {
                 if (node.HasExec)
                 {
@@ -170,12 +162,9 @@ public class ExecutionFlowTest
                     _testOutputHelper.WriteLine($"Executing: {nodeName}");
                 }
             },
-            onExecuted: node =>
+            node =>
             {
-                if (node.HasExec)
-                {
-                    _testOutputHelper.WriteLine($"Completed: {node.GetType().Name}");
-                }
+                if (node.HasExec) _testOutputHelper.WriteLine($"Completed: {node.GetType().Name}");
             }
         );
 
@@ -199,9 +188,7 @@ public class ExecutionFlowTest
 [Node("Bool Constant", "Test", HasExecIn = false, HasExecOut = false)]
 public partial class BoolConstantNode
 {
-    [Property]
-    [Output]
-    private bool _value;
+    [Property] [Output] private bool _value;
 
     public void SetValue(bool value)
     {

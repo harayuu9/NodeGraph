@@ -13,11 +13,6 @@ public class SelectionManager
     private readonly List<ISelectable> _selectedItems = [];
 
     /// <summary>
-    /// 選択が変更されたときに発生するイベント
-    /// </summary>
-    public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
-
-    /// <summary>
     /// 現在選択されているアイテムの読み取り専用コレクション
     /// </summary>
     public IReadOnlyList<ISelectable> SelectedItems => _selectedItems.AsReadOnly();
@@ -26,6 +21,11 @@ public class SelectionManager
     /// 選択されているアイテムの数
     /// </summary>
     public int Count => _selectedItems.Count;
+
+    /// <summary>
+    /// 選択が変更されたときに発生するイベント
+    /// </summary>
+    public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
 
     /// <summary>
     /// 指定されたアイテムが選択されているかどうかを判定します
@@ -127,13 +127,11 @@ public class SelectionManager
         _selectedItems.Clear();
 
         foreach (var item in items)
-        {
             if (!_selectedIds.Contains(item.SelectionId))
             {
                 _selectedIds.Add(item.SelectionId);
                 _selectedItems.Add(item);
             }
-        }
 
         OnSelectionChanged(previouslySelected, _selectedItems);
     }
@@ -153,7 +151,7 @@ public class SelectionManager
 
         OnSelectionChanged(previouslySelected, _selectedItems);
     }
-    
+
     private void OnSelectionChanged(IReadOnlyList<ISelectable> previousSelection, IReadOnlyList<ISelectable> currentSelection)
     {
         SelectionChanged?.Invoke(this, new SelectionChangedEventArgs(previousSelection, currentSelection));

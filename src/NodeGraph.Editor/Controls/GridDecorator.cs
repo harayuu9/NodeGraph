@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -57,9 +56,7 @@ public class GridDecorator : Decorator
             change.Property == ZoomProperty ||
             change.Property == PanOffsetProperty ||
             change.Property == StrokeProperty)
-        {
             InvalidateVisual();
-        }
     }
 
     public override void Render(DrawingContext context)
@@ -82,7 +79,7 @@ public class GridDecorator : Decorator
 
         // GridBrush を ImmutablePen 化
         var brush = Stroke ?? new SolidColorBrush(Color.FromArgb(15, 255, 255, 255));
-        var pen = new Pen(brush, 1.0);
+        var pen = new Pen(brush);
 
         var offsetX = PosMod(PanOffset.X, scaled);
         var offsetY = PosMod(PanOffset.Y, scaled);
@@ -114,6 +111,9 @@ public class GridDecorator : Decorator
 
         return;
 
-        static double PosMod(double a, double m) => (a % m + m) % m;
+        static double PosMod(double a, double m)
+        {
+            return (a % m + m) % m;
+        }
     }
 }

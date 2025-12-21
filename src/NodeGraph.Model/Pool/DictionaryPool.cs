@@ -10,13 +10,13 @@ namespace NodeGraph.Model.Pool;
 /// <typeparam name="TValue">辞書の値の型</typeparam>
 internal class DictionaryPool<TKey, TValue> where TKey : notnull
 {
-    private readonly ConcurrentBag<Dictionary<TKey, TValue>> _pool = [];
-    private readonly int _maxCapacity;
-
     /// <summary>
     /// 共有インスタンスを取得します。
     /// </summary>
     public static readonly DictionaryPool<TKey, TValue> Shared = new();
+
+    private readonly int _maxCapacity;
+    private readonly ConcurrentBag<Dictionary<TKey, TValue>> _pool = [];
 
     /// <summary>
     /// 新しいDictionaryPoolインスタンスを作成します。
@@ -54,10 +54,7 @@ internal class DictionaryPool<TKey, TValue> where TKey : notnull
 
     private Dictionary<TKey, TValue> RentInternal()
     {
-        if (_pool.TryTake(out var dictionary))
-        {
-            return dictionary;
-        }
+        if (_pool.TryTake(out var dictionary)) return dictionary;
 
         return new Dictionary<TKey, TValue>();
     }
@@ -66,10 +63,7 @@ internal class DictionaryPool<TKey, TValue> where TKey : notnull
     {
         if (_pool.TryTake(out var dictionary))
         {
-            if (dictionary.EnsureCapacity(0) < capacity)
-            {
-                dictionary.EnsureCapacity(capacity);
-            }
+            if (dictionary.EnsureCapacity(0) < capacity) dictionary.EnsureCapacity(capacity);
             return dictionary;
         }
 
@@ -79,10 +73,7 @@ internal class DictionaryPool<TKey, TValue> where TKey : notnull
     internal void Return(Dictionary<TKey, TValue> dictionary)
     {
         // 容量が大きすぎる場合はプールに返却しない（メモリリークを防ぐ）
-        if (dictionary.Count > _maxCapacity)
-        {
-            return;
-        }
+        if (dictionary.Count > _maxCapacity) return;
 
         dictionary.Clear();
         _pool.Add(dictionary);
@@ -112,10 +103,7 @@ public struct DictionaryPoolRental<TKey, TValue> : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_pool != null && _dictionary != null)
-        {
-            _pool.Return(_dictionary);
-        }
+        if (_pool != null && _dictionary != null) _pool.Return(_dictionary);
         _pool = null;
         _dictionary = null;
     }

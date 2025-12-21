@@ -10,82 +10,82 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="NodeGraph.Editor">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
 
-        <!-- メニューバー -->
-        <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="_New" Command="{Binding NewCommand}" InputGesture="Ctrl+N"/>
-                <MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O"/>
-                <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
-                <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
-                <Separator/>
-                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
-            </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z"/>
-                <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y"/>
-            </MenuItem>
-        </Menu>
+    <!-- メニューバー -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="_New" Command="{Binding NewCommand}" InputGesture="Ctrl+N" />
+        <MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O" />
+        <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
+        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
+        <Separator />
+        <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+        <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
+      </MenuItem>
+    </Menu>
 
-        <!-- ヘッダー -->
-        <Border Grid.Row="1" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="GraphControl テスト"
-                              FontSize="16"
-                              FontWeight="Bold"
-                              VerticalAlignment="Center"/>
-                    <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
-                              Foreground="{DynamicResource WindowInfoForegroundBrush}"
-                              VerticalAlignment="Center"/>
-                </StackPanel>
+    <!-- ヘッダー -->
+    <Border Grid.Row="1" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="GraphControl テスト"
+                     FontSize="16"
+                     FontWeight="Bold"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
+                     Foreground="{DynamicResource WindowInfoForegroundBrush}"
+                     VerticalAlignment="Center" />
+        </StackPanel>
 
-                <!-- テーマ切り替え -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                    <Button Content="Execute"
-                            Command="{Binding ExecuteGraphCommand}"
-                            Padding="8,4"/>
-                    <Button Content="Copy Mermaid"
-                            Command="{Binding CopyMermaidToClipboardCommand}"
-                            Padding="8,4"
-                            Margin="0,0,15,0"/>
-                    <TextBlock Text="テーマ:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <Button Content="Default"
-                            Command="{Binding SwitchThemeCommand}"
-                            CommandParameter="Default"
-                            IsEnabled="{Binding !IsDefaultTheme}"
-                            Padding="8,4"/>
-                    <Button Content="Light"
-                            Command="{Binding SwitchThemeCommand}"
-                            CommandParameter="Light"
-                            IsEnabled="{Binding !IsLightTheme}"
-                            Padding="8,4"/>
-                    <Button Content="Dark"
-                            Command="{Binding SwitchThemeCommand}"
-                            CommandParameter="Dark"
-                            IsEnabled="{Binding !IsDarkTheme}"
-                            Padding="8,4"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+        <!-- テーマ切り替え -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <Button Content="Execute"
+                  Command="{Binding ExecuteGraphCommand}"
+                  Padding="8,4" />
+          <Button Content="Copy Mermaid"
+                  Command="{Binding CopyMermaidToClipboardCommand}"
+                  Padding="8,4"
+                  Margin="0,0,15,0" />
+          <TextBlock Text="テーマ:" VerticalAlignment="Center" Margin="0,0,5,0" />
+          <Button Content="Default"
+                  Command="{Binding SwitchThemeCommand}"
+                  CommandParameter="Default"
+                  IsEnabled="{Binding !IsDefaultTheme}"
+                  Padding="8,4" />
+          <Button Content="Light"
+                  Command="{Binding SwitchThemeCommand}"
+                  CommandParameter="Light"
+                  IsEnabled="{Binding !IsLightTheme}"
+                  Padding="8,4" />
+          <Button Content="Dark"
+                  Command="{Binding SwitchThemeCommand}"
+                  CommandParameter="Dark"
+                  IsEnabled="{Binding !IsDarkTheme}"
+                  Padding="8,4" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
-        <!-- GraphControl -->
-        <controls:GraphControl Grid.Row="2"
-                              Graph="{Binding TestGraph}"
-                              UndoRedoManager="{Binding UndoRedoManager}"
-                              Background="{DynamicResource GraphBackgroundBrush}"/>
-    </Grid>
+    <!-- GraphControl -->
+    <controls:GraphControl Grid.Row="2"
+                           Graph="{Binding TestGraph}"
+                           UndoRedoManager="{Binding UndoRedoManager}"
+                           Background="{DynamicResource GraphBackgroundBrush}" />
+  </Grid>
 
 </Window>

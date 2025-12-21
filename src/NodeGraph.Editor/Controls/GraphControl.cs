@@ -1,17 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
-using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -19,13 +16,12 @@ using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Primitives;
 using NodeGraph.Editor.Selection;
-using NodeGraph.Editor.Serialization;
 using NodeGraph.Editor.Services;
 using NodeGraph.Editor.Undo;
+using NodeGraph.Editor.ViewModels;
 using NodeGraph.Editor.Views;
 using NodeGraph.Model;
-using NodeGraph.Model.Serialization;
-using YamlDotNet.Serialization;
+using SelectionChangedEventArgs = NodeGraph.Editor.Selection.SelectionChangedEventArgs;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -35,10 +31,10 @@ namespace NodeGraph.Editor.Controls;
 public partial class GraphControl : TemplatedControl
 {
     private Canvas? _canvas;
-    private Canvas? _overlayCanvas;
-    private Canvas? _uiCanvas;
     private GridDecorator? _gridDecorator;
+    private Canvas? _overlayCanvas;
     private Border? _touchGuard;
+    private Canvas? _uiCanvas;
 
     public GraphControl()
     {
@@ -58,7 +54,7 @@ public partial class GraphControl : TemplatedControl
 
         // フォーカス可能にする
         Focusable = true;
-        
+
         if (Design.IsDesignMode)
         {
             // テスト用のグラフを作成
@@ -67,16 +63,16 @@ public partial class GraphControl : TemplatedControl
             // テスト用のノードを作成
             var a1 = graph.CreateNode<FloatConstantNode>();
             a1.SetValue(10);
-        
+
             var a2 = graph.CreateNode<FloatConstantNode>();
             a2.SetValue(5);
-        
+
             var add = graph.CreateNode<FloatAddNode>();
             add.ConnectInput(0, a1, 0);
             add.ConnectInput(1, a2, 0);
-        
+
             graph.CreateNode<FloatResultNode>();
-            
+
             var testGraph = new EditorGraph(graph, new SelectionManager());
 
             // ノードの位置を設定
@@ -94,6 +90,159 @@ public partial class GraphControl : TemplatedControl
             Graph = testGraph;
         }
     }
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        // 既存のタッチガードのイベントハンドラを解除
+        if (_touchGuard != null)
+        {
+            _touchGuard.PointerPressed -= OnPointerPressed;
+            _touchGuard.PointerMoved -= OnPointerMoved;
+            _touchGuard.PointerReleased -= OnPointerReleased;
+            _touchGuard.PointerWheelChanged -= OnPointerWheelChanged;
+        }
+
+        _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
+        _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
+        _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
+        _gridDecorator = e.NameScope.Find<GridDecorator>("PART_GridDecorator");
+        _touchGuard = e.NameScope.Find<Border>("PART_TouchGuard");
+
+        if (_canvas != null)
+        {
+            _canvas.RenderTransform = _transformGroup;
+            OnGraphChanged();
+        }
+
+        // オーバーレイキャンバスにも同じトランスフォームを適用（コネクタ用）
+        if (_overlayCanvas != null) _overlayCanvas.RenderTransform = _transformGroup;
+
+        // グリッドは Render 時に Pan/Zoom を考慮して描画するため、
+        // RenderTransform は適用しない。
+        if (_gridDecorator != null) UpdateGrid();
+
+        // タッチガードのイベントハンドラを登録（すべてのポインターイベントを処理済みにする）
+        if (_touchGuard != null)
+        {
+            _touchGuard.PointerPressed += OnPointerPressed;
+            _touchGuard.PointerMoved += OnPointerMoved;
+            _touchGuard.PointerReleased += OnPointerReleased;
+            _touchGuard.PointerWheelChanged += OnPointerWheelChanged;
+        }
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == GraphProperty)
+        {
+            OnGraphChanged();
+        }
+        else if (change.Property == ZoomProperty)
+        {
+            UpdateZoom();
+            UpdateGrid();
+        }
+        else if (change.Property == PanOffsetProperty)
+        {
+            UpdatePan();
+            UpdateGrid();
+        }
+        else if (change.Property == ShowGridProperty || change.Property == GridSizeProperty || change.Property == GridBrushProperty)
+        {
+            UpdateGrid();
+        }
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        UpdateGrid();
+    }
+
+    #region Connection Management
+
+    /// <summary>
+    /// 選択されているすべてのアイテム（ノードおよび接続）を削除します
+    /// </summary>
+    public void DeleteSelectedItems()
+    {
+        if (Graph == null || UndoRedoManager == null)
+            return;
+
+        var selectedItems = Graph.SelectionManager.SelectedItems.ToList();
+        if (selectedItems.Count == 0)
+            return;
+
+        UndoRedoManager.BeginTransaction();
+        try
+        {
+            // 1. 接続を削除
+            var selectedConnections = selectedItems.OfType<EditorConnection>().ToList();
+            if (selectedConnections.Count > 0)
+            {
+                var connectionService = GetConnectionService();
+                connectionService.DeleteConnections(Graph, selectedConnections, UndoRedoManager);
+            }
+
+            // 2. ノードを削除
+            var selectedNodes = selectedItems.OfType<EditorNode>().ToList();
+            foreach (var node in selectedNodes)
+            {
+                var action = new DeleteNodeAction(Graph, node);
+                UndoRedoManager.ExecuteAction(action);
+            }
+
+            Graph.SelectionManager.ClearSelection();
+            NotifyCanExecuteChanged();
+        }
+        finally
+        {
+            UndoRedoManager.EndTransaction();
+        }
+
+        if (DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
+    }
+
+    #endregion
+
+    #region Node Duplication
+
+    /// <summary>
+    /// 選択されたノードを複製します（Copy→Pasteと同じロジック）
+    /// </summary>
+    /// <param name="nodesToDuplicate">複製するノード</param>
+    /// <returns>複製されたノードの配列</returns>
+    public EditorNode[]? DuplicateSelectedNodes(List<EditorNode> nodesToDuplicate)
+    {
+        if (Graph == null || nodesToDuplicate.Count == 0)
+            return null;
+
+        // ClipboardServiceを使ってシリアライズ→デシリアライズで複製
+        var clipboardService = GetClipboardService();
+        var clipboardData = clipboardService.SerializeNodes(nodesToDuplicate.ToArray(), Graph);
+        var duplicatedNodes = clipboardService.DeserializeNodes(clipboardData, Graph);
+
+        if (duplicatedNodes == null || duplicatedNodes.Length == 0)
+            return null;
+
+        // Undo/Redo対応でノードを追加
+        var action = new AddNodesAction(Graph, duplicatedNodes);
+        UndoRedoManager!.ExecuteAction(action);
+
+        // 選択をクリアして、複製したノードを選択
+        Graph.SelectionManager.ClearSelection();
+        foreach (var node in duplicatedNodes) Graph.SelectionManager.AddToSelection(node);
+
+        OnGraphChanged();
+
+        return duplicatedNodes;
+    }
+
+    #endregion
 
     #region Styled Properties
 
@@ -137,7 +286,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(MaxZoomProperty, value);
     }
 
-    public static readonly StyledProperty<Vector> PanOffsetProperty = AvaloniaProperty.Register<GraphControl, Vector>(nameof(PanOffset), default);
+    public static readonly StyledProperty<Vector> PanOffsetProperty = AvaloniaProperty.Register<GraphControl, Vector>(nameof(PanOffset));
 
     public Vector PanOffset
     {
@@ -145,7 +294,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(PanOffsetProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsSelectionVisibleProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsSelectionVisible), false);
+    public static readonly StyledProperty<bool> IsSelectionVisibleProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsSelectionVisible));
 
     public bool IsSelectionVisible
     {
@@ -153,7 +302,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(IsSelectionVisibleProperty, value);
     }
 
-    public static readonly StyledProperty<Rect> SelectionRectProperty = AvaloniaProperty.Register<GraphControl, Rect>(nameof(SelectionRect), default);
+    public static readonly StyledProperty<Rect> SelectionRectProperty = AvaloniaProperty.Register<GraphControl, Rect>(nameof(SelectionRect));
 
     public Rect SelectionRect
     {
@@ -161,7 +310,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(SelectionRectProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsDraggingConnectorProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsDraggingConnector), false);
+    public static readonly StyledProperty<bool> IsDraggingConnectorProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsDraggingConnector));
 
     public bool IsDraggingConnector
     {
@@ -177,7 +326,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(DragConnectorLineProperty, value);
     }
 
-    public static readonly StyledProperty<string?> DragConnectorPortTypeProperty = AvaloniaProperty.Register<GraphControl, string?>(nameof(DragConnectorPortType), null);
+    public static readonly StyledProperty<string?> DragConnectorPortTypeProperty = AvaloniaProperty.Register<GraphControl, string?>(nameof(DragConnectorPortType));
 
     public string? DragConnectorPortType
     {
@@ -209,7 +358,7 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(GridBrushProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsInputBlockedProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsInputBlocked), false);
+    public static readonly StyledProperty<bool> IsInputBlockedProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsInputBlocked));
 
     public bool IsInputBlocked
     {
@@ -218,84 +367,6 @@ public partial class GraphControl : TemplatedControl
     }
 
     #endregion
-
-    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-    {
-        base.OnApplyTemplate(e);
-
-        // 既存のタッチガードのイベントハンドラを解除
-        if (_touchGuard != null)
-        {
-            _touchGuard.PointerPressed -= OnPointerPressed;
-            _touchGuard.PointerMoved -= OnPointerMoved;
-            _touchGuard.PointerReleased -= OnPointerReleased;
-            _touchGuard.PointerWheelChanged -= OnPointerWheelChanged;
-        }
-
-        _canvas = e.NameScope.Find<Canvas>("PART_Canvas");
-        _overlayCanvas = e.NameScope.Find<Canvas>("PART_OverlayCanvas");
-        _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
-        _gridDecorator = e.NameScope.Find<GridDecorator>("PART_GridDecorator");
-        _touchGuard = e.NameScope.Find<Border>("PART_TouchGuard");
-
-        if (_canvas != null)
-        {
-            _canvas.RenderTransform = _transformGroup;
-            OnGraphChanged();
-        }
-
-        // オーバーレイキャンバスにも同じトランスフォームを適用（コネクタ用）
-        if (_overlayCanvas != null)
-        {
-            _overlayCanvas.RenderTransform = _transformGroup;
-        }
-
-        // グリッドは Render 時に Pan/Zoom を考慮して描画するため、
-        // RenderTransform は適用しない。
-        if (_gridDecorator != null)
-        {
-            UpdateGrid();
-        }
-
-        // タッチガードのイベントハンドラを登録（すべてのポインターイベントを処理済みにする）
-        if (_touchGuard != null)
-        {
-            _touchGuard.PointerPressed += OnPointerPressed;
-            _touchGuard.PointerMoved += OnPointerMoved;
-            _touchGuard.PointerReleased += OnPointerReleased;
-            _touchGuard.PointerWheelChanged += OnPointerWheelChanged;
-        }
-    }
-
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    {
-        base.OnPropertyChanged(change);
-
-        if (change.Property == GraphProperty)
-        {
-            OnGraphChanged();
-        }
-        else if (change.Property == ZoomProperty)
-        {
-            UpdateZoom();
-            UpdateGrid();
-        }
-        else if (change.Property == PanOffsetProperty)
-        {
-            UpdatePan();
-            UpdateGrid();
-        }
-        else if (change.Property == ShowGridProperty || change.Property == GridSizeProperty || change.Property == GridBrushProperty)
-        {
-            UpdateGrid();
-        }
-    }
-
-    protected override void OnSizeChanged(SizeChangedEventArgs e)
-    {
-        base.OnSizeChanged(e);
-        UpdateGrid();
-    }
 
 
     #region Graph Management
@@ -316,10 +387,7 @@ public partial class GraphControl : TemplatedControl
         Graph.Nodes.CollectionChanged -= OnNodesCollectionChanged;
 
         // 既存のノードのイベントハンドラを解除
-        foreach (var node in Graph.Nodes)
-        {
-            node.PropertyChanged -= OnNodePropertyChanged;
-        }
+        foreach (var node in Graph.Nodes) node.PropertyChanged -= OnNodePropertyChanged;
 
         // イベントハンドラを登録
         Graph.SelectionManager.SelectionChanged += OnSelectionChanged;
@@ -347,34 +415,24 @@ public partial class GraphControl : TemplatedControl
 
     private void OnGraphPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(EditorGraph.IsExecuting))
-        {
-            IsInputBlocked = Graph?.IsExecuting ?? false;
-        }
+        if (e.PropertyName == nameof(EditorGraph.IsExecuting)) IsInputBlocked = Graph?.IsExecuting ?? false;
     }
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y))
-        {
-            ScheduleConnectorUpdate();
-        }
+        if (e.PropertyName is nameof(EditorNode.X) or nameof(EditorNode.Y)) ScheduleConnectorUpdate();
     }
 
-    private void OnSelectionChanged(object? sender, Selection.SelectionChangedEventArgs e)
+    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         // ConnectorControlの選択状態を更新
         var connectors = GetAllConnectorControls();
         foreach (var connector in connectors)
-        {
             if (connector.Connection != null)
-            {
                 connector.IsSelected = Graph?.SelectionManager.IsSelected(connector.Connection) ?? false;
-            }
-        }
     }
 
-    private void OnNodesCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void OnNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (_canvas == null)
             return;
@@ -407,17 +465,13 @@ public partial class GraphControl : TemplatedControl
 
                 // 対応するNodeControlを検索して削除
                 var nodeControl = _canvas.Children.OfType<NodeControl>().FirstOrDefault(nc => nc.Node == node);
-                if (nodeControl != null)
-                {
-                    _canvas.Children.Remove(nodeControl);
-                }
+                if (nodeControl != null) _canvas.Children.Remove(nodeControl);
             }
 
             // コネクタを更新
             ScheduleConnectorUpdate();
         }
     }
-
 
     #endregion
 
@@ -451,93 +505,6 @@ public partial class GraphControl : TemplatedControl
     protected virtual void OnZoomChanged(double oldZoom, double newZoom, Point zoomCenter)
     {
         ScheduleConnectorUpdate();
-    }
-
-    #endregion
-    
-    #region Connection Management
-
-    /// <summary>
-    /// 選択されているすべてのアイテム（ノードおよび接続）を削除します
-    /// </summary>
-    public void DeleteSelectedItems()
-    {
-        if (Graph == null || UndoRedoManager == null)
-            return;
-
-        var selectedItems = Graph.SelectionManager.SelectedItems.ToList();
-        if (selectedItems.Count == 0)
-            return;
-
-        UndoRedoManager.BeginTransaction();
-        try
-        {
-            // 1. 接続を削除
-            var selectedConnections = selectedItems.OfType<EditorConnection>().ToList();
-            if (selectedConnections.Count > 0)
-            {
-                var connectionService = GetConnectionService();
-                connectionService.DeleteConnections(Graph, selectedConnections, UndoRedoManager);
-            }
-
-            // 2. ノードを削除
-            var selectedNodes = selectedItems.OfType<EditorNode>().ToList();
-            foreach (var node in selectedNodes)
-            {
-                var action = new DeleteNodeAction(Graph, node);
-                UndoRedoManager.ExecuteAction(action);
-            }
-
-            Graph.SelectionManager.ClearSelection();
-            NotifyCanExecuteChanged();
-        }
-        finally
-        {
-            UndoRedoManager.EndTransaction();
-        }
-
-        if (DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
-    }
-
-    #endregion
-    
-    #region Node Duplication
-
-    /// <summary>
-    /// 選択されたノードを複製します（Copy→Pasteと同じロジック）
-    /// </summary>
-    /// <param name="nodesToDuplicate">複製するノード</param>
-    /// <returns>複製されたノードの配列</returns>
-    public EditorNode[]? DuplicateSelectedNodes(List<EditorNode> nodesToDuplicate)
-    {
-        if (Graph == null || nodesToDuplicate.Count == 0)
-            return null;
-
-        // ClipboardServiceを使ってシリアライズ→デシリアライズで複製
-        var clipboardService = GetClipboardService();
-        var clipboardData = clipboardService.SerializeNodes(nodesToDuplicate.ToArray(), Graph);
-        var duplicatedNodes = clipboardService.DeserializeNodes(clipboardData, Graph);
-
-        if (duplicatedNodes == null || duplicatedNodes.Length == 0)
-            return null;
-
-        // Undo/Redo対応でノードを追加
-        var action = new Undo.AddNodesAction(Graph, duplicatedNodes);
-        UndoRedoManager!.ExecuteAction(action);
-
-        // 選択をクリアして、複製したノードを選択
-        Graph.SelectionManager.ClearSelection();
-        foreach (var node in duplicatedNodes)
-        {
-            Graph.SelectionManager.AddToSelection(node);
-        }
-
-        OnGraphChanged();
-
-        return duplicatedNodes;
     }
 
     #endregion
@@ -579,10 +546,8 @@ public partial class GraphControl : TemplatedControl
         var targetPort = _currentHoverPort?.Port;
 
         if (sourcePort != null && targetPort != null && sourcePort != targetPort)
-        {
             // 接続を作成
             CreateConnection(sourcePort, targetPort);
-        }
 
         CleanupPortDrag();
     }
@@ -596,22 +561,17 @@ public partial class GraphControl : TemplatedControl
         var portControl = GetPortAtPosition(mousePosition);
 
         // 前回ハイライトしていたポートをクリア
-        if (_currentHoverPort != null && _currentHoverPort != portControl)
-        {
-            _currentHoverPort.IsHighlighted = false;
-        }
+        if (_currentHoverPort != null && _currentHoverPort != portControl) _currentHoverPort.IsHighlighted = false;
 
         _currentHoverPort = null;
 
         // 新しいポートをハイライト（接続可能な場合のみ）
         if (portControl != null && portControl != _dragSourcePort && portControl.Port != null)
-        {
             if (CanConnect(_dragSourcePort.Port, portControl.Port))
             {
                 _currentHoverPort = portControl;
                 _currentHoverPort.IsHighlighted = true;
             }
-        }
     }
 
     private PortControl? GetPortAtPosition(Point position)
@@ -686,7 +646,7 @@ public partial class GraphControl : TemplatedControl
     }
 
     #endregion
-    
+
     #region Add Node
 
     private async Task ShowAddNodeWindow(Point clickPosition)
@@ -719,10 +679,7 @@ public partial class GraphControl : TemplatedControl
         {
             // キャンバス座標に変換
             var canvasPosition = this.TranslatePoint(clickPosition, _canvas);
-            if (canvasPosition.HasValue)
-            {
-                CreateNode(selectedNodeType, canvasPosition.Value);
-            }
+            if (canvasPosition.HasValue) CreateNode(selectedNodeType, canvasPosition.Value);
         }
     }
 
@@ -766,10 +723,7 @@ public partial class GraphControl : TemplatedControl
     private void NotifyCanExecuteChanged()
     {
         // MainWindowViewModelのCanUndo/CanRedoを更新
-        if (DataContext is ViewModels.MainWindowViewModel viewModel)
-        {
-            viewModel.NotifyUndoRedoCanExecuteChanged();
-        }
+        if (DataContext is MainWindowViewModel viewModel) viewModel.NotifyUndoRedoCanExecuteChanged();
     }
 
     #endregion

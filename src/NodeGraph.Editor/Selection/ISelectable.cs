@@ -1,4 +1,3 @@
-
 using Avalonia;
 
 namespace NodeGraph.Editor.Selection;

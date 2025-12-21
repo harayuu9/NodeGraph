@@ -34,19 +34,13 @@ public class YamlClipboardService : IClipboardService
     /// </summary>
     public EditorNode[]? DeserializeNodes(string clipboardData, EditorGraph targetGraph)
     {
-        if (string.IsNullOrEmpty(clipboardData))
-        {
-            return null;
-        }
+        if (string.IsNullOrEmpty(clipboardData)) return null;
 
         try
         {
             // クリップボードからグラフとレイアウトを分離
             var parts = clipboardData.Split([GraphMarker, LayoutMarker], StringSplitOptions.None);
-            if (parts.Length != 3)
-            {
-                return null;
-            }
+            if (parts.Length != 3) return null;
 
             var graphYaml = parts[1];
             var layoutYaml = parts[2];
@@ -61,10 +55,7 @@ public class YamlClipboardService : IClipboardService
 
             // レイアウトを適用（一時的なEditorGraphを作成）
             var tempGraph = new EditorGraph(pastedGraph, targetGraph.SelectionManager);
-            foreach (var node in editorNodes)
-            {
-                tempGraph.Nodes.Add(node);
-            }
+            foreach (var node in editorNodes) tempGraph.Nodes.Add(node);
 
             EditorLayoutSerializer.LoadLayout(layoutYaml, tempGraph);
 

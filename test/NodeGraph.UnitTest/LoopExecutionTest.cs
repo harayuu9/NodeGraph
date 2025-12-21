@@ -49,8 +49,7 @@ public class LoopExecutionTest
         // グラフ実行
         var executor = graph.CreateExecutor();
         var executedNodes = new List<string>();
-        await executor.ExecuteAsync(
-            onExecute: node =>
+        await executor.ExecuteAsync(node =>
             {
                 var nodeName = node.GetType().Name;
                 executedNodes.Add(nodeName);
@@ -104,8 +103,7 @@ public class LoopExecutionTest
         // グラフ実行
         var executor = graph.CreateExecutor();
         var executedNodes = new List<string>();
-        await executor.ExecuteAsync(
-            onExecute: node =>
+        await executor.ExecuteAsync(node =>
             {
                 var nodeName = node.GetType().Name;
                 executedNodes.Add(nodeName);

@@ -1,4 +1,3 @@
-using System;
 using Microsoft.CodeAnalysis;
 
 namespace NodeGraph.Generator;
@@ -10,7 +9,7 @@ public class ReferenceSymbols
 {
     public ReferenceSymbols(Compilation compilation)
     {
-        _compilation = compilation;
+        Compilation = compilation;
 
         // Node関連
         NodeAttribute = GetTypeByMetadataName("NodeGraph.Model.NodeAttribute");
@@ -26,8 +25,6 @@ public class ReferenceSymbols
         JsonPropertyAttribute = GetTypeByMetadataNameOrNull("NodeGraph.Model.JsonPropertyAttribute");
     }
 
-    private readonly Compilation _compilation;
-
     // Node関連
     public INamedTypeSymbol NodeAttribute { get; }
     public INamedTypeSymbol InputAttribute { get; }
@@ -41,20 +38,17 @@ public class ReferenceSymbols
     public INamedTypeSymbol? JsonNodeAttribute { get; }
     public INamedTypeSymbol? JsonPropertyAttribute { get; }
 
-    public Compilation Compilation => _compilation;
+    public Compilation Compilation { get; }
 
     private INamedTypeSymbol GetTypeByMetadataName(string metadataName)
     {
-        var symbol = _compilation.GetTypeByMetadataName(metadataName);
-        if (symbol == null)
-        {
-            throw new InvalidOperationException($"Type {metadataName} is not found in compilation.");
-        }
+        var symbol = Compilation.GetTypeByMetadataName(metadataName);
+        if (symbol == null) throw new InvalidOperationException($"Type {metadataName} is not found in compilation.");
         return symbol;
     }
 
     private INamedTypeSymbol? GetTypeByMetadataNameOrNull(string metadataName)
     {
-        return _compilation.GetTypeByMetadataName(metadataName);
+        return Compilation.GetTypeByMetadataName(metadataName);
     }
 }

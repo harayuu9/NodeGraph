@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Input;
 using NodeGraph.Editor.Models;
+using NodeGraph.Editor.Primitives;
 
 namespace NodeGraph.Editor.Controls;
 
@@ -14,10 +15,7 @@ public partial class GraphControl
 {
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.Handled || Graph == null)
-        {
-            return;
-        }
+        if (e.Handled || Graph == null) return;
 
         // フォーカスを取得（Deleteキーなどを受け取るため）
         Focus();
@@ -34,6 +32,7 @@ public partial class GraphControl
                 _rightButtonDownPoint = e.GetPosition(this);
                 e.Handled = true;
             }
+
             return;
         }
 
@@ -49,7 +48,6 @@ public partial class GraphControl
         }
 
         if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
-        {
             // NodeControl上またはポートドラッグ中でのクリックでない場合
             if (e.Source is not NodeControl && !_isDraggingPort)
             {
@@ -61,13 +59,9 @@ public partial class GraphControl
                 if (hitConnector?.Connection != null)
                 {
                     if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
-                    {
                         Graph.SelectionManager.ToggleSelection(hitConnector.Connection);
-                    }
                     else
-                    {
                         Graph.SelectionManager.Select(hitConnector.Connection);
-                    }
 
                     e.Handled = true;
                     return;
@@ -84,12 +78,8 @@ public partial class GraphControl
                 e.Handled = true;
 
                 // Ctrlキーが押されていない場合は選択をクリア
-                if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
-                {
-                    Graph?.SelectionManager.ClearSelection();
-                }
+                if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) Graph?.SelectionManager.ClearSelection();
             }
-        }
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -122,15 +112,11 @@ public partial class GraphControl
             var currentPoint = e.GetPosition(_canvas);
 
             if (_dragSourcePort?.Port?.IsOutput == true)
-            {
                 // Output portからドラッグしている場合、終点を更新
-                DragConnectorLine = new Primitives.ConnectorLine(DragConnectorLine.Start, currentPoint);
-            }
+                DragConnectorLine = new ConnectorLine(DragConnectorLine.Start, currentPoint);
             else
-            {
                 // Input portからドラッグしている場合、始点を更新
-                DragConnectorLine = new Primitives.ConnectorLine(currentPoint, DragConnectorLine.End);
-            }
+                DragConnectorLine = new ConnectorLine(currentPoint, DragConnectorLine.End);
 
             // マウス位置のポートを検索してハイライト
             UpdatePortHighlight(e.GetPosition(this));
@@ -194,12 +180,13 @@ public partial class GraphControl
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (Graph == null) return;
-        
+
         if (e.Key == Key.Delete)
         {
             DeleteSelectedItems();
             e.Handled = true;
         }
+
         if (e.Key == Key.R)
         {
             ArrangeSelectedNodes();
@@ -207,7 +194,6 @@ public partial class GraphControl
         }
 
         if (e.KeyModifiers == KeyModifiers.Control)
-        {
             switch (e.Key)
             {
                 case Key.C:
@@ -233,7 +219,6 @@ public partial class GraphControl
                     e.Handled = true;
                     break;
             }
-        }
     }
 
     private void ZoomAtPoint(Point point, double factor)

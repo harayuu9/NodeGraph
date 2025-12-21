@@ -96,10 +96,7 @@ public static class JsonSchemaBuilder
             sb.Append(propSchema);
 
             // requiredに追加（nullableでない場合）
-            if (prop.IsRequired && !schemaType.IsNullable)
-            {
-                requiredProps.Add(jsonPropName);
-            }
+            if (prop.IsRequired && !schemaType.IsNullable) requiredProps.Add(jsonPropName);
         }
 
         sb.Append("}");
@@ -113,10 +110,7 @@ public static class JsonSchemaBuilder
         }
 
         // additionalProperties
-        if (strictSchema)
-        {
-            sb.Append(",\"additionalProperties\":false");
-        }
+        if (strictSchema) sb.Append(",\"additionalProperties\":false");
 
         sb.Append("}");
 
@@ -150,10 +144,7 @@ public static class JsonSchemaBuilder
         sb.Append($"\"type\":\"{schemaType.Type}\"");
 
         // format
-        if (!string.IsNullOrEmpty(schemaType.Format))
-        {
-            sb.Append($",\"format\":\"{schemaType.Format}\"");
-        }
+        if (!string.IsNullOrEmpty(schemaType.Format)) sb.Append($",\"format\":\"{schemaType.Format}\"");
 
         // enum values
         if (schemaType.EnumValues is { Length: > 0 })
@@ -166,7 +157,7 @@ public static class JsonSchemaBuilder
         // array items
         if (schemaType.Items != null)
         {
-            var itemsSchema = BuildTypeSchema(context, schemaType.Items, compilation, visitedTypes, strictSchema, depth, null);
+            var itemsSchema = BuildTypeSchema(context, schemaType.Items, compilation, visitedTypes, strictSchema, depth);
             if (itemsSchema == null) return null;
             sb.Append($",\"items\":{itemsSchema}");
         }
@@ -174,7 +165,7 @@ public static class JsonSchemaBuilder
         // additionalProperties (for Dictionary)
         if (schemaType.AdditionalProperties != null)
         {
-            var additionalSchema = BuildTypeSchema(context, schemaType.AdditionalProperties, compilation, visitedTypes, strictSchema, depth, null);
+            var additionalSchema = BuildTypeSchema(context, schemaType.AdditionalProperties, compilation, visitedTypes, strictSchema, depth);
             if (additionalSchema == null) return null;
             sb.Append($",\"additionalProperties\":{additionalSchema}");
         }
@@ -222,7 +213,7 @@ public static class JsonSchemaBuilder
             // JsonPropertyAttributeから情報を取得
             string? jsonName = null;
             string? description = null;
-            bool required = true;
+            var required = true;
 
             if (jsonPropertyAttr != null)
             {
@@ -230,9 +221,7 @@ public static class JsonSchemaBuilder
                     .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, jsonPropertyAttr));
 
                 if (attr != null)
-                {
                     foreach (var arg in attr.NamedArguments)
-                    {
                         switch (arg.Key)
                         {
                             case "Name" when arg.Value.Value is string n:
@@ -245,8 +234,6 @@ public static class JsonSchemaBuilder
                                 required = r;
                                 break;
                         }
-                    }
-                }
             }
 
             // デフォルトのJSON名はcamelCase

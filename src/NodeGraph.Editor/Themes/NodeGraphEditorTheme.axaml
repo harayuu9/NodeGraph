@@ -46,7 +46,7 @@
           <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#2196F3</SolidColorBrush>
           <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#4CAF50</SolidColorBrush>
           <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#F44336</SolidColorBrush>
-          
+
         </ResourceDictionary>
 
         <!-- Dark Theme -->
@@ -91,7 +91,7 @@
           <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#64B5F6</SolidColorBrush>
           <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#81C784</SolidColorBrush>
           <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#E57373</SolidColorBrush>
-          
+
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
       <ResourceDictionary.MergedDictionaries>

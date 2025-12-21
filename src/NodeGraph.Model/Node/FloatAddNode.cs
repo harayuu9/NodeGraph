@@ -3,8 +3,8 @@ namespace NodeGraph.Model;
 [Node(HasExecIn = true, HasExecOut = true)]
 public partial class FloatAddNode
 {
-    [Input] private float _a = 0f;
-    [Input] private float _b = 0f;
+    [Input] private float _a;
+    [Input] private float _b;
 
     [Output] private float _result;
 

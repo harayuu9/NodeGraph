@@ -9,13 +9,13 @@ namespace NodeGraph.Model.Pool;
 /// <typeparam name="T">セット要素の型</typeparam>
 internal class HashSetPool<T>
 {
-    private readonly ConcurrentBag<HashSet<T>> _pool = [];
-    private readonly int _maxCapacity;
-
     /// <summary>
     /// 共有インスタンスを取得します。
     /// </summary>
     public static readonly HashSetPool<T> Shared = new();
+
+    private readonly int _maxCapacity;
+    private readonly ConcurrentBag<HashSet<T>> _pool = [];
 
     /// <summary>
     /// 新しいHashSetPoolインスタンスを作成します。
@@ -53,10 +53,7 @@ internal class HashSetPool<T>
 
     private HashSet<T> RentInternal()
     {
-        if (_pool.TryTake(out var hashSet))
-        {
-            return hashSet;
-        }
+        if (_pool.TryTake(out var hashSet)) return hashSet;
 
         return [];
     }
@@ -65,10 +62,7 @@ internal class HashSetPool<T>
     {
         if (_pool.TryTake(out var hashSet))
         {
-            if (hashSet.EnsureCapacity(0) < capacity)
-            {
-                hashSet.EnsureCapacity(capacity);
-            }
+            if (hashSet.EnsureCapacity(0) < capacity) hashSet.EnsureCapacity(capacity);
             return hashSet;
         }
 
@@ -78,10 +72,7 @@ internal class HashSetPool<T>
     internal void Return(HashSet<T> hashSet)
     {
         // 容量が大きすぎる場合はプールに返却しない（メモリリークを防ぐ）
-        if (hashSet.Count > _maxCapacity)
-        {
-            return;
-        }
+        if (hashSet.Count > _maxCapacity) return;
 
         hashSet.Clear();
         _pool.Add(hashSet);
@@ -96,29 +87,25 @@ internal class HashSetPool<T>
 public struct HashSetPoolRental<T> : IDisposable
 {
     private HashSetPool<T>? _pool;
-    private HashSet<T>? _hashSet;
 
     internal HashSetPoolRental(HashSetPool<T> pool, HashSet<T> hashSet)
     {
         _pool = pool;
-        _hashSet = hashSet;
+        Value = hashSet;
     }
 
     /// <summary>
     /// レンタルしたセットを取得します。
     /// </summary>
-    public HashSet<T>? Value => _hashSet;
+    public HashSet<T>? Value { get; private set; }
 
     /// <summary>
     /// レンタルしたセットをプールに返却します。
     /// </summary>
     public void Dispose()
     {
-        if (_pool != null && _hashSet != null)
-        {
-            _pool.Return(_hashSet);
-        }
+        if (_pool != null && Value != null) _pool.Return(Value);
         _pool = null;
-        _hashSet = null;
+        Value = null;
     }
 }

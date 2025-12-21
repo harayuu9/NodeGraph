@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Undo;
@@ -20,5 +21,5 @@ public interface IGraphLayoutService
     MoveNodesAction CreateArrangeAction(
         IEnumerable<EditorNode> nodes,
         EditorGraph graph,
-        System.Func<EditorNode, (double width, double height)> getNodeSize);
+        Func<EditorNode, (double width, double height)> getNodeSize);
 }

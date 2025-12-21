@@ -9,5 +9,8 @@ internal sealed class FuncConverter<TFrom, TTo> : IPortTypeConverter<TFrom, TTo>
         _func = func;
     }
 
-    public TTo Convert(TFrom value) => _func(value);
+    public TTo Convert(TFrom value)
+    {
+        return _func(value);
+    }
 }

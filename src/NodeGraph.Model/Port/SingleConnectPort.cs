@@ -2,32 +2,36 @@
 
 public abstract class SingleConnectPort : Port
 {
-    protected SingleConnectPort(Node parent) : base(parent) {}
-    protected SingleConnectPort(Node parent, PortId id) : base(parent, id) {}
+    protected SingleConnectPort(Node parent) : base(parent)
+    {
+    }
 
-    private Port? _connectedPort = null;
-    public Port? ConnectedPort => _connectedPort;
+    protected SingleConnectPort(Node parent, PortId id) : base(parent, id)
+    {
+    }
+
+    public Port? ConnectedPort { get; private set; }
 
     protected override void ConnectPort(Port other)
     {
-        if (_connectedPort != null)
+        if (ConnectedPort != null)
         {
-            _connectedPort.Disconnect(this);
-            Disconnect(_connectedPort);
+            ConnectedPort.Disconnect(this);
+            Disconnect(ConnectedPort);
         }
-        
-        _connectedPort = other;
+
+        ConnectedPort = other;
     }
 
     public override void Disconnect(Port other)
     {
-        if (_connectedPort != other)
-        {
-            return;
-        }
-        
-        _connectedPort = null;
+        if (ConnectedPort != other) return;
+
+        ConnectedPort = null;
     }
 
-    public override void DisconnectAll() => _connectedPort = null;
+    public override void DisconnectAll()
+    {
+        ConnectedPort = null;
+    }
 }

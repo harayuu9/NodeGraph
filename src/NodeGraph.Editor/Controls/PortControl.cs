@@ -25,18 +25,6 @@ public class PortControl : TemplatedControl
     public static readonly RoutedEvent<PortDragEventArgs> PortDragStartedEvent = RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragStarted), RoutingStrategies.Bubble);
     public static readonly RoutedEvent<PortDragEventArgs> PortDragCompletedEvent = RoutedEvent.Register<PortControl, PortDragEventArgs>(nameof(PortDragCompleted), RoutingStrategies.Bubble);
 
-    public event EventHandler<PortDragEventArgs>? PortDragStarted
-    {
-        add => AddHandler(PortDragStartedEvent, value);
-        remove => RemoveHandler(PortDragStartedEvent, value);
-    }
-
-    public event EventHandler<PortDragEventArgs>? PortDragCompleted
-    {
-        add => AddHandler(PortDragCompletedEvent, value);
-        remove => RemoveHandler(PortDragCompletedEvent, value);
-    }
-
     private Ellipse? _portEllipse;
 
     public PortControl()
@@ -68,6 +56,18 @@ public class PortControl : TemplatedControl
         set => SetValue(IsHighlightedProperty, value);
     }
 
+    public event EventHandler<PortDragEventArgs>? PortDragStarted
+    {
+        add => AddHandler(PortDragStartedEvent, value);
+        remove => RemoveHandler(PortDragStartedEvent, value);
+    }
+
+    public event EventHandler<PortDragEventArgs>? PortDragCompleted
+    {
+        add => AddHandler(PortDragCompletedEvent, value);
+        remove => RemoveHandler(PortDragCompletedEvent, value);
+    }
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
@@ -88,7 +88,7 @@ public class PortControl : TemplatedControl
             e.Handled = true;
         }
     }
-    
+
     internal Point? GetCenterIn(Visual relativeTo)
     {
         if (_portEllipse == null)

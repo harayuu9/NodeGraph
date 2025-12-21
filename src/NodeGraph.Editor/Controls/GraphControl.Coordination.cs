@@ -30,19 +30,13 @@ public partial class GraphControl
         // ノードに対応するNodeControlを検索
         var nodeControl = FindNodeControl(node);
 
-        if (nodeControl == null)
-        {
-            return null;
-        }
+        if (nodeControl == null) return null;
 
         // PortControlを検索
         var portControl = FindPortControl(nodeControl, port);
 
         // INFO 本来は_canvas?.Childrenで見てるから、ここでnullな分けないんだけど構文解析がアホだから CS8604のワーニング出す
-        if (_canvas == null)
-        {
-            return null;
-        }
+        if (_canvas == null) return null;
 
         // PortControlが自身で中心座標を解決するAPIを使用
         return portControl?.GetCenterIn(_canvas);

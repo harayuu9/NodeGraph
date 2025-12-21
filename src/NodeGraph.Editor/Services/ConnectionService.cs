@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Undo;
@@ -91,7 +92,7 @@ public class ConnectionService : IConnectionService
     /// </summary>
     public void DeleteConnections(
         EditorGraph graph,
-        System.Collections.Generic.IEnumerable<EditorConnection> connections,
+        IEnumerable<EditorConnection> connections,
         UndoRedoManager undoRedoManager)
     {
         undoRedoManager.BeginTransaction();

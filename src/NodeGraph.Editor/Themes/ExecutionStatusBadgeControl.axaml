@@ -61,12 +61,12 @@
     </Style>
     <Style Selector="^[ExecutionStatus=Executed] /template/ Path#BadgePath">
       <Setter Property="Data" Value="{StaticResource CheckIcon}" />
-      <Setter Property="Fill" Value="White"/>
+      <Setter Property="Fill" Value="White" />
       <Setter Property="RenderTransform">
-        <TranslateTransform Y="2"/>
+        <TranslateTransform Y="2" />
       </Setter>
     </Style>
-    
+
     <!-- Exception -->
     <Style Selector="^[ExecutionStatus=Exception] /template/ Border#BadgeBorder">
       <Setter Property="IsVisible" Value="True" />
@@ -74,9 +74,9 @@
     </Style>
     <Style Selector="^[ExecutionStatus=Exception] /template/ Path#BadgePath">
       <Setter Property="Data" Value="{StaticResource ErrorIcon}" />
-      <Setter Property="Fill" Value="White"/>
+      <Setter Property="Fill" Value="White" />
       <Setter Property="RenderTransform">
-        <TranslateTransform X="5"/>
+        <TranslateTransform X="5" />
       </Setter>
     </Style>
   </ControlTheme>

@@ -45,7 +45,11 @@ public class OutputPort<T> : OutputPort
 
 public abstract class OutputPort : MultiConnectPort
 {
-    protected OutputPort(Node parent) : base(parent) { }
-    protected OutputPort(Node parent, PortId id) : base(parent, id) {}
+    protected OutputPort(Node parent) : base(parent)
+    {
+    }
 
+    protected OutputPort(Node parent, PortId id) : base(parent, id)
+    {
+    }
 }

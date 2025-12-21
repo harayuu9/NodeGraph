@@ -57,16 +57,10 @@ public partial class GraphControl
 
         // Ctrlキーが押されている場合は既存の選択に追加、そうでなければ新規選択
         if (modifiers.HasFlag(KeyModifiers.Control))
-        {
             foreach (var item in selectedItems)
-            {
                 Graph.SelectionManager.AddToSelection(item);
-            }
-        }
         else
-        {
             Graph.SelectionManager.SelectRange(selectedItems);
-        }
     }
 
     /// <summary>

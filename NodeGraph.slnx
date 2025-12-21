@@ -1,11 +1,11 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/NodeGraph.Model/NodeGraph.Model.csproj" Type="Classic C#" />
-    <Project Path="src\NodeGraph.Editor\NodeGraph.Editor.csproj" Type="Classic C#" />
-    <Project Path="src\NodeGraph.Generator\NodeGraph.Generator.csproj" Type="Classic C#" />
-    <Project Path="src\NodeGraph.Sandbox\NodeGraph.Sandbox.csproj" Type="Classic C#" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test\NodeGraph.UnitTest\NodeGraph.UnitTest.csproj" Type="Classic C#" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/NodeGraph.Model/NodeGraph.Model.csproj" Type="Classic C#"/>
+        <Project Path="src\NodeGraph.Editor\NodeGraph.Editor.csproj" Type="Classic C#"/>
+        <Project Path="src\NodeGraph.Generator\NodeGraph.Generator.csproj" Type="Classic C#"/>
+        <Project Path="src\NodeGraph.Sandbox\NodeGraph.Sandbox.csproj" Type="Classic C#"/>
+    </Folder>
+    <Folder Name="/test/">
+        <Project Path="test\NodeGraph.UnitTest\NodeGraph.UnitTest.csproj" Type="Classic C#"/>
+    </Folder>
 </Solution>

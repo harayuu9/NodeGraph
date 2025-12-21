@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NodeGraph.Editor.Models;
+using NodeGraph.Model;
 
 namespace NodeGraph.Editor.Undo;
 
@@ -9,15 +10,9 @@ namespace NodeGraph.Editor.Undo;
 /// </summary>
 public class DeleteNodeAction : IUndoableAction
 {
+    private readonly List<ConnectionInfo> _connections;
     private readonly EditorGraph _graph;
     private readonly EditorNode _node;
-    private readonly List<ConnectionInfo> _connections;
-
-    private record ConnectionInfo(
-        EditorNode SourceNode,
-        EditorPort SourcePort,
-        EditorNode TargetNode,
-        EditorPort TargetPort);
 
     public DeleteNodeAction(EditorGraph graph, EditorNode node)
     {
@@ -47,13 +42,10 @@ public class DeleteNodeAction : IUndoableAction
         foreach (var conn in _connections)
         {
             // モデルレベルの接続を復元
-            var sourcePort = conn.SourcePort.Port as Model.OutputPort;
-            var targetPort = conn.TargetPort.Port as Model.InputPort;
+            var sourcePort = conn.SourcePort.Port as OutputPort;
+            var targetPort = conn.TargetPort.Port as InputPort;
 
-            if (sourcePort != null && targetPort != null)
-            {
-                targetPort.Connect(sourcePort);
-            }
+            if (sourcePort != null && targetPort != null) targetPort.Connect(sourcePort);
 
             // UI レベルの接続を復元
             var editorConnection = new EditorConnection(
@@ -65,4 +57,10 @@ public class DeleteNodeAction : IUndoableAction
             _graph.Connections.Add(editorConnection);
         }
     }
+
+    private record ConnectionInfo(
+        EditorNode SourceNode,
+        EditorPort SourcePort,
+        EditorNode TargetNode,
+        EditorPort TargetPort);
 }

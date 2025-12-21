@@ -95,10 +95,7 @@ public class ListPoolTest
     {
         using var rental = ListPool<int>.Shared.Rent(10000, out var list);
 
-        for (var i = 0; i < 5000; i++)
-        {
-            list.Add(i);
-        }
+        for (var i = 0; i < 5000; i++) list.Add(i);
 
         Assert.Equal(5000, list.Count);
     }
@@ -109,7 +106,6 @@ public class ListPoolTest
         var tasks = new List<Task>();
 
         for (var i = 0; i < 10; i++)
-        {
             tasks.Add(Task.Run(() =>
             {
                 for (var j = 0; j < 100; j++)
@@ -119,7 +115,6 @@ public class ListPoolTest
                     Assert.Single(list);
                 }
             }));
-        }
 
         await Task.WhenAll(tasks);
     }

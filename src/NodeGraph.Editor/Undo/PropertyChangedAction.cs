@@ -7,10 +7,10 @@ namespace NodeGraph.Editor.Undo;
 /// </summary>
 public class PropertyChangedAction : IUndoableAction
 {
-    private readonly Node _node;
-    private readonly PropertyDescriptor _property;
-    private readonly object? _oldValue;
     private readonly object? _newValue;
+    private readonly Node _node;
+    private readonly object? _oldValue;
+    private readonly PropertyDescriptor _property;
 
     public PropertyChangedAction(Node node, PropertyDescriptor property, object? oldValue, object? newValue)
     {

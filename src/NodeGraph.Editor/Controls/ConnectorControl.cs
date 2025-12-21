@@ -22,6 +22,31 @@ public class ConnectorControl : Path
     public static readonly StyledProperty<double> EndXProperty = AvaloniaProperty.Register<ConnectorControl, double>(nameof(EndX));
     public static readonly StyledProperty<double> EndYProperty = AvaloniaProperty.Register<ConnectorControl, double>(nameof(EndY));
     public static readonly StyledProperty<bool> IsSelectedProperty = AvaloniaProperty.Register<ConnectorControl, bool>(nameof(IsSelected));
+    private static readonly TypeToColorConverter _typeToColorConverter = new();
+
+    private IBrush? _selectedStrokeBrush;
+
+    static ConnectorControl()
+    {
+        AffectsRender<ConnectorControl>(StartXProperty, StartYProperty, EndXProperty, EndYProperty, IsSelectedProperty);
+        StartXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
+        StartYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
+        EndXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
+        EndYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
+        IsSelectedProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
+        ConnectionProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
+    }
+
+    public ConnectorControl()
+    {
+        // デフォルト値を設定（リソースが利用できない場合のフォールバック）
+        Stroke = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+        StrokeThickness = 2;
+        IsHitTestVisible = true;
+        Cursor = new Cursor(StandardCursorType.Hand);
+
+        PointerPressed += OnPointerPressed;
+    }
 
     public EditorConnection? Connection
     {
@@ -59,31 +84,6 @@ public class ConnectorControl : Path
         set => SetValue(IsSelectedProperty, value);
     }
 
-    static ConnectorControl()
-    {
-        AffectsRender<ConnectorControl>(StartXProperty, StartYProperty, EndXProperty, EndYProperty, IsSelectedProperty);
-        StartXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
-        StartYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
-        EndXProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
-        EndYProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdatePath());
-        IsSelectedProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
-        ConnectionProperty.Changed.AddClassHandler<ConnectorControl>((control, _) => control.UpdateAppearance());
-    }
-
-    private IBrush? _selectedStrokeBrush;
-    private static readonly TypeToColorConverter _typeToColorConverter = new();
-
-    public ConnectorControl()
-    {
-        // デフォルト値を設定（リソースが利用できない場合のフォールバック）
-        Stroke = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
-        StrokeThickness = 2;
-        IsHitTestVisible = true;
-        Cursor = new Cursor(StandardCursorType.Hand);
-
-        PointerPressed += OnPointerPressed;
-    }
-
     protected override void OnAttachedToLogicalTree(LogicalTreeAttachmentEventArgs e)
     {
         base.OnAttachedToLogicalTree(e);
@@ -106,15 +106,11 @@ public class ConnectorControl : Path
             var selectionManager = Connection.SourceNode.SelectionManager;
 
             if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
-            {
                 // Ctrlキー + クリックで選択トグル
                 selectionManager.ToggleSelection(Connection);
-            }
             else
-            {
                 // 通常のクリックで単一選択
                 selectionManager.Select(Connection);
-            }
 
             e.Handled = true;
         }
@@ -208,30 +204,28 @@ public class ConnectorControl : Path
 
         // 簡易的な交差判定：曲線をN分割して線分として判定
         const int subdivisions = 10;
-        Point prevPoint = p0;
-        for (int i = 1; i <= subdivisions; i++)
+        var prevPoint = p0;
+        for (var i = 1; i <= subdivisions; i++)
         {
-            double t = (double)i / subdivisions;
-            Point currentPoint = CalculateBezier(t, p0, p1, p2, p3);
-            if (LineIntersectsRect(prevPoint, currentPoint, rect))
-            {
-                return true;
-            }
+            var t = (double)i / subdivisions;
+            var currentPoint = CalculateBezier(t, p0, p1, p2, p3);
+            if (LineIntersectsRect(prevPoint, currentPoint, rect)) return true;
             prevPoint = currentPoint;
         }
+
         return false;
     }
 
     private static Point CalculateBezier(double t, Point p0, Point p1, Point p2, Point p3)
     {
-        double u = 1 - t;
-        double tt = t * t;
-        double uu = u * u;
-        double uuu = uu * u;
-        double ttt = tt * t;
+        var u = 1 - t;
+        var tt = t * t;
+        var uu = u * u;
+        var uuu = uu * u;
+        var ttt = tt * t;
 
-        double x = uuu * p0.X + 3 * uu * t * p1.X + 3 * u * tt * p2.X + ttt * p3.X;
-        double y = uuu * p0.Y + 3 * uu * t * p1.Y + 3 * u * tt * p2.Y + ttt * p3.Y;
+        var x = uuu * p0.X + 3 * uu * t * p1.X + 3 * u * tt * p2.X + ttt * p3.X;
+        var y = uuu * p0.Y + 3 * uu * t * p1.Y + 3 * u * tt * p2.Y + ttt * p3.Y;
 
         return new Point(x, y);
     }
@@ -251,11 +245,11 @@ public class ConnectorControl : Path
 
     private static bool LineIntersectsLine(Point a1, Point a2, Point b1, Point b2)
     {
-        double d = (a2.X - a1.X) * (b2.Y - b1.Y) - (a2.Y - a1.Y) * (b2.X - b1.X);
+        var d = (a2.X - a1.X) * (b2.Y - b1.Y) - (a2.Y - a1.Y) * (b2.X - b1.X);
         if (d == 0) return false;
 
-        double u = ((b1.X - a1.X) * (b2.Y - b1.Y) - (b1.Y - a1.Y) * (b2.X - b1.X)) / d;
-        double v = ((b1.X - a1.X) * (a2.Y - a1.Y) - (b1.Y - a1.Y) * (a2.X - a1.X)) / d;
+        var u = ((b1.X - a1.X) * (b2.Y - b1.Y) - (b1.Y - a1.Y) * (b2.X - b1.X)) / d;
+        var v = ((b1.X - a1.X) * (a2.Y - a1.Y) - (b1.Y - a1.Y) * (a2.X - a1.X)) / d;
 
         return u >= 0 && u <= 1 && v >= 0 && v <= 1;
     }

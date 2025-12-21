@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -41,8 +40,8 @@ public class SourceGenerator : IIncrementalGenerator
 
         // NodeAttributeから情報を取得
         var nodeAttr = source.Attributes.FirstOrDefault();
-        bool hasExecIn = true;
-        bool hasExecOut = true;
+        var hasExecIn = true;
+        var hasExecOut = true;
         string[] execOutNames = ["Out"];
 
         // NodeAttributeからdisplayNameとdirectoryを取得
@@ -52,26 +51,14 @@ public class SourceGenerator : IIncrementalGenerator
         if (nodeAttr != null)
         {
             // コンストラクタ引数からdisplayNameとdirectoryを取得
-            if (nodeAttr.ConstructorArguments.Length > 0 && nodeAttr.ConstructorArguments[0].Value is string dn)
-            {
-                displayName = dn;
-            }
-            if (nodeAttr.ConstructorArguments.Length > 1 && nodeAttr.ConstructorArguments[1].Value is string dir)
-            {
-                directory = dir;
-            }
+            if (nodeAttr.ConstructorArguments.Length > 0 && nodeAttr.ConstructorArguments[0].Value is string dn) displayName = dn;
+            if (nodeAttr.ConstructorArguments.Length > 1 && nodeAttr.ConstructorArguments[1].Value is string dir) directory = dir;
 
             var hasExecInArg = nodeAttr.NamedArguments.FirstOrDefault(x => x.Key == "HasExecIn");
-            if (hasExecInArg.Value.Value is bool hasExecInValue)
-            {
-                hasExecIn = hasExecInValue;
-            }
+            if (hasExecInArg.Value.Value is bool hasExecInValue) hasExecIn = hasExecInValue;
 
             var hasExecOutArg = nodeAttr.NamedArguments.FirstOrDefault(x => x.Key == "HasExecOut");
-            if (hasExecOutArg.Value.Value is bool hasExecOutValue)
-            {
-                hasExecOut = hasExecOutValue;
-            }
+            if (hasExecOutArg.Value.Value is bool hasExecOutValue) hasExecOut = hasExecOutValue;
 
             if (nodeAttr.ConstructorArguments.Length > 2)
             {
@@ -79,10 +66,7 @@ public class SourceGenerator : IIncrementalGenerator
                 if (!execOutNamesArg.IsNull && execOutNamesArg.Kind == TypedConstantKind.Array)
                 {
                     var names = execOutNamesArg.Values.Select(v => v.Value?.ToString() ?? "").ToArray();
-                    if (names.Length > 0)
-                    {
-                        execOutNames = names;
-                    }
+                    if (names.Length > 0) execOutNames = names;
                 }
             }
         }
@@ -125,13 +109,11 @@ public class SourceGenerator : IIncrementalGenerator
         // 属性情報を取得
         var nodeAttr = source.Attributes.FirstOrDefault();
         string? displayName = null;
-        string directory = "Json";
-        bool strictSchema = true;
+        var directory = "Json";
+        var strictSchema = true;
 
         if (nodeAttr != null)
-        {
             foreach (var arg in nodeAttr.NamedArguments)
-            {
                 switch (arg.Key)
                 {
                     case "DisplayName" when arg.Value.Value is string dn:
@@ -144,8 +126,6 @@ public class SourceGenerator : IIncrementalGenerator
                         strictSchema = ss;
                         break;
                 }
-            }
-        }
 
         displayName ??= typeSymbol.Name;
 
@@ -163,7 +143,6 @@ public class SourceGenerator : IIncrementalGenerator
 
         // 全プロパティの型をチェック
         foreach (var prop in properties)
-        {
             if (!JsonTypeMapper.IsSupported(prop.TypeSymbol, compilation))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
@@ -173,7 +152,6 @@ public class SourceGenerator : IIncrementalGenerator
                     prop.TypeSymbol.ToDisplayString()));
                 return;
             }
-        }
 
         // スキーマを生成
         var schemaResult = JsonSchemaBuilder.Build(spc, typeSymbol, properties, compilation, strictSchema);

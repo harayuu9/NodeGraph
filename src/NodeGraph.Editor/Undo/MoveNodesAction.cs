@@ -6,9 +6,9 @@ namespace NodeGraph.Editor.Undo;
 
 public class MoveNodesAction : IUndoableAction
 {
-    private readonly EditorNode[] _targets;
-    private readonly Point[] _previousPositions;
     private readonly Point[] _newPositions;
+    private readonly Point[] _previousPositions;
+    private readonly EditorNode[] _targets;
 
     public MoveNodesAction(EditorNode[] targets, Point[] newPositions)
     {

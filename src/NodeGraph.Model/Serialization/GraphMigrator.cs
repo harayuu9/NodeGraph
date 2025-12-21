@@ -39,25 +39,17 @@ public static class GraphMigrator
     {
         if (!Version.TryParse(data.Version, out var currentVersion) ||
             !Version.TryParse(targetVersion, out var target))
-        {
             throw new ArgumentException("Invalid version format");
-        }
 
         // すでに目標バージョンの場合は何もしない
-        if (currentVersion >= target)
-        {
-            return data;
-        }
+        if (currentVersion >= target) return data;
 
         // マイグレーションチェーンを構築
         var migrationChain = BuildMigrationChain(data.Version, targetVersion);
 
         // 各マイグレーションを順次適用
         var current = data;
-        foreach (var migration in migrationChain)
-        {
-            current = migration(current);
-        }
+        foreach (var migration in migrationChain) current = migration(current);
 
         return current;
     }
@@ -73,10 +65,7 @@ public static class GraphMigrator
         // TODO: 実際のマイグレーションパスを検索するロジックを実装
         // 現時点では、直接のマイグレーションのみをサポート
         var key = $"{fromVersion}->{toVersion}";
-        if (Migrations.TryGetValue(key, out var migration))
-        {
-            chain.Add(migration);
-        }
+        if (Migrations.TryGetValue(key, out var migration)) chain.Add(migration);
 
         return chain.ToList(); // Rentalから独立したListとして返す
     }

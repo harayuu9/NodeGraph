@@ -109,10 +109,7 @@ public class HashSetPoolTest
     {
         using var rental = HashSetPool<int>.Shared.Rent(10000, out var set);
 
-        for (var i = 0; i < 5000; i++)
-        {
-            set.Add(i);
-        }
+        for (var i = 0; i < 5000; i++) set.Add(i);
 
         Assert.Equal(5000, set.Count);
     }
@@ -160,7 +157,6 @@ public class HashSetPoolTest
         var tasks = new List<Task>();
 
         for (var i = 0; i < 10; i++)
-        {
             tasks.Add(Task.Run(() =>
             {
                 for (var j = 0; j < 100; j++)
@@ -170,7 +166,6 @@ public class HashSetPoolTest
                     Assert.Single(set);
                 }
             }));
-        }
 
         await Task.WhenAll(tasks);
     }
