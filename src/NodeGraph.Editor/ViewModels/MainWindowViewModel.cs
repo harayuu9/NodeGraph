@@ -8,7 +8,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Selection;
+using NodeGraph.Editor.Services;
 using NodeGraph.Editor.Undo;
+using NodeGraph.Editor.Views;
 using NodeGraph.Model;
 
 namespace NodeGraph.Editor.ViewModels;
@@ -16,6 +18,7 @@ namespace NodeGraph.Editor.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly SelectionManager _selectionManager;
+    private readonly CommonParameterService _commonParameterService;
 
     [ObservableProperty] private string _currentTheme = "Default";
 
@@ -29,14 +32,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private EditorGraph _testGraph;
 
 #if DEBUG
-    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager())
+    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager(), new CommonParameterService())
     {
     }
 #endif
 
-    public MainWindowViewModel(SelectionManager selectionManager, UndoRedoManager undoRedoManager)
+    public MainWindowViewModel(SelectionManager selectionManager, UndoRedoManager undoRedoManager, CommonParameterService commonParameterService)
     {
         _selectionManager = selectionManager;
+        _commonParameterService = commonParameterService;
         UndoRedoManager = undoRedoManager;
 
         // テスト用のグラフを作成
@@ -175,7 +179,16 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExecuteGraphAsync()
     {
-        await TestGraph.ExecuteAsync();
+        await TestGraph.ExecuteAsync(_commonParameterService);
+    }
+
+    [RelayCommand]
+    private async Task OpenParametersAsync()
+    {
+        if (_mainWindow == null) return;
+
+        var window = new ParametersWindow(_commonParameterService);
+        await window.ShowDialog(_mainWindow);
     }
 
     public void SetMainWindow(Window window)

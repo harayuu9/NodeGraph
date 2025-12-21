@@ -1,11 +1,78 @@
 namespace NodeGraph.Model;
 
 /// <summary>
-/// ノード実行時のコンテキスト。下流ノードの実行を制御します。
+/// ノード実行時のコンテキスト。下流ノードの実行を制御し、外部パラメータへのアクセスを提供します。
 /// </summary>
-public class NodeExecutionContext(CancellationToken cancellationToken)
+public class NodeExecutionContext
 {
-    public readonly CancellationToken CancellationToken = cancellationToken;
+    public readonly CancellationToken CancellationToken;
+
+    private readonly IReadOnlyDictionary<string, object?> _parameters;
+
+    public NodeExecutionContext(
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, object?>? parameters = null)
+    {
+        CancellationToken = cancellationToken;
+        _parameters = parameters ?? new Dictionary<string, object?>();
+    }
+
+    /// <summary>
+    /// 指定された名前のパラメータを取得します。
+    /// パラメータが存在しないか変換できない場合はdefault(T)を返します。
+    /// </summary>
+    public T? GetParameter<T>(string name)
+    {
+        if (_parameters.TryGetValue(name, out var value) && value != null)
+        {
+            if (value is T typed)
+                return typed;
+
+            try
+            {
+                return (T)Convert.ChangeType(value, typeof(T));
+            }
+            catch
+            {
+                return default;
+            }
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// 指定された名前のパラメータの取得を試みます。
+    /// </summary>
+    public bool TryGetParameter<T>(string name, out T? value)
+    {
+        if (_parameters.TryGetValue(name, out var objValue) && objValue != null)
+        {
+            if (objValue is T typed)
+            {
+                value = typed;
+                return true;
+            }
+
+            try
+            {
+                value = (T)Convert.ChangeType(objValue, typeof(T));
+                return true;
+            }
+            catch
+            {
+                value = default;
+                return false;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// 指定された名前のパラメータが存在するかを確認します。
+    /// </summary>
+    public bool HasParameter(string name) => _parameters.ContainsKey(name);
 
     /// <summary>
     /// 下流実行デリゲート（GraphExecutorが設定）

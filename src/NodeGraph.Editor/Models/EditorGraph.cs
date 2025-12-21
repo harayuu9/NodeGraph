@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Serialization;
+using NodeGraph.Editor.Services;
 using NodeGraph.Model;
 using NodeGraph.Model.Pool;
 using NodeGraph.Model.Serialization;
@@ -17,6 +18,7 @@ namespace NodeGraph.Editor.Models;
 
 public partial class EditorGraph : ObservableObject
 {
+    private Dictionary<string, object?>? _runtimeParameters;
     public EditorGraph(Graph graph, SelectionManager selectionManager)
     {
         Graph = graph;
@@ -81,7 +83,37 @@ public partial class EditorGraph : ObservableObject
         }
     }
 
-    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// 次の実行に使用するランタイムパラメータを設定します。
+    /// これらはCommonParameterを上書きします。
+    /// </summary>
+    public void SetRuntimeParameters(Dictionary<string, object?>? parameters)
+    {
+        _runtimeParameters = parameters;
+    }
+
+    /// <summary>
+    /// ランタイムパラメータをクリアします。
+    /// </summary>
+    public void ClearRuntimeParameters()
+    {
+        _runtimeParameters = null;
+    }
+
+    /// <summary>
+    /// グラフを実行します（後方互換性のためのオーバーロード）。
+    /// </summary>
+    public Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        return ExecuteAsync(null, cancellationToken);
+    }
+
+    /// <summary>
+    /// 共通パラメータを使用してグラフを実行します。
+    /// </summary>
+    /// <param name="commonParameterService">共通パラメータサービス（nullの場合はランタイムパラメータのみ使用）</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    public async Task ExecuteAsync(CommonParameterService? commonParameterService, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -92,10 +124,15 @@ public partial class EditorGraph : ObservableObject
 
             foreach (var editorNode in Nodes) editorNode.ExecutionStatus = ExecutionStatus.Waiting;
 
+            // パラメータをマージ: runtimeParams > commonParams
+            var commonParams = commonParameterService?.GetParameters();
+            var mergedParams = ParameterMerger.Merge(commonParams, _runtimeParameters);
+
             var executor = Graph.CreateExecutor();
             try
             {
                 await executor.ExecuteAsync(
+                    mergedParams,
                     x =>
                     {
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);

@@ -54,6 +54,9 @@
 
         <!-- テーマ切り替え -->
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <Button Content="Parameters"
+                  Command="{Binding OpenParametersCommand}"
+                  Padding="8,4" />
           <Button Content="Execute"
                   Command="{Binding ExecuteGraphCommand}"
                   Padding="8,4" />

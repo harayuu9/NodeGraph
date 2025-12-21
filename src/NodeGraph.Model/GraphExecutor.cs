@@ -25,14 +25,35 @@ public class GraphExecutor : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// グラフを実行します（後方互換性のためのオーバーロード）。
+    /// </summary>
+    public Task ExecuteAsync(
+        Action<Node>? onExecute = null,
+        Action<Node>? onExecuted = null,
+        Action<Node, Exception>? onExcepted = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteAsync(null, onExecute, onExecuted, onExcepted, cancellationToken);
+    }
+
+    /// <summary>
+    /// 外部パラメータを渡してグラフを実行します。
+    /// </summary>
+    /// <param name="parameters">外部パラメータの辞書。ParameterNodeから参照されます。</param>
+    /// <param name="onExecute">ノード実行開始時のコールバック</param>
+    /// <param name="onExecuted">ノード実行完了時のコールバック</param>
+    /// <param name="onExcepted">ノード実行例外時のコールバック</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
     public async Task ExecuteAsync(
+        IReadOnlyDictionary<string, object?>? parameters,
         Action<Node>? onExecute = null,
         Action<Node>? onExecuted = null,
         Action<Node, Exception>? onExcepted = null,
         CancellationToken cancellationToken = default)
     {
         using var tasksRental = ListPool<Task>.Shared.Rent(_canParallelNodes.Count, out var tasks);
-        var context = new NodeExecutionContext(cancellationToken);
+        var context = new NodeExecutionContext(cancellationToken, parameters);
 
         // デリゲートを設定: 指定されたExecOutの接続先を実行
         context.ExecuteOutDelegate = async (node, index) =>

@@ -51,6 +51,7 @@ public class App : Application
         services.AddSingleton<SelectionManager>();
         services.AddSingleton<NodeTypeService>();
         services.AddSingleton<UndoRedoManager>();
+        services.AddSingleton<CommonParameterService>();
 
         // ViewModelsを登録
         services.AddTransient<MainWindowViewModel>();

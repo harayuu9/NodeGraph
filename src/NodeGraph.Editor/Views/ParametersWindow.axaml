@@ -1,0 +1,75 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NodeGraph.Editor.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        x:Class="NodeGraph.Editor.Views.ParametersWindow"
+        x:DataType="vm:ParametersWindowViewModel"
+        Title="Parameters"
+        Width="500"
+        Height="400"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="10">
+
+    <!-- ヘッダー -->
+    <Grid Grid.Row="0" ColumnDefinitions="150,*,50" Margin="5,0,5,5">
+      <TextBlock Grid.Column="0" Text="Name" FontWeight="Bold" />
+      <TextBlock Grid.Column="1" Text="Value" FontWeight="Bold" Margin="5,0,0,0" />
+      <TextBlock Grid.Column="2" Text="Env" FontWeight="Bold" HorizontalAlignment="Center" />
+    </Grid>
+
+    <!-- パラメータリスト -->
+    <Border Grid.Row="1" BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}" BorderThickness="1" CornerRadius="4">
+      <ListBox ItemsSource="{Binding Parameters}"
+               SelectedItem="{Binding SelectedParameter}"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ParameterItemViewModel">
+            <Grid ColumnDefinitions="150,*,50" Margin="0,2">
+              <TextBox Grid.Column="0"
+                       Text="{Binding Name}"
+                       IsReadOnly="True"
+                       BorderThickness="0"
+                       Background="Transparent" />
+              <TextBox Grid.Column="1"
+                       Text="{Binding Value}"
+                       IsReadOnly="{Binding IsFromEnvironment}"
+                       Margin="5,0,0,0" />
+              <CheckBox Grid.Column="2"
+                        IsChecked="{Binding IsFromEnvironment}"
+                        IsEnabled="False"
+                        HorizontalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+
+    <!-- 新規パラメータ追加 -->
+    <Border Grid.Row="2" Margin="0,10,0,0" Padding="10" Background="{DynamicResource SystemControlBackgroundAltMediumHighBrush}" CornerRadius="4">
+      <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
+        <TextBlock Grid.Column="0" Text="Name:" VerticalAlignment="Center" Margin="0,0,5,0" />
+        <TextBox Grid.Column="1" Text="{Binding NewParameterName}" Margin="0,0,10,0" />
+        <TextBlock Grid.Column="2" Text="Value:" VerticalAlignment="Center" Margin="0,0,5,0" />
+        <TextBox Grid.Column="3" Text="{Binding NewParameterValue}" Margin="0,0,10,0" />
+        <Button Grid.Column="4" Content="Add" Command="{Binding AddParameterCommand}" Padding="15,5" />
+      </Grid>
+    </Border>
+
+    <!-- ボタン -->
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0" Spacing="10">
+      <Button Content="Delete Selected"
+              Command="{Binding DeleteParameterCommand}"
+              Padding="15,5" />
+      <Button Content="Reload"
+              Command="{Binding ReloadCommand}"
+              Padding="15,5" />
+      <Button Content="Close"
+              Click="OnCloseClick"
+              Padding="15,5" />
+    </StackPanel>
+  </Grid>
+
+</Window>
