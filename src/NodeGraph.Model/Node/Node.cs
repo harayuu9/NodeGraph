@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace NodeGraph.Model;
 
 /// <summary>
@@ -40,6 +38,9 @@ public abstract class Node : IWithId<NodeId>
         ExecOutPorts = new ExecOutPort[execOutPortIds.Length];
     }
 
+    public abstract string GetDisplayName();
+    public abstract string GetDirectory();
+    
     public abstract string GetExecInPortName(int index);
     public abstract string GetExecOutPortName(int index);
     
@@ -108,19 +109,5 @@ public abstract class Node : IWithId<NodeId>
     {
         var property = Array.Find(GetProperties(), p => p.Name == name);
         property?.Setter(this, value);
-    }
-
-    public string GetDisplayName()
-    {
-        var type = GetType();
-        var nodeAttribute = type.GetCustomAttribute<NodeAttribute>();
-        return nodeAttribute?.DisplayName ?? type.Name;
-    }
-    
-    public string GetDirectory()
-    {
-        var type = GetType();
-        var nodeAttribute = type.GetCustomAttribute<NodeAttribute>();
-        return nodeAttribute?.Directory ?? "Other";
     }
 }

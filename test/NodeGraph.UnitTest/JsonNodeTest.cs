@@ -7,7 +7,7 @@ namespace NodeGraph.UnitTest;
 /// テスト用のPersonクラス
 /// </summary>
 [JsonNode(DisplayName = "Person", Directory = "Json/Test")]
-public class Person
+public partial class Person
 {
     [JsonProperty(Description = "名前")]
     public string Name { get; set; } = "";
@@ -27,7 +27,7 @@ public class JsonNodeTest
         // Arrange
         var graph = new Graph();
         var startNode = graph.CreateNode<StartNode>();
-        var deserializeNode = graph.CreateNode<PersonDeserializeNode>();
+        var deserializeNode = graph.CreateNode<Person.DeserializeNode>();
 
         // Connect execution flow
         startNode.ExecOutPorts[0].Connect(deserializeNode.ExecInPorts[0]);
@@ -58,7 +58,7 @@ public class JsonNodeTest
         // Arrange
         var graph = new Graph();
         var startNode = graph.CreateNode<StartNode>();
-        var serializeNode = graph.CreateNode<PersonSerializeNode>();
+        var serializeNode = graph.CreateNode<Person.SerializeNode>();
 
         // Connect execution flow
         startNode.ExecOutPorts[0].Connect(serializeNode.ExecInPorts[0]);
@@ -82,7 +82,7 @@ public class JsonNodeTest
     {
         // Arrange
         var graph = new Graph();
-        var schemaNode = graph.CreateNode<PersonSchemaNode>();
+        var schemaNode = graph.CreateNode<Person.SchemaNode>();
 
         // Assert - Schema should be set in constructor
         var schemaOutput = (OutputPort<string>)schemaNode.OutputPorts[0];
@@ -98,7 +98,7 @@ public class JsonNodeTest
         // Arrange
         var graph = new Graph();
         var startNode = graph.CreateNode<StartNode>();
-        var deserializeNode = graph.CreateNode<PersonDeserializeNode>();
+        var deserializeNode = graph.CreateNode<Person.DeserializeNode>();
 
         // Connect execution flow
         startNode.ExecOutPorts[0].Connect(deserializeNode.ExecInPorts[0]);

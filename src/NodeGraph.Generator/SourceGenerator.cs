@@ -45,8 +45,22 @@ public class SourceGenerator : IIncrementalGenerator
         bool hasExecOut = true;
         string[] execOutNames = ["Out"];
 
+        // NodeAttributeからdisplayNameとdirectoryを取得
+        string? displayName = null;
+        string? directory = null;
+
         if (nodeAttr != null)
         {
+            // コンストラクタ引数からdisplayNameとdirectoryを取得
+            if (nodeAttr.ConstructorArguments.Length > 0 && nodeAttr.ConstructorArguments[0].Value is string dn)
+            {
+                displayName = dn;
+            }
+            if (nodeAttr.ConstructorArguments.Length > 1 && nodeAttr.ConstructorArguments[1].Value is string dir)
+            {
+                directory = dir;
+            }
+
             var hasExecInArg = nodeAttr.NamedArguments.FirstOrDefault(x => x.Key == "HasExecIn");
             if (hasExecInArg.Value.Value is bool hasExecInValue)
             {
@@ -73,7 +87,7 @@ public class SourceGenerator : IIncrementalGenerator
             }
         }
 
-        NodeEmitter.Emit(spc, typeSymbol, typeNode, reference, hasExecIn, hasExecOut, execOutNames);
+        NodeEmitter.Emit(spc, typeSymbol, typeNode, reference, hasExecIn, hasExecOut, execOutNames, displayName, directory);
     }
 
     /// <summary>

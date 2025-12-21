@@ -5,10 +5,14 @@
         <LangVersion>preview</LangVersion>
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-        <ApplicationManifest>..\NodeGraph.Editor\app.manifest</ApplicationManifest>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\NodeGraph.Editor\NodeGraph.Editor.csproj" />
+        <ProjectReference Include="..\NodeGraph.Generator\NodeGraph.Generator.csproj">
+            <OutputItemType>Analyzer</OutputItemType>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
     </ItemGroup>
 </Project>

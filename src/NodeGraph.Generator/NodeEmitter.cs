@@ -19,7 +19,9 @@ public static class NodeEmitter
         ReferenceSymbols reference,
         bool hasExecIn,
         bool hasExecOut,
-        string[] execOutNames)
+        string[] execOutNames,
+        string? displayName,
+        string? directory)
     {
         if (!IsPartial(typeNode))
         {
@@ -233,6 +235,14 @@ public static class NodeEmitter
                     }
                 }
             }
+
+            // GetDisplayName
+            var displayNameValue = displayName ?? typeSymbol.Name;
+            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayNameValue}\";");
+
+            // GetDirectory
+            var directoryValue = directory ?? "Other";
+            codeGen.WriteLine($"public override string GetDirectory() => \"{directoryValue}\";");
         }
 
         context.AddSource($"{fullType}.NodeGraphGenerator.g.cs", codeGen.GetResult());

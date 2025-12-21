@@ -37,27 +37,45 @@ public class NodeTypeService
 
     private void LoadNodeTypes()
     {
-        // NodeGraph.Model アセンブリから全ての Node 派生型を取得
-        var assembly = typeof(Node).Assembly;
         var nodeBaseType = typeof(Node);
 
-        var nodeTypes = assembly.GetTypes()
+        // 全てのロード済みアセンブリからNode派生型を取得
+        var nodeTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic)
+            .SelectMany(a =>
+            {
+                try
+                {
+                    return a.GetTypes();
+                }
+                catch
+                {
+                    return [];
+                }
+            })
             .Where(t => !t.IsAbstract && t.IsClass && nodeBaseType.IsAssignableFrom(t))
             .ToList();
 
         foreach (var type in nodeTypes)
         {
-            var attribute = type.GetCustomAttribute<NodeAttribute>();
-
-            var displayName = attribute?.DisplayName ?? type.Name;
-            var directory = attribute?.Directory ?? "Other";
-
-            _nodeTypes.Add(new NodeTypeInfo
+            // GetDisplayName/GetDirectoryを呼ぶためにインスタンスを作成
+            try
             {
-                NodeType = type,
-                DisplayName = displayName,
-                Directory = directory
-            });
+                var instance = (Node)Activator.CreateInstance(type)!;
+                var displayName = instance.GetDisplayName();
+                var directory = instance.GetDirectory();
+
+                _nodeTypes.Add(new NodeTypeInfo
+                {
+                    NodeType = type,
+                    DisplayName = displayName,
+                    Directory = directory
+                });
+            }
+            catch
+            {
+                // インスタンス化に失敗した場合はスキップ
+            }
         }
 
         // ディレクトリ、表示名でソート

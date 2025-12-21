@@ -19,13 +19,16 @@ public static class JsonNodeEmitter
         List<JsonPropertyInfo> properties,
         string fullTypeName)
     {
-        var className = $"{typeSymbol.Name}DeserializeNode";
+        var className = "DeserializeNode";
         var inputCount = 1; // _json
         var outputCount = properties.Count + 2; // properties + _success + _error
         var execInCount = 1;
         var execOutCount = 1;
 
         var codeGen = new CSharpCodeGenerator(ns);
+        codeGen.WriteLine($"partial class {typeSymbol.Name}");
+        using (codeGen.Scope())
+        {
         codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
         using (codeGen.Scope())
@@ -148,9 +151,17 @@ public static class JsonNodeEmitter
 
             // ポート名取得メソッド
             EmitPortNameMethods(codeGen, properties, true);
+
+            // GetDisplayName
+            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Deserialize\";");
+
+            // GetDirectory
+            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
         }
 
-        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{className}.JsonNodeGenerator.g.cs";
+        }
+
+        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
         context.AddSource(fileName, codeGen.GetResult());
     }
 
@@ -166,13 +177,16 @@ public static class JsonNodeEmitter
         List<JsonPropertyInfo> properties,
         string fullTypeName)
     {
-        var className = $"{typeSymbol.Name}SerializeNode";
+        var className = "SerializeNode";
         var inputCount = properties.Count;
         var outputCount = 1; // _json
         var execInCount = 1;
         var execOutCount = 1;
 
         var codeGen = new CSharpCodeGenerator(ns);
+        codeGen.WriteLine($"partial class {typeSymbol.Name}");
+        using (codeGen.Scope())
+        {
         codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
         using (codeGen.Scope())
@@ -264,9 +278,17 @@ public static class JsonNodeEmitter
 
             // ポート名取得メソッド
             EmitPortNameMethods(codeGen, properties, false);
+
+            // GetDisplayName
+            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Serialize\";");
+
+            // GetDirectory
+            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
         }
 
-        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{className}.JsonNodeGenerator.g.cs";
+        }
+
+        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
         context.AddSource(fileName, codeGen.GetResult());
     }
 
@@ -281,9 +303,12 @@ public static class JsonNodeEmitter
         string directory,
         string schemaJson)
     {
-        var className = $"{typeSymbol.Name}SchemaNode";
+        var className = "SchemaNode";
 
         var codeGen = new CSharpCodeGenerator(ns);
+        codeGen.WriteLine($"partial class {typeSymbol.Name}");
+        using (codeGen.Scope())
+        {
         codeGen.WriteLine($"public class {className} : global::NodeGraph.Model.Node");
 
         using (codeGen.Scope())
@@ -314,7 +339,11 @@ public static class JsonNodeEmitter
             codeGen.WriteLine();
 
             // AfterExecute
-            codeGen.WriteLine("protected override void AfterExecute() { }");
+            codeGen.WriteLine("protected override void AfterExecute()");
+            using (codeGen.Scope())
+            {
+                codeGen.WriteLine("((global::NodeGraph.Model.OutputPort<string>)OutputPorts[0]).Value = SchemaJson;");
+            }
             codeGen.WriteLine();
 
             // ExecuteCoreAsync
@@ -349,9 +378,17 @@ public static class JsonNodeEmitter
             {
                 codeGen.WriteLine("throw new global::System.InvalidOperationException(\"Invalid exec out port index\");");
             }
+
+            // GetDisplayName
+            codeGen.WriteLine($"public override string GetDisplayName() => \"{displayName} Schema\";");
+
+            // GetDirectory
+            codeGen.WriteLine($"public override string GetDirectory() => \"{directory}\";");
         }
 
-        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{className}.JsonNodeGenerator.g.cs";
+        }
+
+        var fileName = $"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{typeSymbol.Name}.{className}.JsonNodeGenerator.g.cs";
         context.AddSource(fileName, codeGen.GetResult());
     }
 
