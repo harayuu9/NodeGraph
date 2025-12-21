@@ -1,20 +1,25 @@
+using NodeGraph.Model.Services;
+
 namespace NodeGraph.Model;
 
 /// <summary>
-/// ノード実行時のコンテキスト。下流ノードの実行を制御し、外部パラメータへのアクセスを提供します。
+/// ノード実行時のコンテキスト。下流ノードの実行を制御し、外部パラメータおよびサービスへのアクセスを提供します。
 /// </summary>
 public class NodeExecutionContext
 {
     public readonly CancellationToken CancellationToken;
 
     private readonly IReadOnlyDictionary<string, object?> _parameters;
+    private readonly INodeServiceProvider? _serviceProvider;
 
     public NodeExecutionContext(
         CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, object?>? parameters = null)
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        INodeServiceProvider? serviceProvider = null)
     {
         CancellationToken = cancellationToken;
         _parameters = parameters ?? new Dictionary<string, object?>();
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -73,6 +78,42 @@ public class NodeExecutionContext
     /// 指定された名前のパラメータが存在するかを確認します。
     /// </summary>
     public bool HasParameter(string name) => _parameters.ContainsKey(name);
+
+    /// <summary>
+    /// 指定した型のサービスを取得します。登録されていない場合はnullを返します。
+    /// </summary>
+    public T? GetService<T>() where T : class
+    {
+        return _serviceProvider?.GetService<T>();
+    }
+
+    /// <summary>
+    /// 指定した型のサービスの取得を試みます。
+    /// </summary>
+    public bool TryGetService<T>(out T? service) where T : class
+    {
+        if (_serviceProvider != null)
+        {
+            return _serviceProvider.TryGetService(out service);
+        }
+
+        service = null;
+        return false;
+    }
+
+    /// <summary>
+    /// 指定した型のサービスを取得します。登録されていない場合は例外をスローします。
+    /// </summary>
+    /// <exception cref="ServiceNotFoundException">サービスが見つからない場合</exception>
+    public T GetRequiredService<T>() where T : class
+    {
+        if (_serviceProvider != null)
+        {
+            return _serviceProvider.GetRequiredService<T>();
+        }
+
+        throw new ServiceNotFoundException(typeof(T), "ServiceProvider is not configured.");
+    }
 
     /// <summary>
     /// 下流実行デリゲート（GraphExecutorが設定）

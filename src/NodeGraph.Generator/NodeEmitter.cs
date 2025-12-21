@@ -244,11 +244,15 @@ public static class NodeEmitter
                 var displayName = GetNamedArgument(attr, "DisplayName");
                 var category = GetNamedArgument(attr, "Category");
                 var tooltip = GetNamedArgument(attr, "Tooltip");
+                var showInNode = GetNamedArgument(attr, "ShowInNode");
+                var showInInspector = GetNamedArgument(attr, "ShowInInspector");
 
                 var parts = new List<string>();
                 if (displayName != null) parts.Add($"DisplayName = {displayName}");
                 if (category != null) parts.Add($"Category = {category}");
                 if (tooltip != null) parts.Add($"Tooltip = {tooltip}");
+                if (showInNode != null) parts.Add($"ShowInNode = {showInNode}");
+                if (showInInspector != null) parts.Add($"ShowInInspector = {showInInspector}");
 
                 if (parts.Count > 0)
                     attributes.Add($"new global::NodeGraph.Model.PropertyAttribute {{ {string.Join(", ", parts)} }}");

@@ -67,6 +67,30 @@ public sealed class PropertyDescriptor
     }
 
     /// <summary>
+    /// ノード内に表示するかどうかを取得します。
+    /// </summary>
+    public bool ShowInNode
+    {
+        get
+        {
+            var propertyAttr = GetAttribute<PropertyAttribute>();
+            return propertyAttr?.ShowInNode ?? true;
+        }
+    }
+
+    /// <summary>
+    /// Inspectorに表示するかどうかを取得します。
+    /// </summary>
+    public bool ShowInInspector
+    {
+        get
+        {
+            var propertyAttr = GetAttribute<PropertyAttribute>();
+            return propertyAttr?.ShowInInspector ?? false;
+        }
+    }
+
+    /// <summary>
     /// 指定した型の属性を取得します。
     /// </summary>
     /// <typeparam name="T">属性の型</typeparam>

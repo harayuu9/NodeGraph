@@ -37,6 +37,13 @@
         <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
         <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
       </MenuItem>
+      <MenuItem Header="_View">
+        <MenuItem Header="_Inspector" Command="{Binding ToggleInspectorCommand}" InputGesture="Ctrl+I">
+          <MenuItem.Icon>
+            <CheckBox IsChecked="{Binding IsInspectorVisible}" BorderThickness="0" IsHitTestVisible="False" />
+          </MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
     </Menu>
 
     <!-- ヘッダー -->
@@ -84,11 +91,28 @@
       </Grid>
     </Border>
 
-    <!-- GraphControl -->
-    <controls:GraphControl Grid.Row="2"
-                           Graph="{Binding TestGraph}"
-                           UndoRedoManager="{Binding UndoRedoManager}"
-                           Background="{DynamicResource GraphBackgroundBrush}" />
+    <!-- メインコンテンツ (GraphControl + Inspector) -->
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
+      <!-- GraphControl -->
+      <controls:GraphControl Grid.Column="0"
+                             Graph="{Binding TestGraph}"
+                             UndoRedoManager="{Binding UndoRedoManager}"
+                             Background="{DynamicResource GraphBackgroundBrush}" />
+
+      <!-- スプリッター -->
+      <GridSplitter Grid.Column="1"
+                    Width="5"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    IsVisible="{Binding IsInspectorVisible}" />
+
+      <!-- Inspector Panel -->
+      <Border Grid.Column="2"
+              Width="280"
+              Background="{DynamicResource WindowHeaderBackgroundBrush}"
+              IsVisible="{Binding IsInspectorVisible}">
+        <controls:InspectorControl DataContext="{Binding InspectorViewModel}" />
+      </Border>
+    </Grid>
   </Grid>
 
 </Window>

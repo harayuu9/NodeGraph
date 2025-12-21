@@ -157,12 +157,13 @@ public class SourceGenerator : IIncrementalGenerator
         var schemaResult = JsonSchemaBuilder.Build(spc, typeSymbol, properties, compilation, strictSchema);
         if (schemaResult == null) return;
 
-        // 3種類のノードを生成
+        // 4種類のノードを生成
         var ns = typeSymbol.ContainingNamespace.IsGlobalNamespace ? "" : typeSymbol.ContainingNamespace.ToDisplayString();
         var fullTypeName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         JsonNodeEmitter.EmitDeserializeNode(spc, typeSymbol, ns, displayName, directory, properties, fullTypeName);
         JsonNodeEmitter.EmitSerializeNode(spc, typeSymbol, ns, displayName, directory, properties, fullTypeName);
         JsonNodeEmitter.EmitSchemaNode(spc, typeSymbol, ns, displayName, directory, schemaResult.SchemaJson);
+        JsonNodeEmitter.EmitAiStructuredOutputNode(spc, typeSymbol, ns, displayName, directory, properties, fullTypeName, schemaResult.SchemaJson);
     }
 }

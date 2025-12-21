@@ -20,6 +20,16 @@ public class PropertyAttribute : Attribute
     /// プロパティのツールチップテキストを取得または設定します。
     /// </summary>
     public string? Tooltip { get; set; }
+
+    /// <summary>
+    /// プロパティをノード内に表示するかどうかを取得または設定します。
+    /// </summary>
+    public bool ShowInNode { get; set; } = true;
+
+    /// <summary>
+    /// プロパティをInspectorに表示するかどうかを取得または設定します。
+    /// </summary>
+    public bool ShowInInspector { get; set; } = false;
 }
 
 /// <summary>

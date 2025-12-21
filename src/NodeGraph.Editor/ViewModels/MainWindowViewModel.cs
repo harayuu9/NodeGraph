@@ -31,6 +31,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty] private EditorGraph _testGraph;
 
+    /// <summary>
+    /// Inspectorパネルを表示するかどうか
+    /// </summary>
+    [ObservableProperty] private bool _isInspectorVisible = true;
+
+    /// <summary>
+    /// InspectorのViewModel
+    /// </summary>
+    public InspectorViewModel InspectorViewModel { get; }
+
 #if DEBUG
     public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager(), new CommonParameterService())
     {
@@ -42,6 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _selectionManager = selectionManager;
         _commonParameterService = commonParameterService;
         UndoRedoManager = undoRedoManager;
+        InspectorViewModel = new InspectorViewModel(selectionManager);
 
         // テスト用のグラフを作成
         var graph = new Graph();
@@ -284,6 +295,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private void Exit()
     {
         if (_mainWindow != null) _mainWindow.Close();
+    }
+
+    [RelayCommand]
+    private void ToggleInspector()
+    {
+        IsInspectorVisible = !IsInspectorVisible;
     }
 
     [RelayCommand(CanExecute = nameof(CanUndo))]

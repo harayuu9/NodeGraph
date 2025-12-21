@@ -121,9 +121,9 @@
 
                 <!-- コンテンツエリア (プロパティ表示) -->
                 <StackPanel Grid.Row="1" Margin="5,0,5,5">
-                  <!-- プロパティリスト -->
+                  <!-- プロパティリスト (ShowInNode=trueのプロパティのみ表示) -->
                   <ItemsControl
-                    ItemsSource="{Binding Node.Properties, RelativeSource={RelativeSource TemplatedParent}}">
+                    ItemsSource="{Binding Node.NodeProperties, RelativeSource={RelativeSource TemplatedParent}}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
                         <StackPanel Spacing="5" />

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -37,6 +38,17 @@ public partial class EditorNode : ObservableObject, ISelectable, IPositionable
     public ObservableCollection<EditorPort> ExecInPorts { get; }
     public ObservableCollection<EditorPort> ExecOutPorts { get; }
     public ObservableCollection<PropertyViewModel> Properties { get; }
+
+    /// <summary>
+    /// ノード内に表示するプロパティのみを取得します。
+    /// </summary>
+    public IEnumerable<PropertyViewModel> NodeProperties => Properties.Where(p => p.ShowInNode);
+
+    /// <summary>
+    /// Inspectorに表示するプロパティのみを取得します。
+    /// </summary>
+    public IEnumerable<PropertyViewModel> InspectorProperties => Properties.Where(p => p.ShowInInspector);
+
     [ObservableProperty] public partial ExecutionStatus ExecutionStatus { get; set; }
 
     [ObservableProperty] public partial double X { get; set; }

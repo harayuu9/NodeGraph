@@ -45,6 +45,16 @@ public partial class PropertyViewModel : ObservableObject
     /// </summary>
     public bool IsReadOnly => Descriptor.HasAttribute<ReadOnlyAttribute>();
 
+    /// <summary>
+    /// ノード内に表示するかどうかを取得します。
+    /// </summary>
+    public bool ShowInNode => Descriptor.ShowInNode;
+
+    /// <summary>
+    /// Inspectorに表示するかどうかを取得します。
+    /// </summary>
+    public bool ShowInInspector => Descriptor.ShowInInspector;
+
     partial void OnValueChanged(object? value)
     {
         if (value == null)

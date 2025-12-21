@@ -113,4 +113,61 @@ public class JsonNodeTest
         Assert.False(successOutput.Value);
         Assert.NotEmpty(errorOutput.Value);
     }
+
+    [Fact]
+    public void PersonAiStructuredOutputNode_ShouldHaveCorrectStructure()
+    {
+        // Arrange
+        var graph = new Graph();
+        var aiOutputNode = graph.CreateNode<Person.AiStructuredOutputNode>();
+
+        // Assert - Port structure
+        Assert.Single(aiOutputNode.InputPorts); // Prompt
+        Assert.Equal(5, aiOutputNode.OutputPorts.Length); // Name, Age, Email, Success, Error
+        Assert.Single(aiOutputNode.ExecInPorts);
+        Assert.Single(aiOutputNode.ExecOutPorts);
+
+        // Assert - Port names
+        Assert.Equal("Prompt", aiOutputNode.GetInputPortName(0));
+        Assert.Equal("Name", aiOutputNode.GetOutputPortName(0));
+        Assert.Equal("Age", aiOutputNode.GetOutputPortName(1));
+        Assert.Equal("Email", aiOutputNode.GetOutputPortName(2));
+        Assert.Equal("Success", aiOutputNode.GetOutputPortName(3));
+        Assert.Equal("Error", aiOutputNode.GetOutputPortName(4));
+
+        // Assert - Display name and directory
+        Assert.Equal("Person AI Output", aiOutputNode.GetDisplayName());
+        Assert.Equal("Json/Test", aiOutputNode.GetDirectory());
+
+        // Assert - Properties (SystemPrompt)
+        var props = aiOutputNode.GetProperties();
+        Assert.Single(props);
+        Assert.Equal("SystemPrompt", props[0].Name);
+        Assert.Equal(typeof(string), props[0].Type);
+    }
+
+    [Fact]
+    public async Task PersonAiStructuredOutputNode_ShouldFailWhenNoChatClient()
+    {
+        // Arrange
+        var graph = new Graph();
+        var startNode = graph.CreateNode<StartNode>();
+        var aiOutputNode = graph.CreateNode<Person.AiStructuredOutputNode>();
+
+        // Connect execution flow
+        startNode.ExecOutPorts[0].Connect(aiOutputNode.ExecInPorts[0]);
+
+        // Set prompt
+        ((InputPort<string>)aiOutputNode.InputPorts[0]).Value = "Generate a person";
+
+        var executor = graph.CreateExecutor();
+        await executor.ExecuteAsync();
+
+        // Assert - Should fail gracefully when no IChatClient is registered
+        var successOutput = (OutputPort<bool>)aiOutputNode.OutputPorts[3];
+        var errorOutput = (OutputPort<string>)aiOutputNode.OutputPorts[4];
+
+        Assert.False(successOutput.Value);
+        Assert.Contains("IChatClient is not registered", errorOutput.Value);
+    }
 }
