@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net9.0;net10.0;netstandard2.1</TargetFrameworks>
+        <!-- This project is meta package -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+        <!-- NuGet -->
+        <IsPackable>true</IsPackable>
+        <PackageId>NodeGraph</PackageId>
+        <Version>0.1.0</Version>
+        <Authors>harayuu9</Authors>
+        <Description>Visual node-based programming system for .NET. Includes core engine and source generator.</Description>
+        <PackageTags>nodegraph;visual-programming;graph;nodes;source-generator</PackageTags>
+        <PackageProjectUrl>https://github.com/harayuu9/NodeGraph</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/harayuu9/NodeGraph</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NodeGraph.Model\NodeGraph.Model.csproj"/>
+        <ProjectReference Include="..\NodeGraph.Generator\NodeGraph.Generator.csproj"/>
+    </ItemGroup>
+
+</Project>
