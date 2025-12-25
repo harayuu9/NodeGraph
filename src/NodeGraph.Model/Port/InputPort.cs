@@ -25,6 +25,20 @@ public class InputPort<T> : InputPort
         return PortTypeConverterProvider.CanConvert(other.PortType, typeof(T));
     }
 
+    public override object? ValueObject
+    {
+        get => Value;
+        set
+        {
+            Value = value switch
+            {
+                T typedValue => typedValue,
+                null => default!,
+                _ => throw new InvalidOperationException($"Cannot set value of type {value?.GetType().Name} to InputPort<{typeof(T).Name}>")
+            };
+        }
+    }
+
     internal override void SetValueFrom<TSource>(TSource value)
     {
         // If types match exactly, no conversion needed
@@ -66,6 +80,8 @@ public abstract class InputPort : SingleConnectPort
     protected InputPort(Node parent, PortId id) : base(parent, id)
     {
     }
+    
+    public abstract object? ValueObject { get; set; }
 
     internal abstract void SetValueFrom<TSource>(TSource value);
 }

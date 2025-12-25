@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using NodeGraph.Editor.Models;
+using NodeGraph.Model.Serialization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -12,14 +13,6 @@ namespace NodeGraph.Editor.Serialization;
 public static class EditorLayoutSerializer
 {
     private const string CurrentVersion = "1.0.0";
-
-    private static readonly ISerializer YamlSerializer = new SerializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .Build();
-
-    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .Build();
 
     /// <summary>
     /// レイアウトをYAMLファイルに保存します
@@ -50,7 +43,7 @@ public static class EditorLayoutSerializer
 
     public static void LoadLayout(string yaml, EditorGraph editorGraph)
     {
-        var layoutData = YamlDeserializer.Deserialize<LayoutData>(yaml);
+        var layoutData = YamlSerializer.Deserialize<LayoutData>(yaml);
 
         // バージョンチェック
         ValidateVersion(layoutData.Version);

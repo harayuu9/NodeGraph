@@ -30,6 +30,20 @@ public class OutputPort<T> : OutputPort
         }
     }
 
+    public override object? ValueObject
+    {
+        get => Value;
+        set
+        {
+            Value = value switch
+            {
+                T typedValue => typedValue,
+                null => default!,
+                _ => throw new InvalidOperationException($"Cannot set value of type {value?.GetType().Name} to InputPort<{typeof(T).Name}>")
+            };
+        }
+    }
+
     public override Type PortType => typeof(T);
     public override string ValueString => "None";
 
@@ -52,4 +66,6 @@ public abstract class OutputPort : MultiConnectPort
     protected OutputPort(Node parent, PortId id) : base(parent, id)
     {
     }
+    
+    public abstract object? ValueObject { get; set; }
 }

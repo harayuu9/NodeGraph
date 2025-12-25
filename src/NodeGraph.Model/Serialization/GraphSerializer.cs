@@ -11,14 +11,6 @@ public static class GraphSerializer
 {
     private const string CurrentVersion = "1.0.0";
 
-    private static readonly ISerializer YamlSerializer = new SerializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .Build();
-
-    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .Build();
-
     /// <summary>
     /// グラフをYAMLファイルに保存します
     /// </summary>
@@ -45,7 +37,7 @@ public static class GraphSerializer
 
     public static Graph Deserialize(string yaml)
     {
-        var graphData = YamlDeserializer.Deserialize<GraphData>(yaml);
+        var graphData = YamlSerializer.Deserialize<GraphData>(yaml);
         ValidateVersion(graphData.Version);
         return DeserializeGraph(graphData);
     }

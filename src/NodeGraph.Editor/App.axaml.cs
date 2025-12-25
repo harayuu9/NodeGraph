@@ -48,6 +48,8 @@ public class App : Application
     {
         var services = new ServiceCollection();
 
+        services.AddSingleton<ConfigService>();
+        services.AddSingleton<ExecutionHistoryService>();
         services.AddSingleton<SelectionManager>();
         services.AddSingleton<NodeTypeService>();
         services.AddSingleton<UndoRedoManager>();

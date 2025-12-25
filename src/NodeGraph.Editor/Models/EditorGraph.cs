@@ -105,7 +105,7 @@ public partial class EditorGraph : ObservableObject
     /// </summary>
     public Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        return ExecuteAsync(null, cancellationToken);
+        return ExecuteAsync(null, null, cancellationToken);
     }
 
     /// <summary>
@@ -113,7 +113,10 @@ public partial class EditorGraph : ObservableObject
     /// </summary>
     /// <param name="commonParameterService">共通パラメータサービス（nullの場合はランタイムパラメータのみ使用）</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
-    public async Task ExecuteAsync(CommonParameterService? commonParameterService, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(
+        CommonParameterService? commonParameterService,
+        ExecutionHistoryService? historyService,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -127,6 +130,7 @@ public partial class EditorGraph : ObservableObject
             // パラメータをマージ: runtimeParams > commonParams
             var commonParams = commonParameterService?.GetParameters();
             var mergedParams = ParameterMerger.Merge(commonParams, _runtimeParameters);
+            var history = ExecutionHistory.Create(this);
 
             var executor = Graph.CreateExecutor();
             try
@@ -146,6 +150,7 @@ public partial class EditorGraph : ObservableObject
                     },
                     x =>
                     {
+                        history.Add(x);
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
 
@@ -157,6 +162,7 @@ public partial class EditorGraph : ObservableObject
                     },
                     (x, exception) =>
                     {
+                        history.Add(x);
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
 
@@ -168,6 +174,7 @@ public partial class EditorGraph : ObservableObject
                 // ignored
             }
 
+            historyService?.Add(history);
             await Task.Delay(5000, cancellationToken);
         }
         finally

@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly SelectionManager _selectionManager;
     private readonly CommonParameterService _commonParameterService;
+    private readonly ExecutionHistoryService _executionHistoryService;
 
     [ObservableProperty] private string _currentTheme = "Default";
 
@@ -42,17 +43,22 @@ public partial class MainWindowViewModel : ViewModelBase
     public InspectorViewModel InspectorViewModel { get; }
 
 #if DEBUG
-    public MainWindowViewModel() : this(new SelectionManager(), new UndoRedoManager(), new CommonParameterService())
+    public MainWindowViewModel() : this(null!, null!, null!, null!)
     {
     }
 #endif
 
-    public MainWindowViewModel(SelectionManager selectionManager, UndoRedoManager undoRedoManager, CommonParameterService commonParameterService)
+    public MainWindowViewModel(
+        SelectionManager selectionManager, 
+        UndoRedoManager undoRedoManager,
+        CommonParameterService commonParameterService,
+        ExecutionHistoryService executionHistoryService)
     {
         _selectionManager = selectionManager;
         _commonParameterService = commonParameterService;
         UndoRedoManager = undoRedoManager;
         InspectorViewModel = new InspectorViewModel(selectionManager);
+        _executionHistoryService = executionHistoryService;
 
         // テスト用のグラフを作成
         var graph = new Graph();
@@ -190,7 +196,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExecuteGraphAsync()
     {
-        await TestGraph.ExecuteAsync(_commonParameterService);
+        await TestGraph.ExecuteAsync(_commonParameterService, _executionHistoryService);
     }
 
     [RelayCommand]
