@@ -27,6 +27,7 @@ public class ExecutionHistory
     public string GraphYaml { get; set; } = string.Empty;
     public string LayoutYaml { get; set; } = string.Empty;
     public List<History> Histories { get; set; } = [];
+    public DateTime ExecutedAt { get; set; } = DateTime.Now;
 
     public void Add(Node node)
     {

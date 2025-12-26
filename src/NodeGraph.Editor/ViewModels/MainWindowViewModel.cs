@@ -208,6 +208,15 @@ public partial class MainWindowViewModel : ViewModelBase
         await window.ShowDialog(_mainWindow);
     }
 
+    [RelayCommand]
+    private async Task OpenExecutionHistoryAsync()
+    {
+        if (_mainWindow == null) return;
+
+        var window = new ExecutionHistoryWindow(_executionHistoryService);
+        await window.ShowDialog(_mainWindow);
+    }
+
     public void SetMainWindow(Window window)
     {
         _mainWindow = window;
