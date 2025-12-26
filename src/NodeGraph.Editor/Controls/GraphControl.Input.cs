@@ -23,7 +23,8 @@ public partial class GraphControl
         var properties = e.GetCurrentPoint(this).Properties;
 
         // 右ボタンの処理（背景クリック時のAddNodeWindow表示用）
-        if (properties.IsRightButtonPressed && !Graph.IsExecuting)
+        // 読み取り専用モードでは無効
+        if (properties.IsRightButtonPressed && !Graph.IsExecuting && !IsReadOnly)
         {
             // NodeControl上でない場合のみ処理（ノードのコンテキストメニューと衝突しないように）
             if (e.Source is not NodeControl)
@@ -36,7 +37,7 @@ public partial class GraphControl
             return;
         }
 
-        // 中ボタンでドラッグ開始
+        // 中ボタンでドラッグ開始（読み取り専用でも許可）
         if (properties.IsMiddleButtonPressed)
         {
             _isDragging = true;
@@ -47,7 +48,8 @@ public partial class GraphControl
             OnPanStarted();
         }
 
-        if (properties.IsLeftButtonPressed && !Graph.IsExecuting)
+        // 左ボタンでの選択操作（読み取り専用モードでは無効）
+        if (properties.IsLeftButtonPressed && !Graph.IsExecuting && !IsReadOnly)
             // NodeControl上またはポートドラッグ中でのクリックでない場合
             if (e.Source is not NodeControl && !_isDraggingPort)
             {
@@ -180,6 +182,9 @@ public partial class GraphControl
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (Graph == null) return;
+
+        // 読み取り専用モードでは編集操作を無効化
+        if (IsReadOnly) return;
 
         if (e.Key == Key.Delete)
         {
