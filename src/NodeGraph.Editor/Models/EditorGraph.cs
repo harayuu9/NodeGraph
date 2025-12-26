@@ -169,9 +169,8 @@ public partial class EditorGraph : ObservableObject
                         Dispatcher.UIThread.Post(() => { node.ExecutionStatus = ExecutionStatus.Exception; });
                     }, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex);
                 // ignored
             }
 
