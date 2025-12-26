@@ -10,7 +10,7 @@ public class ConfigService
 
     public ConfigService()
     {
-        _config = YamlSerializer.Deserialize<Config>(ConfigFileName);;
+        _config = YamlSerializer.LoadFile<Config>(ConfigFileName);;
     }
 
     public string HistoryDirectory => _config.HistoryDirectory;

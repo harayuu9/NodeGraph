@@ -31,7 +31,7 @@ public class ExecutionHistory
     public void Add(Node node)
     {
         if (_editorGraph == null) throw new InvalidOperationException("Cannot add node to execution history without an editor graph");
-        if (_editorGraph.Nodes.Any(x => x.Node == node)) throw new InvalidOperationException("Cannot find editor node for the given node");
+        if (_editorGraph.Nodes.All(x => x.Node != node)) throw new InvalidOperationException("Cannot find editor node for the given node");
         
         var history = new History
         {
