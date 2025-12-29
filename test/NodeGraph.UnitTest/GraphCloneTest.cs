@@ -214,4 +214,33 @@ public class GraphCloneTest
         // Assert
         Assert.Empty(clonedGraph.Nodes);
     }
+
+    [Fact]
+    public void CloneGraph_データ接続のみがクローンされる()
+    {
+        // 現在のGraph.Clone()実装はデータポート(OutputPort)接続のみをクローンし、
+        // Exec接続(ExecOutPort)はクローンしない
+        var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
+        var loop = graph.CreateNode<LoopNode>();
+        loop.SetCount(3);
+        var message = graph.CreateNode<StringConstantNode>();
+        message.SetValue("Test");
+
+        // 制御フロー接続（現在はクローンされない）
+        start.ExecOutPorts[0].Connect(loop.ExecInPorts[0]);
+
+        // Act
+        var clonedGraph = graph.Clone();
+
+        // Assert
+        Assert.Equal(3, clonedGraph.Nodes.Count);
+
+        var clonedStart = clonedGraph.GetNodes<StartNode>().First();
+        var clonedLoop = clonedGraph.GetNodes<LoopNode>().First();
+
+        // Exec接続はクローンされないので、GetExecutionTargetはnullを返す
+        var startExecTarget = clonedStart.ExecOutPorts[0].GetExecutionTarget();
+        Assert.Null(startExecTarget);
+    }
 }

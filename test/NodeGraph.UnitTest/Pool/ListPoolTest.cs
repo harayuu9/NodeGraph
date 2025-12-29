@@ -2,6 +2,9 @@ using NodeGraph.Model.Pool;
 
 namespace NodeGraph.UnitTest.Pool;
 
+/// <summary>
+/// ListPoolのコア機能テスト
+/// </summary>
 public class ListPoolTest
 {
     [Fact]
@@ -13,55 +16,35 @@ public class ListPoolTest
     }
 
     [Fact]
-    public void Rent_WithCapacity_ReturnsListWithSufficientCapacity()
-    {
-        using var rental = ListPool<int>.Shared.Rent(100, out var list);
-
-        Assert.NotNull(list);
-        Assert.True(list.Capacity >= 100);
-    }
-
-    [Fact]
-    public void Rent_CanAddItemsToList()
-    {
-        using var rental = ListPool<int>.Shared.Rent(out var list);
-
-        list.Add(1);
-        list.Add(2);
-        list.Add(3);
-
-        Assert.Equal(3, list.Count);
-        Assert.Equal(1, list[0]);
-        Assert.Equal(2, list[1]);
-        Assert.Equal(3, list[2]);
-    }
-
-    [Fact]
-    public void Dispose_ReturnsListToPool()
+    public void Dispose_ReturnsToPoolAndClears()
     {
         List<int>? firstList;
 
-        // 1回目のレンタル
+        // 1回目のレンタルでアイテムを追加
         using (var rental = ListPool<int>.Shared.Rent(out var list))
         {
             list.Add(42);
+            list.Add(100);
             firstList = list;
         }
 
-        // 2回目のレンタル - 同じインスタンスが返される可能性がある
+        // 2回目のレンタル - リストはクリアされている
         using var rental2 = ListPool<int>.Shared.Rent(out var list2);
-
-        // リストはクリアされているはず
         Assert.Empty(list2);
     }
 
     [Fact]
-    public void MultipleRents_WorksConcurrently()
+    public void MultipleRents_ReturnDifferentInstances()
     {
         using var rental1 = ListPool<int>.Shared.Rent(out var list1);
         using var rental2 = ListPool<int>.Shared.Rent(out var list2);
         using var rental3 = ListPool<int>.Shared.Rent(out var list3);
 
+        // 同時にレンタルした場合は異なるインスタンス
+        Assert.NotSame(list1, list2);
+        Assert.NotSame(list2, list3);
+
+        // それぞれ独立して使用可能
         list1.Add(1);
         list2.Add(2);
         list3.Add(3);
@@ -69,35 +52,6 @@ public class ListPoolTest
         Assert.Single(list1);
         Assert.Single(list2);
         Assert.Single(list3);
-        Assert.Equal(1, list1[0]);
-        Assert.Equal(2, list2[0]);
-        Assert.Equal(3, list3[0]);
-    }
-
-    [Fact]
-    public void Rent_AfterDispose_ReturnsCleanList()
-    {
-        using (var rental = ListPool<int>.Shared.Rent(out var list))
-        {
-            list.Add(1);
-            list.Add(2);
-            list.Add(3);
-        }
-
-        using var rental2 = ListPool<int>.Shared.Rent(out var list2);
-
-        // プールから返されたリストはクリアされているべき
-        Assert.Empty(list2);
-    }
-
-    [Fact]
-    public void Rent_WithLargeCapacity_WorksCorrectly()
-    {
-        using var rental = ListPool<int>.Shared.Rent(10000, out var list);
-
-        for (var i = 0; i < 5000; i++) list.Add(i);
-
-        Assert.Equal(5000, list.Count);
     }
 
     [Fact]

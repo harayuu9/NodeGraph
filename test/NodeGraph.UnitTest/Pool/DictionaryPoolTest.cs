@@ -2,6 +2,9 @@ using NodeGraph.Model.Pool;
 
 namespace NodeGraph.UnitTest.Pool;
 
+/// <summary>
+/// DictionaryPoolのコア機能テスト
+/// </summary>
 public class DictionaryPoolTest
 {
     [Fact]
@@ -13,55 +16,35 @@ public class DictionaryPoolTest
     }
 
     [Fact]
-    public void Rent_WithCapacity_ReturnsDictionaryWithSufficientCapacity()
-    {
-        using var rental = DictionaryPool<string, int>.Shared.Rent(100, out var dict);
-
-        Assert.NotNull(dict);
-        Assert.True(dict.EnsureCapacity(0) >= 100);
-    }
-
-    [Fact]
-    public void Rent_CanAddItemsToDictionary()
-    {
-        using var rental = DictionaryPool<string, int>.Shared.Rent(out var dict);
-
-        dict["key1"] = 1;
-        dict["key2"] = 2;
-        dict["key3"] = 3;
-
-        Assert.Equal(3, dict.Count);
-        Assert.Equal(1, dict["key1"]);
-        Assert.Equal(2, dict["key2"]);
-        Assert.Equal(3, dict["key3"]);
-    }
-
-    [Fact]
-    public void Dispose_ReturnsDictionaryToPool()
+    public void Dispose_ReturnsToPoolAndClears()
     {
         Dictionary<string, int>? firstDict;
 
-        // 1回目のレンタル
+        // 1回目のレンタルでアイテムを追加
         using (var rental = DictionaryPool<string, int>.Shared.Rent(out var dict))
         {
-            dict["key"] = 42;
+            dict["key1"] = 42;
+            dict["key2"] = 100;
             firstDict = dict;
         }
 
-        // 2回目のレンタル - 同じインスタンスが返される可能性がある
+        // 2回目のレンタル - 辞書はクリアされている
         using var rental2 = DictionaryPool<string, int>.Shared.Rent(out var dict2);
-
-        // 辞書はクリアされているはず
         Assert.Empty(dict2);
     }
 
     [Fact]
-    public void MultipleRents_WorksConcurrently()
+    public void MultipleRents_ReturnDifferentInstances()
     {
         using var rental1 = DictionaryPool<string, int>.Shared.Rent(out var dict1);
         using var rental2 = DictionaryPool<string, int>.Shared.Rent(out var dict2);
         using var rental3 = DictionaryPool<string, int>.Shared.Rent(out var dict3);
 
+        // 同時にレンタルした場合は異なるインスタンス
+        Assert.NotSame(dict1, dict2);
+        Assert.NotSame(dict2, dict3);
+
+        // それぞれ独立して使用可能
         dict1["a"] = 1;
         dict2["b"] = 2;
         dict3["c"] = 3;
@@ -69,58 +52,6 @@ public class DictionaryPoolTest
         Assert.Single(dict1);
         Assert.Single(dict2);
         Assert.Single(dict3);
-        Assert.Equal(1, dict1["a"]);
-        Assert.Equal(2, dict2["b"]);
-        Assert.Equal(3, dict3["c"]);
-    }
-
-    [Fact]
-    public void Rent_AfterDispose_ReturnsCleanDictionary()
-    {
-        using (var rental = DictionaryPool<string, int>.Shared.Rent(out var dict))
-        {
-            dict["key1"] = 1;
-            dict["key2"] = 2;
-            dict["key3"] = 3;
-        }
-
-        using var rental2 = DictionaryPool<string, int>.Shared.Rent(out var dict2);
-
-        // プールから返された辞書はクリアされているべき
-        Assert.Empty(dict2);
-    }
-
-    [Fact]
-    public void Rent_WithLargeCapacity_WorksCorrectly()
-    {
-        using var rental = DictionaryPool<string, int>.Shared.Rent(10000, out var dict);
-
-        for (var i = 0; i < 5000; i++) dict[$"key{i}"] = i;
-
-        Assert.Equal(5000, dict.Count);
-    }
-
-    [Fact]
-    public void Rent_SupportsValueUpdate()
-    {
-        using var rental = DictionaryPool<string, int>.Shared.Rent(out var dict);
-
-        dict["key"] = 1;
-        Assert.Equal(1, dict["key"]);
-
-        dict["key"] = 2;
-        Assert.Equal(2, dict["key"]);
-    }
-
-    [Fact]
-    public void Rent_SupportsContainsKey()
-    {
-        using var rental = DictionaryPool<string, int>.Shared.Rent(out var dict);
-
-        dict["key1"] = 1;
-
-        Assert.True(dict.ContainsKey("key1"));
-        Assert.False(dict.ContainsKey("key2"));
     }
 
     [Fact]

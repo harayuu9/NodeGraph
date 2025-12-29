@@ -180,6 +180,45 @@ public class ExecutionFlowTest
         var printNodeCount = execFlowNodes.Count(n => n == "PrintNode");
         Assert.Equal(4, printNodeCount);
     }
+
+    /// <summary>
+    /// LoopNodeのCountが異なる値の場合のテスト。
+    /// SetCountで直接指定した回数ループすることを確認します。
+    /// </summary>
+    [Fact]
+    public async Task LoopNode_ExecutesWithDifferentCount()
+    {
+        var graph = new Graph();
+
+        var start = graph.CreateNode<StartNode>();
+        var loop = graph.CreateNode<LoopNode>();
+        loop.SetCount(5); // 5回ループ
+        start.ExecOutPorts[0].Connect(loop.ExecInPorts[0]);
+
+        // ループ本体のPrintNode
+        var printBody = graph.CreateNode<PrintNode>();
+        printBody.ConnectInput(0, loop, 0); // Index -> Message
+        loop.ExecOutPorts[0].Connect(printBody.ExecInPorts[0]);
+
+        // ループ完了後のPrintNode
+        var printCompleted = graph.CreateNode<PrintNode>();
+        var messageNode = graph.CreateNode<StringConstantNode>();
+        messageNode.SetValue("Loop completed!");
+        printCompleted.ConnectInput(0, messageNode, 0);
+        loop.ExecOutPorts[1].Connect(printCompleted.ExecInPorts[0]);
+
+        var executor = graph.CreateExecutor();
+        var executedNodes = new List<string>();
+        await executor.ExecuteAsync(node =>
+            {
+                if (node.HasExec) executedNodes.Add(node.GetType().Name);
+            }
+        );
+
+        // PrintNodeが6回実行される（ループ本体5回 + 完了後1回）
+        var printNodeCount = executedNodes.Count(n => n == "PrintNode");
+        Assert.Equal(6, printNodeCount);
+    }
 }
 
 /// <summary>
