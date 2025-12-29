@@ -366,6 +366,17 @@ public partial class GraphControl : TemplatedControl
         set => SetValue(IsInputBlockedProperty, value);
     }
 
+    public static readonly StyledProperty<bool> IsReadOnlyProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsReadOnly));
+
+    /// <summary>
+    /// 読み取り専用モード。パン/ズームは可能だが、編集操作（ノード追加、選択、接続など）は無効になります。
+    /// </summary>
+    public bool IsReadOnly
+    {
+        get => GetValue(IsReadOnlyProperty);
+        set => SetValue(IsReadOnlyProperty, value);
+    }
+
     #endregion
 
 
@@ -514,6 +525,10 @@ public partial class GraphControl : TemplatedControl
     private void OnPortDragStarted(object? sender, RoutedEventArgs e)
     {
         if (e is not PortDragEventArgs args || _canvas == null)
+            return;
+
+        // 読み取り専用モードではポート接続を無効化
+        if (IsReadOnly)
             return;
 
         _isDraggingPort = true;

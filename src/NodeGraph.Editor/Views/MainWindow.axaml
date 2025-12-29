@@ -43,6 +43,8 @@
             <CheckBox IsChecked="{Binding IsInspectorVisible}" BorderThickness="0" IsHitTestVisible="False" />
           </MenuItem.Icon>
         </MenuItem>
+        <Separator />
+        <MenuItem Header="_Execution History" Command="{Binding OpenExecutionHistoryCommand}" InputGesture="Ctrl+H" />
       </MenuItem>
     </Menu>
 

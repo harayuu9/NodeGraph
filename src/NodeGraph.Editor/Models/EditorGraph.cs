@@ -132,12 +132,15 @@ public partial class EditorGraph : ObservableObject
             var mergedParams = ParameterMerger.Merge(commonParams, _runtimeParameters);
             var history = ExecutionHistory.Create(this);
 
+            // ExecOutを呼んだノードを追跡（末端ノード判定用）
+            var execOutCalled = new HashSet<NodeId>();
+
             var executor = Graph.CreateExecutor();
             try
             {
                 await executor.ExecuteAsync(
                     mergedParams,
-                    x =>
+                    onExecute: x =>
                     {
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
@@ -148,9 +151,14 @@ public partial class EditorGraph : ObservableObject
                             node.ExecutionStatus = ExecutionStatus.Executing;
                         });
                     },
-                    x =>
+                    onExecuted: x =>
                     {
-                        history.Add(x);
+                        // データフローノード または 末端の制御フローノード（ExecOutを呼ばなかった）のみ記録
+                        if (!x.HasExec || !execOutCalled.Contains(x.Id))
+                        {
+                            history.Add(x);
+                        }
+
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
 
@@ -160,9 +168,20 @@ public partial class EditorGraph : ObservableObject
                             node.ExecutionStatus = ExecutionStatus.Executed;
                         });
                     },
-                    (x, exception) =>
+                    onExecOut: x =>
                     {
+                        // 制御フローノード：ExecuteOutAsync呼び出し時に履歴記録
+                        execOutCalled.Add(x.Id);
                         history.Add(x);
+                    },
+                    onExcepted: (x, exception) =>
+                    {
+                        // 既にExecOutで履歴に追加された制御フローノードは重複登録しない
+                        if (!x.HasExec || !execOutCalled.Contains(x.Id))
+                        {
+                            history.Add(x);
+                        }
+
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
 
