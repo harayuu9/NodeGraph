@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -32,8 +33,13 @@ public class App : Application
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
 
+            // プラグインをロード
+            var pluginService = new PluginService();
+            var pluginsPath = GetPluginsDirectory();
+            pluginService.LoadPlugins(pluginsPath);
+
             // DIコンテナのセットアップ
-            Services = ConfigureServices();
+            Services = ConfigureServices(pluginService);
 
             desktop.MainWindow = new MainWindow
             {
@@ -44,14 +50,34 @@ public class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private ServiceProvider ConfigureServices()
+    /// <summary>
+    /// プラグインディレクトリのパスを取得する
+    /// </summary>
+    private static string GetPluginsDirectory()
+    {
+        var appDir = AppDomain.CurrentDomain.BaseDirectory;
+        return Path.Combine(appDir, "Plugins");
+    }
+
+    private ServiceProvider ConfigureServices(PluginService pluginService)
     {
         var services = new ServiceCollection();
+
+        // プラグインサービスを登録
+        services.AddSingleton(pluginService);
 
         services.AddSingleton<ConfigService>();
         services.AddSingleton<ExecutionHistoryService>();
         services.AddSingleton<SelectionManager>();
-        services.AddSingleton<NodeTypeService>();
+
+        // NodeTypeServiceにプラグインノードを登録
+        services.AddSingleton(sp =>
+        {
+            var nodeTypeService = new NodeTypeService();
+            nodeTypeService.RegisterPluginTypes(pluginService.PluginNodeTypes);
+            return nodeTypeService;
+        });
+
         services.AddSingleton<UndoRedoManager>();
         services.AddSingleton<CommonParameterService>();
 

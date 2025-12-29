@@ -106,4 +106,40 @@ public class NodeTypeService
     {
         return _nodeTypes.GroupBy(n => n.Directory);
     }
+
+    /// <summary>
+    /// プラグインから発見されたノードタイプを登録する
+    /// </summary>
+    /// <param name="pluginTypes">プラグインノードタイプの列挙</param>
+    public void RegisterPluginTypes(IEnumerable<Type> pluginTypes)
+    {
+        foreach (var type in pluginTypes)
+        {
+            // 重複チェック
+            if (_nodeTypes.Any(n => n.NodeType == type))
+                continue;
+
+            try
+            {
+                var instance = (Node)Activator.CreateInstance(type)!;
+                _nodeTypes.Add(new NodeTypeInfo
+                {
+                    NodeType = type,
+                    DisplayName = instance.GetDisplayName(),
+                    Directory = instance.GetDirectory()
+                });
+            }
+            catch
+            {
+                // インスタンス化に失敗した場合はスキップ
+            }
+        }
+
+        // 再ソート
+        _nodeTypes.Sort((a, b) =>
+        {
+            var dirComparison = string.Compare(a.Directory, b.Directory, StringComparison.Ordinal);
+            return dirComparison != 0 ? dirComparison : string.Compare(a.DisplayName, b.DisplayName, StringComparison.Ordinal);
+        });
+    }
 }
