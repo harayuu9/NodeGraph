@@ -39,7 +39,7 @@ public class GraphExecutor : IDisposable
         Action<Node, Exception>? onExcepted = null,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteAsync(null, onExecute, onExecuted, onExcepted, cancellationToken);
+        return ExecuteAsync(null, onExecute, onExecuted, null, onExcepted, cancellationToken);
     }
 
     /// <summary>
@@ -48,12 +48,14 @@ public class GraphExecutor : IDisposable
     /// <param name="parameters">外部パラメータの辞書。ParameterNodeから参照されます。</param>
     /// <param name="onExecute">ノード実行開始時のコールバック</param>
     /// <param name="onExecuted">ノード実行完了時のコールバック</param>
+    /// <param name="onExecOut">ExecuteOutAsync呼び出し時のコールバック（制御フローノード用）</param>
     /// <param name="onExcepted">ノード実行例外時のコールバック</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     public async Task ExecuteAsync(
         IReadOnlyDictionary<string, object?>? parameters,
         Action<Node>? onExecute = null,
         Action<Node>? onExecuted = null,
+        Action<Node>? onExecOut = null,
         Action<Node, Exception>? onExcepted = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,20 +73,23 @@ public class GraphExecutor : IDisposable
         // デリゲートを設定: 指定されたExecOutの接続先を実行
         context.ExecuteOutDelegate = async (node, index) =>
         {
+            // ExecuteOutAsync呼び出し時にコールバック（制御フローノードの履歴記録用）
+            onExecOut?.Invoke(node);
+
             if (index < 0 || index >= node.ExecOutPorts.Length) return;
 
             var execOutPort = node.ExecOutPorts[index];
             var target = execOutPort.GetExecutionTarget();
-            if (target != null) await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExcepted);
+            if (target != null) await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExecOut, onExcepted);
         };
 
         // Phase 1: 並列実行（HasExec = false のノード）
-        foreach (var node in _canParallelNodes) tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExcepted));
+        foreach (var node in _canParallelNodes) tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExecOut, onExcepted));
 
         await Task.WhenAll(tasks);
 
         // Phase 2: StartNode から実行フロー開始
-        if (_startNode != null) await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExcepted);
+        if (_startNode != null) await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExecOut, onExcepted);
     }
 
     private async Task ExecuteNodeAsync(
@@ -92,6 +97,7 @@ public class GraphExecutor : IDisposable
         NodeExecutionContext context,
         Action<Node>? onExecute,
         Action<Node>? onExecuted,
+        Action<Node>? onExecOut,
         Action<Node, Exception>? onExcepted)
     {
         var previousNode = context.CurrentNode;
