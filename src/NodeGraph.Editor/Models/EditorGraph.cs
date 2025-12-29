@@ -176,7 +176,12 @@ public partial class EditorGraph : ObservableObject
                     },
                     onExcepted: (x, exception) =>
                     {
-                        history.Add(x);
+                        // 既にExecOutで履歴に追加された制御フローノードは重複登録しない
+                        if (!x.HasExec || !execOutCalled.Contains(x.Id))
+                        {
+                            history.Add(x);
+                        }
+
                         var node = Nodes.FirstOrDefault(xx => xx.Node == x);
                         if (node == null) return;
 

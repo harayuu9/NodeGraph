@@ -36,6 +36,11 @@ public partial class ExecutionHistoryWindowViewModel : ViewModelBase
 
     public int TotalSteps => SelectedHistory?.Histories.Count ?? 0;
 
+    /// <summary>
+    /// 1-based のステップ番号（UI表示用）
+    /// </summary>
+    public int CurrentStepNumber => CurrentStepIndex + 1;
+
     public bool HasHistory => SelectedHistory != null && TotalSteps > 0;
 
     partial void OnSelectedHistoryChanged(ExecutionHistory? value)
@@ -64,6 +69,7 @@ public partial class ExecutionHistoryWindowViewModel : ViewModelBase
 
     partial void OnCurrentStepIndexChanged(int value)
     {
+        OnPropertyChanged(nameof(CurrentStepNumber));
         UpdateVisualization();
     }
 

@@ -79,7 +79,7 @@
 
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="Step " />
-            <TextBlock Text="{Binding CurrentStepIndex, FallbackValue=0}" />
+            <TextBlock Text="{Binding CurrentStepNumber, FallbackValue=1}" />
             <TextBlock Text=" / " />
             <TextBlock Text="{Binding TotalSteps, FallbackValue=0}" />
           </StackPanel>
