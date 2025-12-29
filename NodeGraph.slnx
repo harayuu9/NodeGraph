@@ -8,5 +8,6 @@
     </Folder>
     <Folder Name="/test/">
         <Project Path="test\NodeGraph.UnitTest\NodeGraph.UnitTest.csproj" Type="C#" />
+        <Project Path="test\NodeGraph.SamplePlugin\NodeGraph.SamplePlugin.csproj" Type="C#" />
     </Folder>
 </Solution>

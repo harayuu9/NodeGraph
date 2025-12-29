@@ -33,6 +33,24 @@
 
         <ProjectReference Include="..\..\src\NodeGraph.Model\NodeGraph.Model.csproj"/>
         <ProjectReference Include="..\..\src\NodeGraph.Editor\NodeGraph.Editor.csproj"/>
+
+        <!-- SamplePluginはビルドするが参照しない（プラグインとしてロードするため） -->
+        <ProjectReference Include="..\NodeGraph.SamplePlugin\NodeGraph.SamplePlugin.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
     </ItemGroup>
+
+    <!-- ビルド後にSamplePluginをPluginsフォルダにコピー -->
+    <Target Name="CopySamplePluginToPlugins" AfterTargets="Build">
+        <PropertyGroup>
+            <SamplePluginOutputDir>$(MSBuildThisFileDirectory)..\NodeGraph.SamplePlugin\bin\$(Configuration)\net9.0\</SamplePluginOutputDir>
+            <PluginsDir>$(OutputPath)Plugins\</PluginsDir>
+        </PropertyGroup>
+        <MakeDir Directories="$(PluginsDir)" />
+        <Copy SourceFiles="$(SamplePluginOutputDir)NodeGraph.SamplePlugin.dll"
+              DestinationFolder="$(PluginsDir)"
+              SkipUnchangedFiles="true" />
+    </Target>
 
 </Project>
