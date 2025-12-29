@@ -6,7 +6,7 @@ namespace NodeGraph.Model.AI;
 /// ユーザーメッセージをChatHistoryに追加するノード。
 /// ユーザーからの入力メッセージを追加します。
 /// </summary>
-[Node("Add User Message", "AI/History", HasExecIn = false, HasExecOut = false)]
+[Node("Add User Message", "AI/History", "Out")]
 public partial class AddUserMessageNode
 {
     [Input]
@@ -18,7 +18,7 @@ public partial class AddUserMessageNode
     [Output]
     private IList<ChatMessage> _outputHistory = new List<ChatMessage>();
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         var history = new List<ChatMessage>();
 
@@ -33,6 +33,6 @@ public partial class AddUserMessageNode
         }
 
         _outputHistory = history;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

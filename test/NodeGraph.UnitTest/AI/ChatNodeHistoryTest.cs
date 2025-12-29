@@ -25,7 +25,10 @@ public class ChatNodeHistoryTest
         userNode.ConnectInput(0, emptyNode, 0);
         userNode.ConnectInput(1, userContent, 0);
         chatNode.ConnectInput(0, userNode, 0);
-        start.ExecOutPorts[0].Connect(chatNode.ExecInPorts[0]);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(userNode.ExecInPorts[0]);
+        userNode.ExecOutPorts[0].Connect(chatNode.ExecInPorts[0]);
 
         // Don't register IChatClient
         var executor = graph.CreateExecutor();
@@ -45,6 +48,8 @@ public class ChatNodeHistoryTest
         var start = graph.CreateNode<StartNode>();
 
         chatNode.ConnectInput(0, emptyNode, 0);
+
+        // Exec flow
         start.ExecOutPorts[0].Connect(chatNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
@@ -66,6 +71,8 @@ public class ChatNodeHistoryTest
 
         // Connect empty history
         chatNode.ConnectInput(0, emptyNode, 0);
+
+        // Exec flow
         start.ExecOutPorts[0].Connect(chatNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
@@ -86,6 +93,8 @@ public class ChatNodeHistoryTest
         var start = graph.CreateNode<StartNode>();
 
         chatNode.ConnectInput(0, emptyNode, 0);
+
+        // Exec flow
         start.ExecOutPorts[0].Connect(chatNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();

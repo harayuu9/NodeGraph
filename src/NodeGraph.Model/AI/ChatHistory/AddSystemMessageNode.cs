@@ -6,7 +6,7 @@ namespace NodeGraph.Model.AI;
 /// システムメッセージをChatHistoryに追加するノード。
 /// AIの振る舞いを定義するシステムプロンプトを追加します。
 /// </summary>
-[Node("Add System Message", "AI/History", HasExecIn = false, HasExecOut = false)]
+[Node("Add System Message", "AI/History", "Out")]
 public partial class AddSystemMessageNode
 {
     [Input]
@@ -18,7 +18,7 @@ public partial class AddSystemMessageNode
     [Output]
     private IList<ChatMessage> _outputHistory = new List<ChatMessage>();
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         var history = new List<ChatMessage>();
 
@@ -33,6 +33,6 @@ public partial class AddSystemMessageNode
         }
 
         _outputHistory = history;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

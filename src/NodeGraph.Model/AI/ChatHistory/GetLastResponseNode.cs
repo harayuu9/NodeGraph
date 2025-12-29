@@ -5,7 +5,7 @@ namespace NodeGraph.Model.AI;
 /// <summary>
 /// ChatHistoryから最後のアシスタント応答を取得するノード。
 /// </summary>
-[Node("Get Last Response", "AI/History", HasExecIn = false, HasExecOut = false)]
+[Node("Get Last Response", "AI/History", "Out")]
 public partial class GetLastResponseNode
 {
     [Input]
@@ -17,14 +17,15 @@ public partial class GetLastResponseNode
     [Output]
     private bool _found;
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         _response = string.Empty;
         _found = false;
 
         if (_history.Count == 0)
         {
-            return Task.CompletedTask;
+            await context.ExecuteOutAsync(0);
+            return;
         }
 
         // 最後のアシスタントメッセージを検索
@@ -38,6 +39,6 @@ public partial class GetLastResponseNode
             }
         }
 
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

@@ -6,7 +6,7 @@ namespace NodeGraph.Model.AI;
 /// 画像付きユーザーメッセージをChatHistoryに追加するノード。
 /// マルチモーダルAIモデル（GPT-4 Visionなど）で使用します。
 /// </summary>
-[Node("Add User Image Message", "AI/History", HasExecIn = false, HasExecOut = false)]
+[Node("Add User Image Message", "AI/History", "Out")]
 public partial class AddUserImageMessageNode
 {
     [Input]
@@ -24,7 +24,7 @@ public partial class AddUserImageMessageNode
     [Output]
     private IList<ChatMessage> _outputHistory = new List<ChatMessage>();
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         var history = new List<ChatMessage>();
 
@@ -62,6 +62,6 @@ public partial class AddUserImageMessageNode
         }
 
         _outputHistory = history;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

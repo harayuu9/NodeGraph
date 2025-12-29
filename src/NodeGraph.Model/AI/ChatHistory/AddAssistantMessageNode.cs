@@ -6,7 +6,7 @@ namespace NodeGraph.Model.AI;
 /// アシスタントメッセージをChatHistoryに追加するノード。
 /// AIからの応答や過去の会話を再構築する際に使用します。
 /// </summary>
-[Node("Add Assistant Message", "AI/History", HasExecIn = false, HasExecOut = false)]
+[Node("Add Assistant Message", "AI/History", "Out")]
 public partial class AddAssistantMessageNode
 {
     [Input]
@@ -18,7 +18,7 @@ public partial class AddAssistantMessageNode
     [Output]
     private IList<ChatMessage> _outputHistory = new List<ChatMessage>();
 
-    protected override Task ExecuteCoreAsync(NodeExecutionContext context)
+    protected override async Task ExecuteCoreAsync(NodeExecutionContext context)
     {
         var history = new List<ChatMessage>();
 
@@ -33,6 +33,6 @@ public partial class AddAssistantMessageNode
         }
 
         _outputHistory = history;
-        return Task.CompletedTask;
+        await context.ExecuteOutAsync(0);
     }
 }

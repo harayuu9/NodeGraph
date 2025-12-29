@@ -24,6 +24,7 @@ public class ChatHistoryNodesTest
     public async Task AddSystemMessageNode_Should_Add_Message_To_Empty_History()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var addSystemNode = graph.CreateNode<AddSystemMessageNode>();
         var contentNode = graph.CreateNode<StringConstantNode>();
@@ -32,6 +33,9 @@ public class ChatHistoryNodesTest
         // Connect: EmptyChatHistory -> AddSystemMessage
         addSystemNode.ConnectInput(0, emptyNode, 0); // history
         addSystemNode.ConnectInput(1, contentNode, 0); // content
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addSystemNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -47,6 +51,7 @@ public class ChatHistoryNodesTest
     public async Task AddUserMessageNode_Should_Add_User_Message()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var addUserNode = graph.CreateNode<AddUserMessageNode>();
         var contentNode = graph.CreateNode<StringConstantNode>();
@@ -54,6 +59,9 @@ public class ChatHistoryNodesTest
 
         addUserNode.ConnectInput(0, emptyNode, 0);
         addUserNode.ConnectInput(1, contentNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addUserNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -69,6 +77,7 @@ public class ChatHistoryNodesTest
     public async Task AddAssistantMessageNode_Should_Add_Assistant_Message()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var addAssistantNode = graph.CreateNode<AddAssistantMessageNode>();
         var contentNode = graph.CreateNode<StringConstantNode>();
@@ -76,6 +85,9 @@ public class ChatHistoryNodesTest
 
         addAssistantNode.ConnectInput(0, emptyNode, 0);
         addAssistantNode.ConnectInput(1, contentNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addAssistantNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -91,6 +103,7 @@ public class ChatHistoryNodesTest
     public async Task Chain_Should_Build_Multi_Turn_Conversation()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
 
         // Create chain: Empty -> AddSystem -> AddUser -> AddAssistant -> AddUser
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
@@ -122,6 +135,12 @@ public class ChatHistoryNodesTest
         user2Node.ConnectInput(0, assistantNode, 0);
         user2Node.ConnectInput(1, user2Content, 0);
 
+        // Exec flow chain
+        start.ExecOutPorts[0].Connect(systemNode.ExecInPorts[0]);
+        systemNode.ExecOutPorts[0].Connect(user1Node.ExecInPorts[0]);
+        user1Node.ExecOutPorts[0].Connect(assistantNode.ExecInPorts[0]);
+        assistantNode.ExecOutPorts[0].Connect(user2Node.ExecInPorts[0]);
+
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
 
@@ -138,6 +157,7 @@ public class ChatHistoryNodesTest
     public async Task ChatHistoryLengthNode_Should_Return_Count()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var addNode = graph.CreateNode<AddUserMessageNode>();
         var lengthNode = graph.CreateNode<ChatHistoryLengthNode>();
@@ -147,6 +167,10 @@ public class ChatHistoryNodesTest
         addNode.ConnectInput(0, emptyNode, 0);
         addNode.ConnectInput(1, content, 0);
         lengthNode.ConnectInput(0, addNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addNode.ExecInPorts[0]);
+        addNode.ExecOutPorts[0].Connect(lengthNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -159,9 +183,13 @@ public class ChatHistoryNodesTest
     public async Task ChatHistoryLengthNode_Should_Return_Zero_For_Empty_History()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var lengthNode = graph.CreateNode<ChatHistoryLengthNode>();
         lengthNode.ConnectInput(0, emptyNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(lengthNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -174,6 +202,7 @@ public class ChatHistoryNodesTest
     public async Task GetLastResponseNode_Should_Find_Assistant_Message()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var userNode = graph.CreateNode<AddUserMessageNode>();
         var assistantNode = graph.CreateNode<AddAssistantMessageNode>();
@@ -190,6 +219,11 @@ public class ChatHistoryNodesTest
         assistantNode.ConnectInput(1, assistantContent, 0);
         getLastNode.ConnectInput(0, assistantNode, 0);
 
+        // Exec flow
+        start.ExecOutPorts[0].Connect(userNode.ExecInPorts[0]);
+        userNode.ExecOutPorts[0].Connect(assistantNode.ExecInPorts[0]);
+        assistantNode.ExecOutPorts[0].Connect(getLastNode.ExecInPorts[0]);
+
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
 
@@ -204,6 +238,7 @@ public class ChatHistoryNodesTest
     public async Task GetLastResponseNode_Should_Return_False_When_No_Assistant_Message()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var userNode = graph.CreateNode<AddUserMessageNode>();
         var getLastNode = graph.CreateNode<GetLastResponseNode>();
@@ -214,6 +249,10 @@ public class ChatHistoryNodesTest
         userNode.ConnectInput(0, emptyNode, 0);
         userNode.ConnectInput(1, userContent, 0);
         getLastNode.ConnectInput(0, userNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(userNode.ExecInPorts[0]);
+        userNode.ExecOutPorts[0].Connect(getLastNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -229,12 +268,16 @@ public class ChatHistoryNodesTest
     public async Task AddSystemMessageNode_With_Default_History_Should_Create_New_List()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var addSystemNode = graph.CreateNode<AddSystemMessageNode>();
         var contentNode = graph.CreateNode<StringConstantNode>();
         contentNode.SetValue("System message");
 
         // Connect only content (history uses default empty list)
         addSystemNode.ConnectInput(1, contentNode, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addSystemNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
@@ -249,6 +292,7 @@ public class ChatHistoryNodesTest
     public async Task AddMessage_With_Empty_Content_Should_Not_Add_Message()
     {
         var graph = new Graph();
+        var start = graph.CreateNode<StartNode>();
         var emptyNode = graph.CreateNode<EmptyChatHistoryNode>();
         var addUserNode = graph.CreateNode<AddUserMessageNode>();
         var emptyContent = graph.CreateNode<StringConstantNode>();
@@ -256,6 +300,9 @@ public class ChatHistoryNodesTest
 
         addUserNode.ConnectInput(0, emptyNode, 0);
         addUserNode.ConnectInput(1, emptyContent, 0);
+
+        // Exec flow
+        start.ExecOutPorts[0].Connect(addUserNode.ExecInPorts[0]);
 
         var executor = graph.CreateExecutor();
         await executor.ExecuteAsync();
