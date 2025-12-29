@@ -5,7 +5,7 @@ namespace NodeGraph.Model;
 
 public class GraphExecutor : IDisposable
 {
-    private readonly List<Node> _canParallelNodes;
+    private readonly List<List<Node>> _executionLayers;
     private readonly Graph _graph;
     private readonly StartNode? _startNode;
 
@@ -16,13 +16,74 @@ public class GraphExecutor : IDisposable
     internal GraphExecutor(Graph graph)
     {
         _graph = graph;
-        _canParallelNodes = new List<Node>();
+        _executionLayers = TopologicalSort(graph);
+        _startNode = graph.Nodes.OfType<StartNode>().FirstOrDefault();
+    }
+
+    /// <summary>
+    /// HasExec=false のノードをトポロジカルソートして実行レイヤーを構築します。
+    /// 各レイヤー内のノードは並列実行可能で、依存関係のあるノードは後のレイヤーに配置されます。
+    /// </summary>
+    private static List<List<Node>> TopologicalSort(Graph graph)
+    {
+        var layers = new List<List<Node>>();
+        var dataNodes = new List<Node>();
 
         foreach (var node in graph.Nodes)
             if (!node.HasExec)
-                _canParallelNodes.Add(node);
+                dataNodes.Add(node);
 
-        _startNode = graph.Nodes.OfType<StartNode>().FirstOrDefault();
+        if (dataNodes.Count == 0)
+            return layers;
+
+        // 依存関係を構築: ノード -> そのノードが依存するノードのセット
+        var dependencies = new Dictionary<Node, HashSet<Node>>();
+        foreach (var node in dataNodes)
+        {
+            dependencies[node] = new HashSet<Node>();
+            foreach (var inputPort in node.InputPorts)
+            {
+                if (inputPort.ConnectedPort?.Parent is Node sourceNode && !sourceNode.HasExec)
+                {
+                    dependencies[node].Add(sourceNode);
+                }
+            }
+        }
+
+        // レイヤー分け: 依存関係がないノードから順に処理
+        var remaining = new HashSet<Node>(dataNodes);
+        var processed = new HashSet<Node>();
+
+        while (remaining.Count > 0)
+        {
+            var currentLayer = new List<Node>();
+
+            foreach (var node in remaining)
+            {
+                // このノードの全ての依存先が処理済みか確認
+                var deps = dependencies[node];
+                if (deps.All(d => processed.Contains(d)))
+                {
+                    currentLayer.Add(node);
+                }
+            }
+
+            if (currentLayer.Count == 0)
+            {
+                // サイクル検出: 残りのノードを全て現在のレイヤーに追加（エラー回避）
+                currentLayer.AddRange(remaining);
+            }
+
+            foreach (var node in currentLayer)
+            {
+                remaining.Remove(node);
+                processed.Add(node);
+            }
+
+            layers.Add(currentLayer);
+        }
+
+        return layers;
     }
 
     public void Dispose()
@@ -67,7 +128,6 @@ public class GraphExecutor : IDisposable
         foreach (var initializer in GetInitializers())
             initializer.Initialize(initializerContext);
 
-        using var tasksRental = ListPool<Task>.Shared.Rent(_canParallelNodes.Count, out var tasks);
         var context = new NodeExecutionContext(cancellationToken, parameters, serviceContainer);
 
         // デリゲートを設定: 指定されたExecOutの接続先を実行
@@ -83,10 +143,24 @@ public class GraphExecutor : IDisposable
             if (target != null) await ExecuteNodeAsync(target, context, onExecute, onExecuted, onExecOut, onExcepted);
         };
 
-        // Phase 1: 並列実行（HasExec = false のノード）
-        foreach (var node in _canParallelNodes) tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExecOut, onExcepted));
-
-        await Task.WhenAll(tasks);
+        // Phase 1: レイヤー順に実行（HasExec = false のノード）
+        // 各レイヤー内のノードは並列実行可能、レイヤー間は依存関係を尊重
+        foreach (var layer in _executionLayers)
+        {
+            if (layer.Count == 1)
+            {
+                // 単一ノードの場合は直接実行
+                await ExecuteNodeAsync(layer[0], context, onExecute, onExecuted, onExecOut, onExcepted);
+            }
+            else
+            {
+                // 複数ノードの場合は並列実行
+                using var tasksRental = ListPool<Task>.Shared.Rent(layer.Count, out var tasks);
+                foreach (var node in layer)
+                    tasks.Add(ExecuteNodeAsync(node, context, onExecute, onExecuted, onExecOut, onExcepted));
+                await Task.WhenAll(tasks);
+            }
+        }
 
         // Phase 2: StartNode から実行フロー開始
         if (_startNode != null) await ExecuteNodeAsync(_startNode, context, onExecute, onExecuted, onExecOut, onExcepted);
