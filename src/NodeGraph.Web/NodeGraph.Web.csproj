@@ -29,4 +29,18 @@
         <ProjectReference Include="..\NodeGraph.Editor\NodeGraph.Editor.csproj" />
     </ItemGroup>
 
+    <!-- Copy wwwroot contents to AppBundle -->
+    <ItemGroup>
+        <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <Target Name="CopyWwwrootToAppBundle" AfterTargets="Build">
+        <ItemGroup>
+            <WwwrootFiles Include="wwwroot\**\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(WwwrootFiles)"
+              DestinationFiles="@(WwwrootFiles->'$(OutputPath)$(RuntimeIdentifier)\AppBundle\%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true" />
+    </Target>
+
 </Project>

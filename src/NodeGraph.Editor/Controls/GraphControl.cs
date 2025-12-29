@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
+using Avalonia.Controls.ApplicationLifetimes;
 using NodeGraph.Editor.Models;
 using NodeGraph.Editor.Primitives;
 using NodeGraph.Editor.Selection;
@@ -35,6 +36,13 @@ public partial class GraphControl : TemplatedControl
     private Canvas? _overlayCanvas;
     private Border? _touchGuard;
     private Canvas? _uiCanvas;
+
+    // ノード追加パネル（オーバーレイ）用
+    private Canvas? _addNodeOverlay;
+    private TextBox? _addNodeSearchBox;
+    private TreeView? _addNodeTreeView;
+    private Point _addNodeClickPosition;
+    private AddNodeWindowViewModel? _addNodeViewModel;
 
     public GraphControl()
     {
@@ -109,6 +117,19 @@ public partial class GraphControl : TemplatedControl
         _uiCanvas = e.NameScope.Find<Canvas>("PART_UICanvas");
         _gridDecorator = e.NameScope.Find<GridDecorator>("PART_GridDecorator");
         _touchGuard = e.NameScope.Find<Border>("PART_TouchGuard");
+
+        // ノード追加パネル（オーバーレイ）
+        _addNodeOverlay = e.NameScope.Find<Canvas>("PART_AddNodeOverlay");
+        _addNodeSearchBox = e.NameScope.Find<TextBox>("PART_AddNodeSearchBox");
+        _addNodeTreeView = e.NameScope.Find<TreeView>("PART_AddNodeTreeView");
+        var addNodeOverlayBackground = e.NameScope.Find<Border>("PART_AddNodeOverlayBackground");
+        if (addNodeOverlayBackground != null)
+        {
+            addNodeOverlayBackground.PointerPressed += OnAddNodeOverlayBackgroundPressed;
+        }
+
+        // オーバーレイのイベントを設定
+        SetupAddNodeOverlay();
 
         if (_canvas != null)
         {
@@ -375,6 +396,28 @@ public partial class GraphControl : TemplatedControl
     {
         get => GetValue(IsReadOnlyProperty);
         set => SetValue(IsReadOnlyProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsAddNodePanelVisibleProperty = AvaloniaProperty.Register<GraphControl, bool>(nameof(IsAddNodePanelVisible));
+
+    /// <summary>
+    /// ノード追加パネル（オーバーレイ）の表示状態
+    /// </summary>
+    public bool IsAddNodePanelVisible
+    {
+        get => GetValue(IsAddNodePanelVisibleProperty);
+        set => SetValue(IsAddNodePanelVisibleProperty, value);
+    }
+
+    public static readonly StyledProperty<Point> AddNodePanelPositionProperty = AvaloniaProperty.Register<GraphControl, Point>(nameof(AddNodePanelPosition));
+
+    /// <summary>
+    /// ノード追加パネルの表示位置
+    /// </summary>
+    public Point AddNodePanelPosition
+    {
+        get => GetValue(AddNodePanelPositionProperty);
+        set => SetValue(AddNodePanelPositionProperty, value);
     }
 
     #endregion
@@ -664,18 +707,191 @@ public partial class GraphControl : TemplatedControl
 
     #region Add Node
 
+    private void SetupAddNodeOverlay()
+    {
+        if (_addNodeSearchBox != null)
+        {
+            _addNodeSearchBox.TextChanged += OnAddNodeSearchTextChanged;
+            _addNodeSearchBox.KeyDown += OnAddNodeSearchKeyDown;
+        }
+
+        if (_addNodeTreeView != null)
+        {
+            _addNodeTreeView.DoubleTapped += OnAddNodeTreeViewDoubleTapped;
+            _addNodeTreeView.KeyDown += OnAddNodeTreeViewKeyDown;
+        }
+    }
+
+    private void OnAddNodeSearchTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_addNodeViewModel != null && _addNodeSearchBox != null)
+        {
+            _addNodeViewModel.SearchText = _addNodeSearchBox.Text ?? string.Empty;
+        }
+    }
+
+    private void OnAddNodeSearchKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            HideAddNodeOverlay();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            ConfirmAddNodeSelection();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Down && _addNodeTreeView != null)
+        {
+            _addNodeTreeView.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnAddNodeTreeViewKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            HideAddNodeOverlay();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            ConfirmAddNodeSelection();
+            e.Handled = true;
+        }
+    }
+
+    private void OnAddNodeTreeViewDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        // ダブルタップされた要素からNodeTreeItemを取得
+        if (e.Source is Control control)
+        {
+            var item = control.DataContext as NodeTreeItem;
+            // 親要素をたどってNodeTreeItemを探す
+            var current = control;
+            while (item == null && current != null)
+            {
+                item = current.DataContext as NodeTreeItem;
+                current = current.Parent as Control;
+            }
+
+            if (item?.NodeTypeInfo != null)
+            {
+                ConfirmAddNodeSelection(item);
+                return;
+            }
+        }
+
+        // フォールバック: TreeViewの選択アイテムを使用
+        if (_addNodeTreeView?.SelectedItem is NodeTreeItem selectedItem)
+        {
+            ConfirmAddNodeSelection(selectedItem);
+        }
+    }
+
+    private void ConfirmAddNodeSelection(NodeTreeItem? item = null)
+    {
+        // 引数が無い場合はTreeViewの選択アイテムを使用
+        item ??= _addNodeTreeView?.SelectedItem as NodeTreeItem;
+
+        if (item?.NodeTypeInfo != null)
+        {
+            var selectedNodeType = item.NodeTypeInfo;
+            HideAddNodeOverlay();
+
+            // キャンバス座標に変換してノードを作成
+            if (_canvas != null)
+            {
+                var canvasPosition = this.TranslatePoint(_addNodeClickPosition, _canvas);
+                if (canvasPosition.HasValue)
+                {
+                    CreateNode(selectedNodeType, canvasPosition.Value);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// オーバーレイの背景がクリックされた時に閉じる
+    /// </summary>
+    private void OnAddNodeOverlayBackgroundPressed(object? sender, PointerPressedEventArgs e)
+    {
+        HideAddNodeOverlay();
+        e.Handled = true;
+    }
+
+    private void ShowAddNodeOverlay(Point position, NodeTypeService nodeTypeService)
+    {
+        _addNodeClickPosition = position;
+        _addNodeViewModel = new AddNodeWindowViewModel(nodeTypeService);
+
+        if (_addNodeTreeView != null)
+        {
+            _addNodeTreeView.ItemsSource = _addNodeViewModel.TreeItems;
+            _addNodeTreeView.Bind(TreeView.SelectedItemProperty,
+                new Avalonia.Data.Binding(nameof(AddNodeWindowViewModel.SelectedItem))
+                {
+                    Source = _addNodeViewModel,
+                    Mode = Avalonia.Data.BindingMode.TwoWay
+                });
+        }
+
+        if (_addNodeSearchBox != null)
+        {
+            _addNodeSearchBox.Text = string.Empty;
+        }
+
+        // パネル位置を設定（画面からはみ出さないように調整）
+        var panelWidth = 220.0;
+        var panelHeight = 300.0;
+        var x = Math.Min(position.X, Bounds.Width - panelWidth - 10);
+        var y = Math.Min(position.Y, Bounds.Height - panelHeight - 10);
+        AddNodePanelPosition = new Point(Math.Max(10, x), Math.Max(10, y));
+
+        IsAddNodePanelVisible = true;
+
+        // 検索ボックスにフォーカス
+        Dispatcher.UIThread.Post(() => _addNodeSearchBox?.Focus(), DispatcherPriority.Input);
+    }
+
+    private void HideAddNodeOverlay()
+    {
+        IsAddNodePanelVisible = false;
+        _addNodeViewModel = null;
+
+        if (_addNodeTreeView != null)
+        {
+            _addNodeTreeView.ItemsSource = null;
+        }
+    }
+
     private async Task ShowAddNodeWindow(Point clickPosition)
     {
         if (Graph == null || _canvas == null)
             return;
 
-        // NodeTypeServiceを取得
+        // NodeTypeServiceを取得（デスクトップはDIコンテナから、それ以外は直接作成）
+        NodeTypeService? nodeTypeService = null;
+
         var app = Application.Current as App;
-        var nodeTypeService = app?.Services?.GetService<NodeTypeService>();
+        if (app?.Services != null)
+        {
+            nodeTypeService = app.Services.GetService<NodeTypeService>();
+        }
 
-        if (nodeTypeService == null)
+        // DIコンテナから取得できない場合は直接作成
+        nodeTypeService ??= new NodeTypeService();
+
+        // ブラウザ環境（SingleViewApplicationLifetime）ではオーバーレイを使用
+        if (Application.Current?.ApplicationLifetime is ISingleViewApplicationLifetime)
+        {
+            ShowAddNodeOverlay(clickPosition, nodeTypeService);
             return;
+        }
 
+        // デスクトップ環境では従来のWindow方式
         // 親ウィンドウを取得
         if (this.GetVisualRoot() is not Window window)
             return;

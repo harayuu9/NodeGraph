@@ -24,6 +24,11 @@ public partial class GraphEditorViewModel : ViewModelBase
     private const string LayoutPrefix = "nodegraph:layout:";
     private const string MetaPrefix = "nodegraph:meta:";
 
+    /// <summary>
+    /// パラメータパネルのViewModel
+    /// </summary>
+    public ParametersPanelViewModel ParametersPanel { get; }
+
     [ObservableProperty]
     private EditorGraph? _graph;
 
@@ -46,11 +51,13 @@ public partial class GraphEditorViewModel : ViewModelBase
     public GraphEditorViewModel(
         IStorageProvider storage,
         NodeTypeService nodeTypeService,
-        SelectionManager selectionManager)
+        SelectionManager selectionManager,
+        ParametersPanelViewModel parametersPanel)
     {
         _storage = storage;
         _nodeTypeService = nodeTypeService;
         _selectionManager = selectionManager;
+        ParametersPanel = parametersPanel;
     }
 
     /// <summary>

@@ -7,10 +7,6 @@ namespace NodeGraph.Web.Storage;
 /// </summary>
 public partial class BrowserStorageProvider : IStorageProvider
 {
-    private const string GraphPrefix = "nodegraph:graph:";
-    private const string LayoutPrefix = "nodegraph:layout:";
-    private const string MetaPrefix = "nodegraph:meta:";
-
     public Task<string?> ReadTextAsync(string key)
     {
         var value = LocalStorageGetItem(key);
@@ -38,7 +34,7 @@ public partial class BrowserStorageProvider : IStorageProvider
     public Task<IEnumerable<string>> ListKeysAsync(string prefix = "")
     {
         var keys = new List<string>();
-        var length = LocalStorageLength();
+        var length = GetLocalStorageLength();
 
         for (var i = 0; i < length; i++)
         {
@@ -92,13 +88,13 @@ public partial class BrowserStorageProvider : IStorageProvider
     [JSImport("globalThis.localStorage.key")]
     private static partial string? LocalStorageKey(int index);
 
-    [JSImport("globalThis.localStorage.length", "main.js")]
-    private static partial int LocalStorageLength();
+    [JSImport("globalThis.getLocalStorageLength")]
+    private static partial int GetLocalStorageLength();
 
-    [JSImport("downloadFile", "main.js")]
+    [JSImport("globalThis.downloadFile")]
     private static partial void DownloadFile(string filename, string content);
 
-    [JSImport("uploadFile", "main.js")]
+    [JSImport("globalThis.uploadFile")]
     private static partial Task<string> UploadFileFromInput();
 
     #endregion

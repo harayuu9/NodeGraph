@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NodeGraph.Web.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
+             x:Class="NodeGraph.Web.Views.ParametersPanel"
+             x:DataType="vm:ParametersPanelViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock Text="Parameters"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <Button Grid.Column="1"
+                    Content="Reload"
+                    Command="{Binding ReloadCommand}"
+                    Padding="8,2"
+                    FontSize="11" />
+        </Grid>
+
+        <!-- Parameter List -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                CornerRadius="4"
+                Margin="0,0,0,8">
+            <ListBox ItemsSource="{Binding Parameters}"
+                     SelectedItem="{Binding SelectedParameter}"
+                     Background="Transparent">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="vm:ParameterItemViewModel">
+                        <Grid ColumnDefinitions="*,*" Margin="4,2">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding Name}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,8,0" />
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Value}"
+                                     FontSize="12" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Add New Parameter -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                CornerRadius="4"
+                Padding="8"
+                Margin="0,0,0,8">
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Name:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,4" />
+                <TextBox Grid.Row="0" Grid.Column="1"
+                         Text="{Binding NewParameterName}"
+                         Margin="0,0,0,4" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Value:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,4" />
+                <TextBox Grid.Row="1" Grid.Column="1"
+                         Text="{Binding NewParameterValue}"
+                         Margin="0,0,0,4" />
+
+                <Button Grid.Row="2" Grid.ColumnSpan="2"
+                        Content="Add Parameter"
+                        Command="{Binding AddParameterCommand}"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,4,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Delete Button -->
+        <Button Grid.Row="3"
+                Content="Delete Selected"
+                Command="{Binding DeleteParameterCommand}"
+                IsEnabled="{Binding SelectedParameter, Converter={x:Static ObjectConverters.IsNotNull}}"
+                HorizontalAlignment="Stretch" />
+
+        <!-- Presets Section Separator -->
+        <Border Grid.Row="4"
+                Height="1"
+                Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                Margin="0,12,0,8"
+                Opacity="0.3" />
+
+        <!-- Presets Header -->
+        <TextBlock Grid.Row="5"
+                   Text="Presets"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,8" />
+
+        <!-- Presets Panel -->
+        <Border Grid.Row="6"
+                Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                CornerRadius="4"
+                Padding="8">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <!-- Preset List -->
+                <ListBox Grid.Row="0"
+                         ItemsSource="{Binding Presets}"
+                         SelectedItem="{Binding SelectedPreset}"
+                         Background="Transparent"
+                         MinHeight="60"
+                         MaxHeight="100"
+                         Margin="0,0,0,8" />
+
+                <!-- Save New Preset -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding NewPresetName}"
+                             Watermark="Preset name..."
+                             Margin="0,0,4,0" />
+                    <Button Grid.Column="1"
+                            Content="Save"
+                            Command="{Binding SavePresetCommand}"
+                            Padding="8,4" />
+                </Grid>
+
+                <!-- Preset Actions -->
+                <Grid Grid.Row="2" ColumnDefinitions="*,*">
+                    <Button Grid.Column="0"
+                            Content="Load"
+                            Command="{Binding LoadPresetCommand}"
+                            IsEnabled="{Binding SelectedPreset, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,4,0" />
+                    <Button Grid.Column="1"
+                            Content="Delete"
+                            Command="{Binding DeletePresetCommand}"
+                            IsEnabled="{Binding SelectedPreset, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Stretch"
+                            Margin="4,0,0,0" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

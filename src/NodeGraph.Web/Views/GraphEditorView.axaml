@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:NodeGraph.Web.ViewModels"
+             xmlns:views="using:NodeGraph.Web.Views"
              xmlns:controls="using:NodeGraph.Editor.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="NodeGraph.Web.Views.GraphEditorView"
@@ -45,16 +46,24 @@
         </Border>
 
         <!-- Main Content -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,300">
-            <!-- Graph Canvas -->
+        <Grid Grid.Row="1" ColumnDefinitions="250,*,300">
+            <!-- Left Panel: Parameters -->
             <Border Grid.Column="0"
-                    Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    Padding="16"
                     Margin="0,0,4,0">
+                <views:ParametersPanel DataContext="{Binding ParametersPanel}" />
+            </Border>
+
+            <!-- Graph Canvas -->
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                    Margin="4,0,4,0">
                 <controls:GraphControl Graph="{Binding Graph}" />
             </Border>
 
             <!-- Right Panel: Execution & Logs -->
-            <Border Grid.Column="1"
+            <Border Grid.Column="2"
                     Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     Padding="16"
                     Margin="4,0,0,0">

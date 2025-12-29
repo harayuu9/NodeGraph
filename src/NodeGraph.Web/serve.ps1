@@ -12,6 +12,10 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# wwwroot をコピー
+Write-Host "Copying wwwroot files..." -ForegroundColor Cyan
+Copy-Item -Path ".\wwwroot\*" -Destination $AppBundlePath -Force -Recurse
+
 # AppBundle が存在するか確認
 if (-not (Test-Path $AppBundlePath)) {
     Write-Host "AppBundle not found at $AppBundlePath" -ForegroundColor Red

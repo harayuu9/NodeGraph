@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using NodeGraph.Editor.Selection;
 using NodeGraph.Editor.Services;
+using NodeGraph.Web.Services;
 using NodeGraph.Web.Storage;
 using NodeGraph.Web.ViewModels;
 using NodeGraph.Web.Views;
@@ -43,11 +44,13 @@ public class WebApp : Application
         // Register shared services
         services.AddSingleton<NodeTypeService>();
         services.AddSingleton<SelectionManager>();
+        services.AddSingleton<BrowserParameterService>();
 
         // Register ViewModels
         services.AddTransient<MainShellViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<GraphEditorViewModel>();
+        services.AddTransient<ParametersPanelViewModel>();
 
         return services.BuildServiceProvider();
     }

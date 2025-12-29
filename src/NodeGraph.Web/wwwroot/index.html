@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NodeGraph Web</title>
     <style>
-        html, body, #out {
+        html, body {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -14,35 +14,60 @@
         }
 
         #out {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             background-color: #1e1e1e;
-        }
-
-        .loading {
             color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 16px;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
         }
 
-        .loading::after {
-            content: '';
-            animation: dots 1.5s steps(4, end) infinite;
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
-        @keyframes dots {
-            0%, 20% { content: ''; }
-            40% { content: '.'; }
-            60% { content: '..'; }
-            80%, 100% { content: '...'; }
+        .loading-text {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #0078d4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="out">
-        <div class="loading">Loading NodeGraph</div>
+    <!-- Loading overlay (separate from Avalonia container) -->
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading NodeGraph...</div>
     </div>
+    <!-- Avalonia container -->
+    <div id="out"></div>
     <script type="module" src="./main.js"></script>
 </body>
 </html>

@@ -90,6 +90,51 @@
                     Background="Transparent"
                     IsVisible="{Binding IsInputBlocked, RelativeSource={RelativeSource TemplatedParent}}"
                     IsHitTestVisible="True" />
+
+            <!-- ノード追加パネル（オーバーレイ） -->
+            <Canvas x:Name="PART_AddNodeOverlay"
+                    IsVisible="{Binding IsAddNodePanelVisible, RelativeSource={RelativeSource TemplatedParent}}"
+                    IsHitTestVisible="True">
+              <!-- 背景クリックで閉じる -->
+              <Border x:Name="PART_AddNodeOverlayBackground"
+                      Background="Transparent"
+                      Width="{Binding $parent[Canvas].Bounds.Width}"
+                      Height="{Binding $parent[Canvas].Bounds.Height}" />
+              <!-- パネル本体 -->
+              <Border x:Name="PART_AddNodePanel"
+                      Canvas.Left="{Binding AddNodePanelPosition.X, RelativeSource={RelativeSource TemplatedParent}}"
+                      Canvas.Top="{Binding AddNodePanelPosition.Y, RelativeSource={RelativeSource TemplatedParent}}"
+                      Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                      BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Width="220"
+                      Height="300"
+                      BoxShadow="0 4 16 #40000000">
+                <Grid RowDefinitions="Auto,*">
+                  <!-- 検索ボックス -->
+                  <TextBox x:Name="PART_AddNodeSearchBox"
+                           Grid.Row="0"
+                           Watermark="Search nodes..."
+                           BorderThickness="0"
+                           CornerRadius="4,4,0,0"
+                           Margin="8,8,8,4" />
+                  <!-- ノードリスト -->
+                  <Border Grid.Row="1" Margin="4,0,4,4">
+                    <TreeView x:Name="PART_AddNodeTreeView"
+                              Background="Transparent"
+                              CornerRadius="0,0,4,4">
+                      <TreeView.ItemTemplate>
+                        <TreeDataTemplate x:CompileBindings="False" ItemsSource="{Binding Children}">
+                          <TextBlock Text="{Binding Name}"
+                                     FontWeight="{Binding FontWeight}" />
+                        </TreeDataTemplate>
+                      </TreeView.ItemTemplate>
+                    </TreeView>
+                  </Border>
+                </Grid>
+              </Border>
+            </Canvas>
           </Grid>
         </Border>
       </ControlTemplate>
