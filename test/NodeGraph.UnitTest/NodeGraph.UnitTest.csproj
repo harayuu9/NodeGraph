@@ -32,7 +32,7 @@
         </ProjectReference>
 
         <ProjectReference Include="..\..\src\NodeGraph.Model\NodeGraph.Model.csproj"/>
-        <ProjectReference Include="..\..\src\NodeGraph.Editor\NodeGraph.Editor.csproj"/>
+        <ProjectReference Include="..\..\src\NodeGraph.App\NodeGraph.App\NodeGraph.App.csproj"/>
 
         <!-- SamplePluginはビルドするが参照しない（プラグインとしてロードするため） -->
         <ProjectReference Include="..\NodeGraph.SamplePlugin\NodeGraph.SamplePlugin.csproj">

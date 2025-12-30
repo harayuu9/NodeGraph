@@ -1,0 +1,98 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:NodeGraph.App.Controls"
+                    x:CompileBindings="True">
+  <Design.PreviewWith>
+    <Border Padding="20" Width="800" Height="600">
+      <controls:GraphControl Background="{DynamicResource GraphBackgroundBrush}" />
+    </Border>
+  </Design.PreviewWith>
+
+  <ControlTheme x:Key="{x:Type controls:GraphControl}" TargetType="controls:GraphControl">
+    <Setter Property="Background" Value="{DynamicResource GraphBackgroundBrush}" />
+    <Setter Property="GridBrush" Value="{DynamicResource GraphGridBrush}" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="Focusable" Value="True" />
+    <Setter Property="Cursor" Value="Arrow" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                ClipToBounds="True">
+          <Grid>
+            <!-- グリッド背景（描画最適化されたデコレータ） -->
+            <controls:GridDecorator x:Name="PART_GridDecorator"
+                                    EnableGrid="{Binding ShowGrid, RelativeSource={RelativeSource TemplatedParent}}"
+                                    CellSize="{Binding GridSize, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Zoom="{Binding Zoom, RelativeSource={RelativeSource TemplatedParent}}"
+                                    PanOffset="{Binding PanOffset, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Stroke="{Binding GridBrush, RelativeSource={RelativeSource TemplatedParent}}"
+                                    IsHitTestVisible="False" />
+
+            <!-- メインキャンバス：ノードを配置 -->
+            <Canvas x:Name="PART_Canvas"
+                    ClipToBounds="False"
+                    Background="Transparent">
+              <!-- ノードはコードビハインドで動的に追加されます -->
+            </Canvas>
+
+            <!-- UI オーバーレイ (コネクタなど、トランスフォームあり) -->
+            <Canvas x:Name="PART_OverlayCanvas"
+                    ClipToBounds="False"
+                    IsHitTestVisible="False">
+              <!-- 接続線をItemsControlで描画 -->
+              <ItemsControl ItemsSource="{Binding Graph.Connections, RelativeSource={RelativeSource TemplatedParent}}"
+                            ClipToBounds="False">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas ClipToBounds="False" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <controls:ConnectorControl Connection="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- ドラッグ中の一時的な接続線 -->
+              <controls:ConnectorControl
+                IsVisible="{Binding IsDraggingConnector, RelativeSource={RelativeSource TemplatedParent}}"
+                StartX="{Binding DragConnectorLine.StartX, RelativeSource={RelativeSource TemplatedParent}}"
+                StartY="{Binding DragConnectorLine.StartY, RelativeSource={RelativeSource TemplatedParent}}"
+                EndX="{Binding DragConnectorLine.EndX, RelativeSource={RelativeSource TemplatedParent}}"
+                EndY="{Binding DragConnectorLine.EndY, RelativeSource={RelativeSource TemplatedParent}}"
+                Stroke="{Binding DragConnectorPortType, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TypeToColorConverter}}"
+                StrokeThickness="2"
+                IsHitTestVisible="False" />
+            </Canvas>
+
+            <!-- UI オーバーレイ (選択矩形など、トランスフォームなし) -->
+            <Canvas x:Name="PART_UICanvas"
+                    ClipToBounds="False"
+                    IsHitTestVisible="False">
+              <!-- 選択矩形 -->
+              <Rectangle Fill="{DynamicResource SelectionFillBrush}"
+                         Stroke="{DynamicResource SelectionStrokeBrush}"
+                         StrokeThickness="1"
+                         IsVisible="{Binding IsSelectionVisible, RelativeSource={RelativeSource TemplatedParent}}"
+                         Canvas.Left="{Binding SelectionRect.X, RelativeSource={RelativeSource TemplatedParent}}"
+                         Canvas.Top="{Binding SelectionRect.Y, RelativeSource={RelativeSource TemplatedParent}}"
+                         Width="{Binding SelectionRect.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                         Height="{Binding SelectionRect.Height, RelativeSource={RelativeSource TemplatedParent}}" />
+            </Canvas>
+
+            <!-- タッチガード: Execute中は全ての入力を遮断 -->
+            <Border x:Name="PART_TouchGuard"
+                    Background="Transparent"
+                    IsVisible="{Binding IsInputBlocked, RelativeSource={RelativeSource TemplatedParent}}"
+                    IsHitTestVisible="True" />
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+</ResourceDictionary>

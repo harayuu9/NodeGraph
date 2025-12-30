@@ -26,7 +26,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="NodeGraph.UnitTest"/>
-        <InternalsVisibleTo Include="NodeGraph.Editor"/>
+        <InternalsVisibleTo Include="NodeGraph.App"/>
     </ItemGroup>
 
     <ItemGroup>

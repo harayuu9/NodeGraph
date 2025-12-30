@@ -1,0 +1,105 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:CompileBindings="True">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <!-- Light Theme (Default) -->
+        <ResourceDictionary x:Key='Default'>
+          <!-- Node Resources -->
+          <SolidColorBrush x:Key='NodeBackgroundBrush'>#E0E0E0</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderBrush'>#007ACC</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderHoverBrush'>#00BFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderSelectedBrush'>#FFA500</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeHeaderBackgroundBrush'>#CCCCCC</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeHeaderForegroundBrush'>#000000</SolidColorBrush>
+          <BoxShadows x:Key='NodeBoxShadow'>0 2 8 #40000000</BoxShadows>
+          <BoxShadows x:Key='NodeExecutingBoxShadow'>0 0 100 #007ACC</BoxShadows>
+          <BoxShadows x:Key='NodeExceptionBoxShadow'>0 0 100 #F44336</BoxShadows>
+
+          <!-- Port Resources -->
+          <SolidColorBrush x:Key='PortFillBrush'>White</SolidColorBrush>
+          <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='PortForegroundBrush'>#000000</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBackgroundBrush'>#F5F5F5</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBorderBrush'>#CCCCCC</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueForegroundBrush'>#059669</SolidColorBrush>
+
+          <!-- Graph Resources -->
+          <SolidColorBrush x:Key='GraphBackgroundBrush'>#F5F5F5</SolidColorBrush>
+          <!-- Grid (Light) -->
+          <SolidColorBrush x:Key='GraphGridBrush'>#20000000</SolidColorBrush>
+
+          <!-- Window Resources -->
+          <SolidColorBrush x:Key='WindowHeaderBackgroundBrush'>#E0E0E0</SolidColorBrush>
+          <SolidColorBrush x:Key='WindowInfoForegroundBrush'>#555555</SolidColorBrush>
+
+          <!-- Connector Resources -->
+          <SolidColorBrush x:Key='ConnectorSelectedStrokeBrush'>#FF8C00</SolidColorBrush>
+
+          <!-- Selection Resources -->
+          <SolidColorBrush x:Key='SelectionFillBrush'>#32649BFF</SolidColorBrush>
+          <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
+
+          <!-- Execution Status Badge Resources -->
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#B0BEC5</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#2196F3</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#4CAF50</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#F44336</SolidColorBrush>
+
+        </ResourceDictionary>
+
+        <!-- Dark Theme -->
+        <ResourceDictionary x:Key='Dark'>
+          <!-- Node Resources -->
+          <SolidColorBrush x:Key='NodeBackgroundBrush'>#3C3C3C</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderBrush'>#007ACC</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderHoverBrush'>#00BFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeBorderSelectedBrush'>#FFA500</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeHeaderBackgroundBrush'>#2D2D30</SolidColorBrush>
+          <SolidColorBrush x:Key='NodeHeaderForegroundBrush'>#FFFFFF</SolidColorBrush>
+          <BoxShadows x:Key='NodeBoxShadow'>0 2 8 #40000000</BoxShadows>
+          <BoxShadows x:Key='NodeExecutingBoxShadow'>0 0 100 #007ACC</BoxShadows>
+          <BoxShadows x:Key='NodeExceptionBoxShadow'>0 0 100 #E57373</BoxShadows>
+
+          <!-- Port Resources -->
+          <SolidColorBrush x:Key='PortFillBrush'>Black</SolidColorBrush>
+          <SolidColorBrush x:Key='PortHoverFillBrush'>#00BFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='PortForegroundBrush'>#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBackgroundBrush'>#2D2D2F</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueBorderBrush'>#4B5563</SolidColorBrush>
+          <SolidColorBrush x:Key='PortValueForegroundBrush'>#10B981</SolidColorBrush>
+
+          <!-- Graph Resources -->
+          <SolidColorBrush x:Key='GraphBackgroundBrush'>#2D2D30</SolidColorBrush>
+          <!-- Grid (Dark) -->
+          <SolidColorBrush x:Key='GraphGridBrush'>#20FFFFFF</SolidColorBrush>
+
+          <!-- Window Resources -->
+          <SolidColorBrush x:Key='WindowHeaderBackgroundBrush'>#252526</SolidColorBrush>
+          <SolidColorBrush x:Key='WindowInfoForegroundBrush'>#CCCCCC</SolidColorBrush>
+
+          <!-- Connector Resources -->
+          <SolidColorBrush x:Key='ConnectorSelectedStrokeBrush'>#FF8C00</SolidColorBrush>
+
+          <!-- Selection Resources -->
+          <SolidColorBrush x:Key='SelectionFillBrush'>#32649BFF</SolidColorBrush>
+          <SolidColorBrush x:Key='SelectionStrokeBrush'>#C8649BFF</SolidColorBrush>
+
+          <!-- Execution Status Badge Resources -->
+          <SolidColorBrush x:Key='BadgeWaitingBackgroundBrush'>#546E7A</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutingBackgroundBrush'>#64B5F6</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExecutedBackgroundBrush'>#81C784</SolidColorBrush>
+          <SolidColorBrush x:Key='BadgeExceptionBackgroundBrush'>#E57373</SolidColorBrush>
+
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NodeGraph.App/Themes/NodeControl.axaml" />
+        <ResourceInclude Source="avares://NodeGraph.App/Themes/GraphControl.axaml" />
+        <ResourceInclude Source="avares://NodeGraph.App/Themes/PortControl.axaml" />
+        <ResourceInclude Source="avares://NodeGraph.App/Themes/ExecutionStatusBadgeControl.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+</Styles>

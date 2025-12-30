@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NodeGraph.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="300"
+        x:Class="NodeGraph.App.Views.AddNodeWindow"
+        x:DataType="vm:AddNodeWindowViewModel"
+        Title="Add Node"
+        Width="200"
+        Height="300"
+        CanResize="False"
+        SystemDecorations="BorderOnly">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- 検索ボックス -->
+    <TextBox Grid.Row="0"
+             Text="{Binding SearchText}"
+             Watermark="Search nodes..."
+             BorderThickness="0"
+             CornerRadius="0"
+             Margin="0"
+             Name="SearchBox" />
+
+    <!-- ノードツリー -->
+    <Border Grid.Row="1"
+            BorderThickness="0"
+            CornerRadius="0"
+            Margin="0">
+      <TreeView ItemsSource="{Binding TreeItems}"
+                SelectedItem="{Binding SelectedItem}"
+                Name="NodeTreeView">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Name}"
+                       FontWeight="{Binding FontWeight}" />
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </Border>
+  </Grid>
+</Window>

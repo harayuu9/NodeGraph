@@ -1,6 +1,6 @@
-using NodeGraph.Editor.Models;
-using NodeGraph.Editor.Selection;
-using NodeGraph.Editor.Serialization;
+using NodeGraph.App.Models;
+using NodeGraph.App.Selection;
+using NodeGraph.App.Serialization;
 using NodeGraph.Model;
 using Xunit.Abstractions;
 

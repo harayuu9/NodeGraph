@@ -1,15 +1,23 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:NodeGraph.App"
              x:Class="NodeGraph.App.App"
+             xmlns:local="using:NodeGraph.App"
+             xmlns:converters="using:NodeGraph.App.Converters"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+  <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
+  <Application.DataTemplates>
+    <local:ViewLocator />
+  </Application.DataTemplates>
 
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+  <Application.Resources>
+    <converters:TypeToColorConverter x:Key="TypeToColorConverter" />
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <StyleInclude Source="avares://NodeGraph.App/Themes/NodeGraphEditorTheme.axaml" />
+    <StyleInclude Source="avares://NodeGraph.App/Themes/SvgPath.axaml" />
+  </Application.Styles>
 </Application>

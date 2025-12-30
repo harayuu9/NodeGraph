@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NodeGraph.App.ViewModels"
+             xmlns:controls="clr-namespace:NodeGraph.App.Controls"
+             x:Class="NodeGraph.App.Controls.InspectorControl"
+             x:DataType="vm:InspectorViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- ヘッダー -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource WindowHeaderBackgroundBrush}"
+            Padding="10,8">
+      <TextBlock Text="{Binding NodeName}"
+                 FontWeight="Bold"
+                 FontSize="14" />
+    </Border>
+
+    <!-- プロパティリスト -->
+    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Properties}"
+                    Margin="10"
+                    IsVisible="{Binding HasSelection}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="10" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:PropertyViewModel">
+            <StackPanel Spacing="4">
+              <!-- プロパティ名 -->
+              <TextBlock Text="{Binding DisplayName}"
+                         FontWeight="SemiBold"
+                         FontSize="12" />
+              <!-- プロパティコントロール -->
+              <controls:PropertyControlPresenter PropertyViewModel="{Binding}" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- 選択なしの場合のメッセージ -->
+    <TextBlock Grid.Row="1"
+               Text="ノードを選択してください"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource WindowInfoForegroundBrush}"
+               IsVisible="{Binding !HasSelection}" />
+  </Grid>
+</UserControl>

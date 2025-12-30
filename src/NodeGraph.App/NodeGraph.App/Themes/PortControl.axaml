@@ -1,0 +1,98 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:NodeGraph.App.Controls"
+                    x:CompileBindings="True">
+
+  <Design.PreviewWith>
+    <Border Padding="20" Background="{DynamicResource NodeBackgroundBrush}">
+      <controls:PortControl />
+    </Border>
+  </Design.PreviewWith>
+
+  <ControlTheme x:Key="{x:Type controls:PortControl}" TargetType="controls:PortControl">
+    <Setter Property="Cursor" Value="Hand" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid ColumnDefinitions="*,Auto,*,Auto" Height="20">
+          <TextBlock Grid.Column="0"
+                     x:Name="LeftText"
+                     Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
+                     Foreground="{DynamicResource PortForegroundBrush}"
+                     VerticalAlignment="Center"
+                     FontSize="11"
+                     HorizontalAlignment="Right"
+                     Margin="0,0,8,0"
+                     IsHitTestVisible="False"
+                     IsVisible="False" />
+
+          <!-- Port circle -->
+          <Ellipse x:Name="PART_PortEllipse"
+                   Grid.Column="1"
+                   Fill="{DynamicResource PortFillBrush}"
+                   Stroke="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource TypeToColorConverter}}"
+                   StrokeThickness="3"
+                   Width="12"
+                   Height="12" />
+
+          <TextBlock Grid.Column="2"
+                     x:Name="RightText"
+                     Text="{Binding Port.Name, RelativeSource={RelativeSource TemplatedParent}}"
+                     Foreground="{DynamicResource PortForegroundBrush}"
+                     VerticalAlignment="Center"
+                     FontSize="11"
+                     HorizontalAlignment="Left"
+                     Margin="8,0,0,0"
+                     IsHitTestVisible="False"
+                     IsVisible="False" />
+
+          <Border Grid.Column="3"
+                  x:Name="Border"
+                  Width="80"
+                  Height="20"
+                  Background="{DynamicResource PortValueBackgroundBrush}"
+                  BorderBrush="{DynamicResource PortValueBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Margin="20,0,0,0"
+                  IsHitTestVisible="False"
+                  IsVisible="False">
+            <TextBlock Text="{Binding Port.Value, RelativeSource={RelativeSource TemplatedParent}}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="11"
+                       Foreground="{DynamicResource PortValueForegroundBrush}" />
+          </Border>
+
+
+          <!-- Tooltip showing type -->
+          <ToolTip.Tip>
+            <TextBlock Text="{Binding Port.TypeName, RelativeSource={RelativeSource TemplatedParent}}" />
+          </ToolTip.Tip>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+
+    <Style Selector="^:pointerover /template/ Ellipse">
+      <Setter Property="Fill" Value="{DynamicResource PortHoverFillBrush}" />
+    </Style>
+
+    <!-- Highlighted state: fill like pointerover -->
+    <Style Selector="^[IsHighlighted=true] /template/ Ellipse">
+      <Setter Property="Fill" Value="{DynamicResource PortHoverFillBrush}" />
+    </Style>
+
+    <!-- Direction=Left: ポートが左側なので、テキストは右側に表示 -->
+    <Style Selector="^[Direction=Left] /template/ TextBlock#RightText">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="^[Direction=Left] /template/ Border#Border">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!-- Direction=Right: ポートが右側なので、テキストは左側に表示 -->
+    <Style Selector="^[Direction=Right] /template/ TextBlock#LeftText">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

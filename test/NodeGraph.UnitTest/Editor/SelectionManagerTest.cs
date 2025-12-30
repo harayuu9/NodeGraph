@@ -1,4 +1,4 @@
-using NodeGraph.Editor.Selection;
+using NodeGraph.App.Selection;
 
 namespace NodeGraph.UnitTest.Editor;
 
