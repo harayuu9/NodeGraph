@@ -1,5 +1,6 @@
 ﻿using System;
 using Avalonia;
+using NodeGraph.App.Utility;
 
 namespace NodeGraph.App.Desktop;
 
@@ -16,6 +17,6 @@ sealed class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .WithInterFont()
+            .WithNotoSansJPFont()
             .LogToTrace();
 }
