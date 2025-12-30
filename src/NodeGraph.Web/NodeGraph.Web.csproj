@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0-browser</TargetFramework>
+        <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+        <!-- AOT Compilation for production -->
+        <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.3.10" />
+        <PackageReference Include="Avalonia.Browser" Version="11.3.10" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.10" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NodeGraph.Editor\NodeGraph.Editor.csproj" />
+    </ItemGroup>
+
+    <!-- Copy wwwroot contents to AppBundle -->
+    <ItemGroup>
+        <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <Target Name="CopyWwwrootToAppBundle" AfterTargets="Build">
+        <ItemGroup>
+            <WwwrootFiles Include="wwwroot\**\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(WwwrootFiles)"
+              DestinationFiles="@(WwwrootFiles->'$(OutputPath)$(RuntimeIdentifier)\AppBundle\%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+</Project>

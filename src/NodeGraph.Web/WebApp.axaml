@@ -1,0 +1,18 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="using:NodeGraph.Editor.Converters"
+             x:Class="NodeGraph.Web.WebApp"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <converters:TypeToColorConverter x:Key="TypeToColorConverter" />
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- NodeGraph Editor themes -->
+        <StyleInclude Source="avares://NodeGraph.Editor/Themes/NodeGraphEditorTheme.axaml" />
+        <StyleInclude Source="avares://NodeGraph.Editor/Themes/SvgPath.axaml" />
+    </Application.Styles>
+</Application>

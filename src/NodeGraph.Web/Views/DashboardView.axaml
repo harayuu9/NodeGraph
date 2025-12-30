@@ -1,0 +1,150 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NodeGraph.Web.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="NodeGraph.Web.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <Grid ColumnDefinitions="300,*" Margin="16">
+        <!-- Left Panel: Graph List -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                CornerRadius="8"
+                Padding="16"
+                Margin="0,0,8,0">
+            <Grid RowDefinitions="Auto,Auto,*">
+                <TextBlock Grid.Row="0"
+                           Text="Graphs"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,16" />
+
+                <StackPanel Grid.Row="1" Spacing="8" Margin="0,0,0,16">
+                    <Button Content="+ New Graph"
+                            Command="{Binding NewGraphCommand}"
+                            HorizontalAlignment="Stretch"
+                            Classes="accent" />
+                    <Button Content="Upload Graph"
+                            Command="{Binding UploadGraphCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Content="Refresh"
+                            Command="{Binding LoadGraphsCommand}"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding Graphs}"
+                         SelectedItem="{Binding SelectedGraph}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="vm:GraphItemViewModel">
+                            <Border Padding="8"
+                                    Margin="0,4"
+                                    Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                                    CornerRadius="4">
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <TextBlock Grid.Row="0"
+                                               Text="{Binding Name}"
+                                               FontWeight="SemiBold" />
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Opacity="0.7">
+                                        <TextBlock Text="{Binding NodeCount, StringFormat='{}{0} nodes'}" FontSize="11" />
+                                        <TextBlock Text="|" FontSize="11" />
+                                        <TextBlock Text="{Binding LastModified, StringFormat='{}{0:yyyy/MM/dd HH:mm}'}" FontSize="11" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Right Panel: Details & Actions -->
+        <Border Grid.Column="1"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                CornerRadius="8"
+                Padding="24"
+                Margin="8,0,0,0">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Row="0"
+                           Text="Graph Details"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,24" />
+
+                <!-- No Selection -->
+                <StackPanel Grid.Row="1"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            IsVisible="{Binding SelectedGraph, Converter={x:Static ObjectConverters.IsNull}}">
+                    <TextBlock Text="Select a graph from the list"
+                               FontSize="16"
+                               Opacity="0.5"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="or create a new one"
+                               FontSize="14"
+                               Opacity="0.4"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+
+                <!-- Graph Details -->
+                <StackPanel Grid.Row="1"
+                            IsVisible="{Binding SelectedGraph, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Spacing="16">
+                    <StackPanel>
+                        <TextBlock Text="Name" FontWeight="SemiBold" Opacity="0.7" />
+                        <TextBlock Text="{Binding SelectedGraph.Name}" FontSize="24" />
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock Text="Statistics" FontWeight="SemiBold" Opacity="0.7" />
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Nodes:" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedGraph.NodeCount}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Connections:" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedGraph.ConnectionCount}" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock Text="Last Modified" FontWeight="SemiBold" Opacity="0.7" />
+                        <TextBlock Text="{Binding SelectedGraph.LastModified, StringFormat='{}{0:yyyy/MM/dd HH:mm:ss}'}"
+                                   FontSize="14"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            HorizontalAlignment="Right"
+                            IsVisible="{Binding SelectedGraph, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Button Content="Edit"
+                            Command="{Binding EditGraphCommand}"
+                            CommandParameter="{Binding SelectedGraph}"
+                            Classes="accent" />
+                    <Button Content="Download"
+                            Command="{Binding DownloadGraphCommand}"
+                            CommandParameter="{Binding SelectedGraph}" />
+                    <Button Content="Delete"
+                            Command="{Binding DeleteGraphCommand}"
+                            CommandParameter="{Binding SelectedGraph}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Border Grid.ColumnSpan="2"
+                Background="#80000000"
+                IsVisible="{Binding IsLoading}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" />
+                <TextBlock Text="Loading..." HorizontalAlignment="Center" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

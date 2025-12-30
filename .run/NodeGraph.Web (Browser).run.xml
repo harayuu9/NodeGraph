@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="NodeGraph.Web (Browser)" type="CompoundRunConfigurationType">
+    <toRun name="NodeGraph.Web - Build" type="DotNetProject" />
+    <toRun name="NodeGraph.Web - Serve" type="ShConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
