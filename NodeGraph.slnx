@@ -1,13 +1,26 @@
 <Solution>
-    <Folder Name="/src/">
-        <Project Path="src/NodeGraph.Model/NodeGraph.Model.csproj" Type="C#" />
-        <Project Path="src/NodeGraph/NodeGraph.csproj" />
-        <Project Path="src\NodeGraph.Editor\NodeGraph.Editor.csproj" Type="C#" />
-        <Project Path="src\NodeGraph.Generator\NodeGraph.Generator.csproj" Type="C#" />
-        <Project Path="src\NodeGraph.Sandbox\NodeGraph.Sandbox.csproj" Type="C#" />
+    <Folder Name="/Solution Items/">
+        <File Path="Directory.Packages.props" />
     </Folder>
+    
+    <Folder Name="/src/">
+        <Project Path="src/NodeGraph.Model/NodeGraph.Model.csproj"/>
+        <Project Path="src/NodeGraph/NodeGraph.csproj"/>
+        <Project Path="src/NodeGraph.Editor/NodeGraph.Editor.csproj"/>
+        <Project Path="src/NodeGraph.Generator/NodeGraph.Generator.csproj"/>
+    </Folder>
+    <Folder Name="/src/app/">
+        <Project Path="src/NodeGraph.Sandbox/NodeGraph.Sandbox.csproj"/>
+
+        <Project Path="src/NodeGraph.App/NodeGraph.App.Android/NodeGraph.App.Android.csproj" />
+        <Project Path="src/NodeGraph.App/NodeGraph.App.Browser/NodeGraph.App.Browser.csproj" />
+        <Project Path="src/NodeGraph.App/NodeGraph.App.Desktop/NodeGraph.App.Desktop.csproj" />
+        <Project Path="src/NodeGraph.App/NodeGraph.App.iOS/NodeGraph.App.iOS.csproj" />
+        <Project Path="src/NodeGraph.App/NodeGraph.App/NodeGraph.App.csproj" />
+    </Folder>
+
     <Folder Name="/test/">
-        <Project Path="test\NodeGraph.UnitTest\NodeGraph.UnitTest.csproj" Type="C#" />
-        <Project Path="test\NodeGraph.SamplePlugin\NodeGraph.SamplePlugin.csproj" Type="C#" />
+        <Project Path="test/NodeGraph.UnitTest/NodeGraph.UnitTest.csproj"/>
+        <Project Path="test/NodeGraph.SamplePlugin/NodeGraph.SamplePlugin.csproj"/>
     </Folder>
 </Solution>

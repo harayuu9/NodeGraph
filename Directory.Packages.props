@@ -1,0 +1,39 @@
+<Project>
+  <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Avalonia packages -->
+    <!-- Important: keep version in sync! -->
+    <PackageVersion Include="Avalonia" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Desktop" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.iOS" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Browser" Version="11.3.10" />
+    <PackageVersion Include="Avalonia.Android" Version="11.3.10" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0" />
+
+    <!-- NodeGraph.Model packages -->
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.1.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.1.1-preview.1.25612.2" />
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.1" />
+
+    <!-- NodeGraph.Generator packages -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" />
+    <PackageVersion Include="PolySharp" Version="1.15.0" />
+
+    <!-- NodeGraph.Editor packages -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+
+    <!-- Test packages -->
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+</Project>
