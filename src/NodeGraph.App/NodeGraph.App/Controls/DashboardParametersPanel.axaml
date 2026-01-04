@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NodeGraph.App.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="250" d:DesignHeight="200"
+             x:Class="NodeGraph.App.Controls.DashboardParametersPanel"
+             x:DataType="vm:DashboardViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- ヘッダー -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+            Padding="10,8">
+      <TextBlock Text="Parameters"
+                 FontWeight="SemiBold"
+                 VerticalAlignment="Center" />
+    </Border>
+
+    <!-- パラメータ一覧 -->
+    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="8">
+      <ItemsControl ItemsSource="{Binding Parameters}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ParameterItemViewModel">
+            <Grid ColumnDefinitions="*,*"
+                  Margin="0,4">
+              <!-- パラメータ名 -->
+              <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Text="{Binding Name}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,4,0"
+                           TextTrimming="CharacterEllipsis" />
+                <!-- 環境変数マーク -->
+                <TextBlock Text="(env)"
+                           FontSize="10"
+                           Opacity="0.6"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding IsFromEnvironment}" />
+              </StackPanel>
+
+              <!-- パラメータ値 -->
+              <TextBox Grid.Column="1"
+                       Text="{Binding Value, Mode=TwoWay}"
+                       IsReadOnly="{Binding IsFromEnvironment}"
+                       VerticalAlignment="Center"
+                       Padding="6,4" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

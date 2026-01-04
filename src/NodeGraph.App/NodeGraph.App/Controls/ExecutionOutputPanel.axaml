@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NodeGraph.App.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="150"
+             x:Class="NodeGraph.App.Controls.ExecutionOutputPanel"
+             x:DataType="vm:DashboardViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- ヘッダー: 実行ボタン、ステータス、クリアボタン -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+            Padding="10,6">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <!-- 実行ボタン -->
+        <Button Grid.Column="0"
+                Command="{Binding ExecuteGraphCommand}"
+                IsEnabled="{Binding !IsExecuting}"
+                Padding="12,6"
+                Margin="0,0,12,0">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="▶" />
+            <TextBlock Text="Execute" />
+          </StackPanel>
+        </Button>
+
+        <!-- ステータス表示 -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="Status: "
+                     Opacity="0.7" />
+          <TextBlock Text="{Binding ExecutionStatus}"
+                     FontWeight="SemiBold" />
+        </StackPanel>
+
+        <!-- グラフ名 -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+          <TextBlock Text="Graph: "
+                     Opacity="0.7" />
+          <TextBox Text="{Binding CurrentGraphName, Mode=TwoWay}"
+                   MinWidth="150"
+                   Padding="6,2"
+                   VerticalAlignment="Center" />
+          <Button Content="Save"
+                  Command="{Binding SaveGraphCommand}"
+                  Padding="8,4"
+                  Margin="8,0,0,0" />
+        </StackPanel>
+
+        <!-- クリアボタン -->
+        <Button Grid.Column="3"
+                Content="Clear"
+                Command="{Binding ClearOutputCommand}"
+                Padding="8,4" />
+      </Grid>
+    </Border>
+
+    <!-- 出力ログ -->
+    <Border Grid.Row="1"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            Padding="8">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding OutputLines}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}"
+                         FontFamily="Consolas, Menlo, monospace"
+                         FontSize="12"
+                         Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

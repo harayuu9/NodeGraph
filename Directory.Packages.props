@@ -30,6 +30,13 @@
     <!-- NodeGraph.Editor packages -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
 
+    <!-- NodeGraph.Api packages (ASP.NET Core + EF Core) -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.5" />
+
+    <!-- HttpClient packages for API communication -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.1" />
+
     <!-- Test packages -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />

@@ -9,16 +9,15 @@ public static class AppBuilderExtension
 {
     public static AppBuilder WithNotoSansJPFont(this AppBuilder appBuilder)
     {
-        appBuilder.ConfigureFonts(fontManager =>
-        {
-            fontManager.AddFontCollection(new EmbeddedFontCollection(
-                new Uri("fonts:Noto Sans JP", UriKind.Absolute),
-                new Uri("avares://NodeGraph.App/Assets/Fonts", UriKind.Absolute)));
-        });
-
+        // Interフォントをデフォルトとして使用（WASM環境での互換性のため）
+        // Noto Sans JPはフォールバックとして設定
         appBuilder.With(new FontManagerOptions
         {
-            DefaultFamilyName = "Noto Sans JP",
+            DefaultFamilyName = "avares://Avalonia.Fonts.Inter/Assets#Inter",
+            FontFallbacks =
+            [
+                new FontFallback { FontFamily = new FontFamily("avares://NodeGraph.App/Assets/Fonts#Noto Sans JP") }
+            ]
         });
 
         return appBuilder;

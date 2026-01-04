@@ -4,113 +4,112 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:NodeGraph.App.Controls"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="NodeGraph.App.Views.MainView"
-             x:DataType="vm:MainWindowViewModel">
+             x:DataType="vm:DashboardViewModel">
 
   <Design.DataContext>
-    <vm:MainWindowViewModel />
+    <vm:DashboardViewModel />
   </Design.DataContext>
 
-  <Grid>
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-    </Grid.RowDefinitions>
+  <Grid RowDefinitions="Auto,*">
+    <!-- ヘッダーバー -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource WindowHeaderBackgroundBrush}"
+            Padding="10,8">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <!-- タイトル -->
+        <TextBlock Grid.Column="0"
+                   Text="NodeGraph"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   VerticalAlignment="Center" />
 
-    <!-- メニューバー -->
-    <Menu Grid.Row="0">
-      <MenuItem Header="_File">
-        <MenuItem Header="_New" Command="{Binding NewCommand}" InputGesture="Ctrl+N" />
-        <MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O" />
-        <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
-        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
-        <Separator />
-        <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
-      </MenuItem>
-      <MenuItem Header="_Edit">
-        <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
-        <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
-      </MenuItem>
-      <MenuItem Header="_View">
-        <MenuItem Header="_Inspector" Command="{Binding ToggleInspectorCommand}" InputGesture="Ctrl+I">
-          <MenuItem.Icon>
-            <CheckBox IsChecked="{Binding IsInspectorVisible}" BorderThickness="0" IsHitTestVisible="False" />
-          </MenuItem.Icon>
-        </MenuItem>
-        <Separator />
-        <MenuItem Header="_Execution History" Command="{Binding OpenExecutionHistoryCommand}" InputGesture="Ctrl+H" />
-      </MenuItem>
-    </Menu>
+        <!-- 操作説明 -->
+        <TextBlock Grid.Column="1"
+                   Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
+                   Foreground="{DynamicResource WindowInfoForegroundBrush}"
+                   VerticalAlignment="Center"
+                   Margin="20,0,0,0" />
 
-    <!-- ヘッダー -->
-    <Border Grid.Row="1" Background="{DynamicResource WindowHeaderBackgroundBrush}" Padding="10">
-      <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
-          <TextBlock Text="GraphControl テスト"
-                     FontSize="16"
-                     FontWeight="Bold"
-                     VerticalAlignment="Center" />
-          <TextBlock Text="中ボタン/右ボタンでドラッグ移動 | マウスホイールでズーム"
-                     Foreground="{DynamicResource WindowInfoForegroundBrush}"
-                     VerticalAlignment="Center" />
-        </StackPanel>
-
-        <!-- テーマ切り替え -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-          <Button Content="Parameters"
-                  Command="{Binding OpenParametersCommand}"
+        <!-- 右側ボタン -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Content="Undo"
+                  Command="{Binding UndoCommand}"
                   Padding="8,4" />
-          <Button Content="Execute"
-                  Command="{Binding ExecuteGraphCommand}"
+          <Button Content="Redo"
+                  Command="{Binding RedoCommand}"
                   Padding="8,4" />
-          <Button Content="Copy Mermaid"
-                  Command="{Binding CopyMermaidToClipboardCommand}"
+          <Button Content="Toggle Panel"
+                  Command="{Binding ToggleLeftPanelCommand}"
                   Padding="8,4"
-                  Margin="0,0,15,0" />
-          <TextBlock Text="テーマ:" VerticalAlignment="Center" Margin="0,0,5,0" />
-          <Button Content="Default"
-                  Command="{Binding SwitchThemeCommand}"
-                  CommandParameter="Default"
-                  IsEnabled="{Binding !IsDefaultTheme}"
-                  Padding="8,4" />
-          <Button Content="Light"
-                  Command="{Binding SwitchThemeCommand}"
-                  CommandParameter="Light"
-                  IsEnabled="{Binding !IsLightTheme}"
-                  Padding="8,4" />
-          <Button Content="Dark"
-                  Command="{Binding SwitchThemeCommand}"
-                  CommandParameter="Dark"
-                  IsEnabled="{Binding !IsDarkTheme}"
-                  Padding="8,4" />
+                  ToolTip.Tip="Toggle Left Panel" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- メインコンテンツ (GraphControl + Inspector) -->
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
-      <!-- GraphControl -->
-      <controls:GraphControl Grid.Column="0"
-                             Graph="{Binding TestGraph}"
-                             UndoRedoManager="{Binding UndoRedoManager}"
-                             Background="{DynamicResource GraphBackgroundBrush}" />
+    <!-- メインコンテンツ -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*">
 
-      <!-- スプリッター -->
+      <!-- 左パネル (グラフ一覧 + パラメータ) -->
+      <Grid Grid.Column="0"
+            Width="250"
+            RowDefinitions="*,5,Auto"
+            IsVisible="{Binding IsLeftPanelVisible}">
+        <!-- グラフ一覧 -->
+        <controls:GraphListControl Grid.Row="0" />
+
+        <!-- スプリッター -->
+        <GridSplitter Grid.Row="1"
+                      Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+
+        <!-- パラメータパネル -->
+        <controls:DashboardParametersPanel Grid.Row="2"
+                                           MinHeight="150"
+                                           MaxHeight="300" />
+      </Grid>
+
+      <!-- 垂直スプリッター -->
       <GridSplitter Grid.Column="1"
-                    Width="5"
                     Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    IsVisible="{Binding IsInspectorVisible}" />
+                    IsVisible="{Binding IsLeftPanelVisible}" />
 
-      <!-- Inspector Panel -->
-      <Border Grid.Column="2"
-              Width="280"
-              Background="{DynamicResource WindowHeaderBackgroundBrush}"
-              IsVisible="{Binding IsInspectorVisible}">
-        <controls:InspectorControl DataContext="{Binding InspectorViewModel}" />
-      </Border>
+      <!-- 右パネル (グラフエディタ + 出力) -->
+      <Grid Grid.Column="2" RowDefinitions="*,5,Auto">
+        <!-- グラフエディタ -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+          <!-- GraphControl -->
+          <controls:GraphControl Grid.Column="0"
+                                 Graph="{Binding CurrentGraph}"
+                                 UndoRedoManager="{Binding UndoRedoManager}"
+                                 Background="{DynamicResource GraphBackgroundBrush}" />
+
+          <!-- Inspector スプリッター (将来用) -->
+          <GridSplitter Grid.Column="1"
+                        Width="5"
+                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        IsVisible="False" />
+
+          <!-- Inspector Panel (将来用) -->
+          <Border Grid.Column="2"
+                  Width="280"
+                  Background="{DynamicResource WindowHeaderBackgroundBrush}"
+                  IsVisible="False">
+            <controls:InspectorControl DataContext="{Binding InspectorViewModel}" />
+          </Border>
+        </Grid>
+
+        <!-- 水平スプリッター -->
+        <GridSplitter Grid.Row="1"
+                      Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                      IsVisible="{Binding IsOutputPanelVisible}" />
+
+        <!-- 実行出力パネル -->
+        <controls:ExecutionOutputPanel Grid.Row="2"
+                                       MinHeight="100"
+                                       MaxHeight="250"
+                                       IsVisible="{Binding IsOutputPanelVisible}" />
+      </Grid>
     </Grid>
   </Grid>
-
 </UserControl>

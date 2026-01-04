@@ -15,6 +15,9 @@
         <Project Path="src/NodeGraph.App/NodeGraph.App.iOS/NodeGraph.App.iOS.csproj" />
         <Project Path="src/NodeGraph.App/NodeGraph.App/NodeGraph.App.csproj" />
     </Folder>
+    <Folder Name="/src/api/">
+        <Project Path="src/NodeGraph.Api/NodeGraph.Api.csproj" />
+    </Folder>
 
     <Folder Name="/test/">
         <Project Path="test/NodeGraph.UnitTest/NodeGraph.UnitTest.csproj"/>

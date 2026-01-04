@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
@@ -35,10 +37,15 @@ public class App : Application
             // DIコンテナのセットアップ
             Services = ConfigureServices();
 
+            var dashboardViewModel = Services.GetRequiredService<DashboardViewModel>();
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = Services.GetRequiredService<MainWindowViewModel>()
+                DataContext = dashboardViewModel
             };
+
+            // 保存済みグラフ一覧を非同期で読み込み
+            _ = dashboardViewModel.LoadSavedGraphsAsync();
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
@@ -46,10 +53,15 @@ public class App : Application
             DisableAvaloniaDataAnnotationValidation();
             Services = ConfigureServices();
 
+            var dashboardViewModel = Services.GetRequiredService<DashboardViewModel>();
+
             singleViewPlatform.MainView = new MainView
             {
-                DataContext = Services.GetRequiredService<MainWindowViewModel>()
+                DataContext = dashboardViewModel
             };
+
+            // 保存済みグラフ一覧を非同期で読み込み
+            _ = dashboardViewModel.LoadSavedGraphsAsync();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -66,8 +78,23 @@ public class App : Application
         services.AddSingleton<UndoRedoManager>();
         services.AddSingleton<CommonParameterService>();
 
+        // プラットフォーム別のストレージサービスを登録
+        if (OperatingSystem.IsBrowser())
+        {
+            // ブラウザ環境ではAPIを使用してデータを永続化
+            // WASM環境では直接HttpClientを作成して登録
+            var apiBaseUrl = "http://localhost:5000/";
+            var httpClient = new HttpClient { BaseAddress = new Uri(apiBaseUrl) };
+            services.AddSingleton<IGraphStorageService>(new ApiGraphStorageService(httpClient));
+        }
+        else
+        {
+            services.AddSingleton<IGraphStorageService, FileSystemGraphStorageService>();
+        }
+
         // ViewModelsを登録
         services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<DashboardViewModel>();
 
         return services.BuildServiceProvider();
     }
